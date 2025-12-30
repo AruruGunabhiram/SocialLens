@@ -1,6 +1,22 @@
-__pycache__/
+# Environment
 .env
-venv/
 .env.local
-*.pyc
 
+# Java
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Maven
+.mvn/
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
