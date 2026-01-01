@@ -1,3 +1,7 @@
-public class UserRepository {
-    
+package com.LogicGraph.sociallens.repository;
+
+import com.LogicGraph.sociallens.entity.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface UserRepository extends JpaRepository<User, Long> {
 }

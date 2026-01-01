@@ -1,3 +1,6 @@
-public class Platform {
-    
+package com.LogicGraph.sociallens.enums;
+
+public enum Platform {
+    YOUTUBE,
+    INSTAGRAM
 }
