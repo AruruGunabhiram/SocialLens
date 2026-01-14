@@ -1,10 +1,14 @@
 package com.LogicGraph.sociallens.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 import java.time.Instant;
 
 @Entity
 @Table(name = "youtube_channel")
+@Getter
+@Setter
 public class YouTubeChannel {
 
     @Id
@@ -24,8 +28,4 @@ public class YouTubeChannel {
 
     private String country;
     private String thumbnailUrl;
-
-    public Long getId() { return id; }
-    public String getChannelId() { return channelId; }
-    public void setChannelId(String channelId) { this.channelId = channelId; }
 }

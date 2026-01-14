@@ -12,15 +12,29 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // Allow H2 console without CSRF issues
-            .csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**"))
-            // H2 console uses frames
+            // ✅ For development APIs + Swagger, disable CSRF
+            .csrf(csrf -> csrf.disable())
+
+            // ✅ Allow H2 console to render in browser
             .headers(headers -> headers.frameOptions(frame -> frame.disable()))
-            .cors(Customizer.withDefaults())
+
+            // ✅ Allow all requests (DEV ONLY)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/h2-console/**").permitAll()
+                .requestMatchers(
+                    "/health",
+                    "/h2-console/**",
+                    "/v3/api-docs/**",
+                    "/swagger-ui/**",
+                    "/swagger-ui.html",
+                    "/youtube/**",
+                    "/users/**",
+                    "/accounts/**"
+                ).permitAll()
                 .anyRequest().permitAll()
-            );
+            )
+
+            // optional
+            .httpBasic(Customizer.withDefaults());
 
         return http.build();
     }
