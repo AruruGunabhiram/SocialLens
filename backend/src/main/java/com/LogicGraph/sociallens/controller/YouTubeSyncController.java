@@ -6,8 +6,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-@RestController
-@RequestMapping("/youtube")
+// @RestController
+// @RequestMapping("/youtube")
 public class YouTubeSyncController {
 
     private final YouTubeSyncService syncService;
