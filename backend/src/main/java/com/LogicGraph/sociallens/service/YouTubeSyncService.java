@@ -13,7 +13,7 @@ import com.LogicGraph.sociallens.service.channel.ChannelResolver;
 import com.LogicGraph.sociallens.service.channel.ResolvedChannelIdentifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.LogicGraph.sociallens.exception.NotFoundException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -48,12 +48,21 @@ public class YouTubeSyncService {
         System.out.println(">>> SYNC START identifier=" + identifier);
 
         // 1) Resolve identifier -> (type,value)
-        ResolvedChannelIdentifier resolved = channelResolver.resolve(identifier);
-        System.out.println(">>> RESOLVED type=" + resolved.getType() + " value=" + resolved.getValue());
+        ResolvedChannelIdentifier resolved;
+        try {
+            resolved = channelResolver.resolve(identifier);
+        } catch (Exception e) {
+            throw new NotFoundException("Channel not found for identifier: " + identifier);
+        }
 
         // 2) Fetch channel details (one API call)
-        ChannelSummaryDto dto = youTubeService.getChannelSummary(resolved);
-        System.out.println(">>> API OK title=" + dto.title + " channelId=" + dto.channelId);
+        ChannelSummaryDto dto;
+        try {
+            dto = youTubeService.getChannelSummary(resolved);
+        } catch (Exception e) {
+            // if your YouTubeService already throws NotFoundException, great.
+            throw e;
+        }
 
         // 3) Upsert channel (single helper, no duplicate code)
         YouTubeChannel savedChannel = upsertChannel(dto);

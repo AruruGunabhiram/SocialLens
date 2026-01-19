@@ -1,8 +1,9 @@
 package com.LogicGraph.sociallens.exception;
 
-public class ErrorResponse {
+import java.time.Instant;
 
-    private String message;
+public class ErrorResponse {
+    private final String message;
 
     public ErrorResponse(String message) {
         this.message = message;

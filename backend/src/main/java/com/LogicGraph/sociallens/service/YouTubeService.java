@@ -6,7 +6,6 @@ import com.LogicGraph.sociallens.dto.youtube.YouTubeChannelResponse;
 import com.LogicGraph.sociallens.dto.youtube.YouTubePlaylistItemsResponse;
 import com.LogicGraph.sociallens.dto.youtube.YouTubeSyncRequestDto;
 import com.LogicGraph.sociallens.dto.youtube.YouTubeSyncResponseDto;
-import com.LogicGraph.sociallens.service.channel.ChannelIdentifierType;
 import com.LogicGraph.sociallens.service.channel.ResolvedChannelIdentifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
-
+import com.LogicGraph.sociallens.exception.RateLimitException;
+import org.springframework.web.client.HttpServerErrorException;
+import com.LogicGraph.sociallens.exception.NotFoundException;
 import java.net.URI;
 import java.time.Instant;
 import java.util.List;
@@ -27,34 +28,37 @@ public class YouTubeService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    /**
-     * API key validation (single source of truth).
-     */
+    // 1) validation helpers
     private void validateApiKey() {
         if (apiKey == null || apiKey.isBlank()) {
             throw new IllegalStateException("Missing YOUTUBE_API_KEY environment variable");
         }
     }
 
-    /**
-     * Entry point for fetching channel summary.
-     */
-    public ChannelSummaryDto getChannelSummary(ResolvedChannelIdentifier resolved) {
-        if (resolved == null) {
-            throw new IllegalArgumentException("ResolvedChannelIdentifier cannot be null");
-        }
+    // 2) ADD THIS METHOD HERE
+    private <T> T ytGet(String url, Class<T> clazz) {
+        try {
+            return restTemplate.getForObject(url, clazz);
+        } catch (HttpClientErrorException e) {
+            String body = e.getResponseBodyAsString() == null ? "" : e.getResponseBodyAsString();
 
-        if (resolved.getType() == ChannelIdentifierType.CHANNEL_ID) {
-            return getChannelSummaryByChannelId(resolved.getValue());
-        }
+            if (body.contains("quotaExceeded")
+                    || body.contains("rateLimitExceeded")
+                    || body.contains("userRateLimitExceeded")) {
+                throw new RateLimitException(
+                        "YouTube API quota/rate limit exceeded. Try again later.", e);
+            }
 
-        // HANDLE / HANDLE_URL / RAW_HANDLE
-        return getChannelSummaryByHandle(resolved.getValue());
+            throw new RuntimeException(
+                    "YouTube API error: " + e.getStatusCode() + " - " + body, e);
+
+        } catch (HttpServerErrorException e) {
+            throw new RuntimeException(
+                    "YouTube API server error: " + e.getStatusCode(), e);
+        }
     }
 
-    /**
-     * Fetch channel summary using a YouTube handle.
-     */
+    // 3) public API methods use ytGet(...)
     public ChannelSummaryDto getChannelSummaryByHandle(String handle) {
         validateApiKey();
 
@@ -65,17 +69,11 @@ public class YouTubeService {
                 .queryParam("key", apiKey)
                 .toUriString();
 
-        try {
-            YouTubeChannelResponse body = restTemplate.getForObject(url, YouTubeChannelResponse.class);
+        YouTubeChannelResponse body = ytGet(url, YouTubeChannelResponse.class);
 
-            return toChannelSummaryDto(body,
-                    "No channel found for handle: " + handle);
-
-        } catch (HttpClientErrorException e) {
-            throw new RuntimeException(
-                    "YouTube API error: " + e.getStatusCode() + " - " + e.getResponseBodyAsString(),
-                    e);
-        }
+        return toChannelSummaryDto(
+                body,
+                "No channel found for handle: " + handle);
     }
 
     /**
@@ -91,17 +89,9 @@ public class YouTubeService {
                 .queryParam("key", apiKey)
                 .toUriString();
 
-        try {
-            YouTubeChannelResponse body = restTemplate.getForObject(url, YouTubeChannelResponse.class);
+        YouTubeChannelResponse body = ytGet(url, YouTubeChannelResponse.class);
+        return toChannelSummaryDto(body, "No channel found for channelId: " + channelId);
 
-            return toChannelSummaryDto(body,
-                    "No channel found for channelId: " + channelId);
-
-        } catch (HttpClientErrorException e) {
-            throw new RuntimeException(
-                    "YouTube API error: " + e.getStatusCode() + " - " + e.getResponseBodyAsString(),
-                    e);
-        }
     }
 
     // So pagination logic stays clean and readable.
@@ -116,7 +106,7 @@ public class YouTubeService {
                 .queryParam("key", apiKey)
                 .toUriString();
 
-        YouTubeChannelResponse body = restTemplate.getForObject(url, YouTubeChannelResponse.class);
+        YouTubeChannelResponse body = ytGet(url, YouTubeChannelResponse.class);
 
         if (body == null || body.items == null || body.items.isEmpty()) {
             throw new RuntimeException("No channel found for channelId: " + channelId);
@@ -141,7 +131,8 @@ public class YouTubeService {
             YouTubeChannelResponse body,
             String notFoundMessage) {
         if (body == null || body.items == null || body.items.isEmpty()) {
-            throw new RuntimeException(notFoundMessage);
+            throw new NotFoundException(notFoundMessage);
+
         }
 
         var item = body.items.get(0);
@@ -222,10 +213,28 @@ public class YouTubeService {
     }
 
     /**
+     * Dispatch summary fetch based on resolved identifier type.
+     */
+    public ChannelSummaryDto getChannelSummary(ResolvedChannelIdentifier resolved) {
+        if (resolved == null) {
+            throw new IllegalArgumentException("resolved cannot be null");
+        }
+
+        return switch (resolved.getType()) {
+            case HANDLE -> getChannelSummaryByHandle(resolved.getValue());
+            case CHANNEL_ID -> getChannelSummaryByChannelId(resolved.getValue());
+            default -> throw new IllegalArgumentException("Unsupported identifier type: " + resolved.getType());
+        };
+    }
+
+    /**
      * Fetch one page of uploads playlist items (video IDs + nextPageToken).
      */
-    public YouTubePlaylistItemsResponse getUploadsVideoIdsPage(String uploadsPlaylistId, String pageToken,
+    public YouTubePlaylistItemsResponse getUploadsVideoIdsPage(
+            String uploadsPlaylistId,
+            String pageToken,
             int maxResults) {
+
         validateApiKey();
 
         UriComponentsBuilder builder = UriComponentsBuilder
@@ -241,14 +250,43 @@ public class YouTubeService {
 
         URI uri = builder.build(true).toUri();
 
-        ResponseEntity<YouTubePlaylistItemsResponse> resp = restTemplate.getForEntity(uri,
-                YouTubePlaylistItemsResponse.class);
+        ResponseEntity<YouTubePlaylistItemsResponse> resp = ytGetEntity(uri, YouTubePlaylistItemsResponse.class);
 
         YouTubePlaylistItemsResponse body = resp.getBody();
         if (body == null) {
             throw new RuntimeException("YouTube API returned empty playlistItems response");
         }
+
         return body;
+    }
+
+    /**
+     * Centralized YouTube GET (ResponseEntity).
+     */
+    private <T> ResponseEntity<T> ytGetEntity(URI uri, Class<T> clazz) {
+        try {
+            return restTemplate.getForEntity(uri, clazz);
+        } catch (HttpClientErrorException e) {
+            handleClientError(e);
+            throw e; // unreachable but keeps compiler happy
+        } catch (HttpServerErrorException e) {
+            throw new RuntimeException("YouTube API server error: " + e.getStatusCode(), e);
+        }
+    }
+
+    /**
+     * Shared client-side error mapping.
+     */
+    private void handleClientError(HttpClientErrorException e) {
+        String body = e.getResponseBodyAsString() == null ? "" : e.getResponseBodyAsString();
+
+        if (body.contains("quotaExceeded")
+                || body.contains("rateLimitExceeded")
+                || body.contains("userRateLimitExceeded")) {
+            throw new RateLimitException("YouTube API quota/rate limit exceeded. Try again later.", e);
+        }
+
+        throw new RuntimeException("YouTube API error: " + e.getStatusCode() + " - " + body, e);
     }
 
     /**
