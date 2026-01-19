@@ -9,4 +9,7 @@ public interface YouTubeChannelRepository
         extends JpaRepository<YouTubeChannel, Long> {
 
     Optional<YouTubeChannel> findByChannelId(String channelId);
+
+    Optional<YouTubeChannel> findByHandle(String handle);
+
 }

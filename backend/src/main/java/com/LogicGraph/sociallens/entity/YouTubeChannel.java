@@ -8,7 +8,10 @@ import lombok.NoArgsConstructor;
 
 @NoArgsConstructor
 @Entity
-@Table(name = "youtube_channel")
+@Table(name = "youtube_channel", indexes = {
+        @Index(name = "idx_youtube_channel_channelId", columnList = "channelId"),
+        @Index(name = "idx_youtube_channel_handle", columnList = "handle")
+})
 @Getter
 @Setter
 public class YouTubeChannel {
