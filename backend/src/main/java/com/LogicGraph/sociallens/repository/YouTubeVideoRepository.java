@@ -12,4 +12,7 @@ public interface YouTubeVideoRepository
     Optional<YouTubeVideo> findByVideoId(String videoId);
 
     List<YouTubeVideo> findByChannel_ChannelId(String channelId);
+
+    List<YouTubeVideo> findAllByChannel_ChannelId(String channelId);
+
 }
