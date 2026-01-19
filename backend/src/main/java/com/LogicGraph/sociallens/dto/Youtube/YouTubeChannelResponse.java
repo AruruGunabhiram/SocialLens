@@ -4,12 +4,22 @@ import java.util.List;
 
 // Matches the outer YouTube API response for channels.list
 public class YouTubeChannelResponse {
+
     public List<Item> items;
 
     public static class Item {
         public String id;
         public Snippet snippet;
         public Statistics statistics;
+        public ContentDetails contentDetails;
+    }
+
+    public static class ContentDetails {
+        public RelatedPlaylists relatedPlaylists;
+    }
+
+    public static class RelatedPlaylists {
+        public String uploads; // THIS is the key field
     }
 
     public static class Snippet {

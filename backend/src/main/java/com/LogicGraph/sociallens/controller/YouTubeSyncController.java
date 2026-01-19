@@ -1,13 +1,13 @@
 package com.LogicGraph.sociallens.controller;
 
+import com.LogicGraph.sociallens.dto.youtube.YouTubeSyncRequestDto;
+import com.LogicGraph.sociallens.dto.youtube.YouTubeSyncResponseDto;
 import com.LogicGraph.sociallens.service.YouTubeSyncService;
-import org.springframework.http.ResponseEntity;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
-
-// @RestController
-// @RequestMapping("/youtube")
+@RestController
+@RequestMapping("/youtube")
 public class YouTubeSyncController {
 
     private final YouTubeSyncService syncService;
@@ -17,17 +17,7 @@ public class YouTubeSyncController {
     }
 
     @PostMapping("/sync")
-public ResponseEntity<?> sync(@RequestBody Map<String, String> body) {
-    String channelId = body.get("channelId");
-
-    if (channelId == null || channelId.isBlank()) {
-        return ResponseEntity.badRequest()
-                .body(Map.of("message", "channelId is required"));
+    public YouTubeSyncResponseDto sync(@Valid @RequestBody YouTubeSyncRequestDto request) {
+        return syncService.syncChannelOnly(request.getIdentifier());
     }
-
-    syncService.syncChannelByChannelId(channelId.trim());
-    return ResponseEntity.ok(Map.of("message", "Synced channel successfully"));
-}
-
-
 }
