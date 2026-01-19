@@ -34,7 +34,7 @@ public class YouTubeController {
 
     @PostMapping("/sync-old")
     public YouTubeSyncResponseDto syncChannel(@RequestBody YouTubeSyncRequestDto request) {
-        ResolvedChannelIdentifier resolved = channelResolver.resolve(request.identifier);
+        ResolvedChannelIdentifier resolved = channelResolver.resolve(request.getIdentifier());
         return youTubeService.syncChannel(resolved, request);
     }
 }

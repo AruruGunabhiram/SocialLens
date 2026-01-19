@@ -3,22 +3,38 @@ package com.LogicGraph.sociallens.service;
 import com.LogicGraph.sociallens.config.YouTubeConfig;
 import com.LogicGraph.sociallens.dto.youtube.ChannelSummaryDto;
 import com.LogicGraph.sociallens.dto.youtube.YouTubeChannelResponse;
+import com.LogicGraph.sociallens.dto.youtube.YouTubePlaylistItemsResponse;
 import com.LogicGraph.sociallens.dto.youtube.YouTubeSyncRequestDto;
 import com.LogicGraph.sociallens.dto.youtube.YouTubeSyncResponseDto;
 import com.LogicGraph.sociallens.service.channel.ChannelIdentifierType;
 import com.LogicGraph.sociallens.service.channel.ResolvedChannelIdentifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
 import java.time.Instant;
 import java.util.List;
 
 @Service
 public class YouTubeService {
 
+    @Value("${youtube.api.key}")
+    private String apiKey;
+
     private final RestTemplate restTemplate = new RestTemplate();
+
+    /**
+     * API key validation (single source of truth).
+     */
+    private void validateApiKey() {
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new IllegalStateException("Missing YOUTUBE_API_KEY environment variable");
+        }
+    }
 
     /**
      * Entry point for fetching channel summary.
@@ -44,14 +60,13 @@ public class YouTubeService {
 
         String url = UriComponentsBuilder
                 .fromHttpUrl(YouTubeConfig.BASE_URL + "/channels")
-                .queryParam("part", YouTubeConfig.CHANNEL_PARTS)
+                .queryParam("part", "snippet,statistics,contentDetails")
                 .queryParam("forHandle", handle)
-                .queryParam("key", YouTubeConfig.API_KEY)
+                .queryParam("key", apiKey)
                 .toUriString();
 
         try {
-            YouTubeChannelResponse body =
-                    restTemplate.getForObject(url, YouTubeChannelResponse.class);
+            YouTubeChannelResponse body = restTemplate.getForObject(url, YouTubeChannelResponse.class);
 
             return toChannelSummaryDto(body,
                     "No channel found for handle: " + handle);
@@ -59,8 +74,7 @@ public class YouTubeService {
         } catch (HttpClientErrorException e) {
             throw new RuntimeException(
                     "YouTube API error: " + e.getStatusCode() + " - " + e.getResponseBodyAsString(),
-                    e
-            );
+                    e);
         }
     }
 
@@ -72,14 +86,13 @@ public class YouTubeService {
 
         String url = UriComponentsBuilder
                 .fromHttpUrl(YouTubeConfig.BASE_URL + "/channels")
-                .queryParam("part", YouTubeConfig.CHANNEL_PARTS)
+                .queryParam("part", "snippet,statistics,contentDetails")
                 .queryParam("id", channelId)
-                .queryParam("key", YouTubeConfig.API_KEY)
+                .queryParam("key", apiKey)
                 .toUriString();
 
         try {
-            YouTubeChannelResponse body =
-                    restTemplate.getForObject(url, YouTubeChannelResponse.class);
+            YouTubeChannelResponse body = restTemplate.getForObject(url, YouTubeChannelResponse.class);
 
             return toChannelSummaryDto(body,
                     "No channel found for channelId: " + channelId);
@@ -87,9 +100,38 @@ public class YouTubeService {
         } catch (HttpClientErrorException e) {
             throw new RuntimeException(
                     "YouTube API error: " + e.getStatusCode() + " - " + e.getResponseBodyAsString(),
-                    e
-            );
+                    e);
         }
+    }
+
+    // So pagination logic stays clean and readable.
+
+    public String getUploadsPlaylistId(String channelId) {
+        validateApiKey();
+
+        String url = UriComponentsBuilder
+                .fromHttpUrl(YouTubeConfig.BASE_URL + "/channels")
+                .queryParam("part", YouTubeConfig.CHANNEL_PARTS) // must include contentDetails
+                .queryParam("id", channelId)
+                .queryParam("key", apiKey)
+                .toUriString();
+
+        YouTubeChannelResponse body = restTemplate.getForObject(url, YouTubeChannelResponse.class);
+
+        if (body == null || body.items == null || body.items.isEmpty()) {
+            throw new RuntimeException("No channel found for channelId: " + channelId);
+        }
+
+        var item = body.items.get(0);
+
+        if (item.contentDetails == null ||
+                item.contentDetails.relatedPlaylists == null ||
+                item.contentDetails.relatedPlaylists.uploads == null ||
+                item.contentDetails.relatedPlaylists.uploads.isBlank()) {
+            throw new RuntimeException("Uploads playlistId not found for channelId: " + channelId);
+        }
+
+        return item.contentDetails.relatedPlaylists.uploads;
     }
 
     /**
@@ -97,8 +139,7 @@ public class YouTubeService {
      */
     private ChannelSummaryDto toChannelSummaryDto(
             YouTubeChannelResponse body,
-            String notFoundMessage
-    ) {
+            String notFoundMessage) {
         if (body == null || body.items == null || body.items.isEmpty()) {
             throw new RuntimeException(notFoundMessage);
         }
@@ -115,26 +156,20 @@ public class YouTubeService {
                 item.snippet.description,
                 views,
                 subscribers,
-                videos
-        );
+                videos);
     }
 
     /**
-     * SYNC CONTRACT (STUB – Phase 3)
-     * This will later:
-     * - fetch videos
-     * - store in DB
-     * - update existing rows
+     * SYNC CONTRACT (STUB – currently only returns summary)
      */
     public YouTubeSyncResponseDto syncChannel(
             ResolvedChannelIdentifier resolved,
-            YouTubeSyncRequestDto request
-    ) {
+            YouTubeSyncRequestDto request) {
 
         if (resolved == null) {
             throw new IllegalArgumentException("ResolvedChannelIdentifier cannot be null");
         }
-        if (request == null || request.identifier == null || request.identifier.isBlank()) {
+        if (request == null || request.getIdentifier() == null || request.getIdentifier().isBlank()) {
             throw new IllegalArgumentException("identifier is required");
         }
 
@@ -143,16 +178,18 @@ public class YouTubeService {
         // Ensure channel exists and get canonical channelId
         ChannelSummaryDto channel = getChannelSummary(resolved);
 
-        int maxPages = (request.maxPages == null || request.maxPages < 1)
-                ? 1 : request.maxPages;
+        int maxPages = (request.getMaxPages() == null || request.getMaxPages() < 1)
+                ? 1
+                : request.getMaxPages();
 
-        int pageSize = (request.pageSize == null || request.pageSize < 1)
-                ? 50 : request.pageSize;
+        int pageSize = (request.getPageSize() == null || request.getPageSize() < 1)
+                ? 50
+                : request.getPageSize();
 
-        boolean forceRefresh = Boolean.TRUE.equals(request.forceRefresh);
+        boolean forceRefresh = Boolean.TRUE.equals(request.getForceRefresh());
 
         YouTubeSyncResponseDto response = new YouTubeSyncResponseDto();
-        response.identifier = request.identifier;
+        response.identifier = request.getIdentifier();
 
         // resolved info
         response.resolved = new YouTubeSyncResponseDto.Resolved();
@@ -178,20 +215,40 @@ public class YouTubeService {
         // warnings
         if (forceRefresh) {
             response.warnings = List.of(
-                    "forceRefresh=true (DB update behavior will be implemented later)"
-            );
+                    "forceRefresh=true (DB update behavior will be implemented later)");
         }
 
         return response;
     }
 
     /**
-     * API key validation.
+     * Fetch one page of uploads playlist items (video IDs + nextPageToken).
      */
-    private void validateApiKey() {
-        if (YouTubeConfig.API_KEY == null || YouTubeConfig.API_KEY.isBlank()) {
-            throw new IllegalStateException("Missing YOUTUBE_API_KEY environment variable");
+    public YouTubePlaylistItemsResponse getUploadsVideoIdsPage(String uploadsPlaylistId, String pageToken,
+            int maxResults) {
+        validateApiKey();
+
+        UriComponentsBuilder builder = UriComponentsBuilder
+                .fromHttpUrl("https://www.googleapis.com/youtube/v3/playlistItems")
+                .queryParam("part", "contentDetails,snippet")
+                .queryParam("playlistId", uploadsPlaylistId)
+                .queryParam("maxResults", maxResults)
+                .queryParam("key", apiKey);
+
+        if (pageToken != null && !pageToken.isBlank()) {
+            builder.queryParam("pageToken", pageToken);
         }
+
+        URI uri = builder.build(true).toUri();
+
+        ResponseEntity<YouTubePlaylistItemsResponse> resp = restTemplate.getForEntity(uri,
+                YouTubePlaylistItemsResponse.class);
+
+        YouTubePlaylistItemsResponse body = resp.getBody();
+        if (body == null) {
+            throw new RuntimeException("YouTube API returned empty playlistItems response");
+        }
+        return body;
     }
 
     /**

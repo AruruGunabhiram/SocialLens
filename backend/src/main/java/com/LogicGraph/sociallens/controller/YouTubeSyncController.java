@@ -18,6 +18,6 @@ public class YouTubeSyncController {
 
     @PostMapping("/sync")
     public YouTubeSyncResponseDto sync(@Valid @RequestBody YouTubeSyncRequestDto request) {
-        return syncService.syncChannelOnly(request.identifier);
+        return syncService.syncChannelOnly(request.getIdentifier());
     }
 }

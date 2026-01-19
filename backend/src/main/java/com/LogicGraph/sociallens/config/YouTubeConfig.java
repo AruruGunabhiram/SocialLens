@@ -8,5 +8,6 @@ public class YouTubeConfig {
     public static final String BASE_URL = "https://www.googleapis.com/youtube/v3";
 
     // Optional: commonly used "parts" so we don’t repeat strings everywhere
-    public static final String CHANNEL_PARTS = "snippet,statistics";
+    public static final String CHANNEL_PARTS = "snippet,statistics,contentDetails";
+
 }

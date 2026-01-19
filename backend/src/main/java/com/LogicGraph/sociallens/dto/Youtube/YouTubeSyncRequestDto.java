@@ -1,14 +1,18 @@
 package com.LogicGraph.sociallens.dto.youtube;
 
 import jakarta.validation.constraints.NotBlank;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
+@Setter
 public class YouTubeSyncRequestDto {
 
     @NotBlank(message = "identifier is required")
-    public String identifier;     // channel URL / handle / channelId
+    private String identifier; // channel URL / handle / channelId
 
-    public Integer maxPages;      // future use (videos)
-    public Integer pageSize;      // future use (videos)
-    public Boolean forceRefresh;  // future use
+    private Integer maxPages; // optional for now
+    private Integer pageSize; // optional for now
 
+    private Boolean forceRefresh = false;
 }
