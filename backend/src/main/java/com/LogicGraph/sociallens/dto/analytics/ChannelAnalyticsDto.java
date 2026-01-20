@@ -1,17 +1,18 @@
-package com.LogicGraph.sociallens.dto.Youtube;
+package com.LogicGraph.sociallens.dto.analytics;
 
-import java.time.Instant;
+import java.util.List;
 
 public class ChannelAnalyticsDto {
+
     public String channelId;
     public String title;
 
+    public Long subscribers;
     public Long totalViews;
-    public Long totalLikes;
-    public Long totalComments;
-
     public Long totalVideos;
-    public Instant lastSyncedAt;
+
+    public List<TimeSeriesPointDto> viewsTrend;
+    public List<TimeSeriesPointDto> subscribersTrend;
 
     public ChannelAnalyticsDto() {
     }
@@ -19,17 +20,17 @@ public class ChannelAnalyticsDto {
     public ChannelAnalyticsDto(
             String channelId,
             String title,
+            Long subscribers,
             Long totalViews,
-            Long totalLikes,
-            Long totalComments,
             Long totalVideos,
-            Instant lastSyncedAt) {
+            List<TimeSeriesPointDto> viewsTrend,
+            List<TimeSeriesPointDto> subscribersTrend) {
         this.channelId = channelId;
         this.title = title;
+        this.subscribers = subscribers;
         this.totalViews = totalViews;
-        this.totalLikes = totalLikes;
-        this.totalComments = totalComments;
         this.totalVideos = totalVideos;
-        this.lastSyncedAt = lastSyncedAt;
+        this.viewsTrend = viewsTrend;
+        this.subscribersTrend = subscribersTrend;
     }
 }
