@@ -12,6 +12,7 @@ target/
 # Gradle
 .gradle/
 build/
+/backend/build/
 
 # Maven
 .mvn/

@@ -6,8 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
 
-public interface YouTubeVideoRepository
-        extends JpaRepository<YouTubeVideo, Long> {
+public interface YouTubeVideoRepository extends JpaRepository<YouTubeVideo, Long> {
 
     Optional<YouTubeVideo> findByVideoId(String videoId);
 
@@ -15,4 +14,5 @@ public interface YouTubeVideoRepository
 
     List<YouTubeVideo> findAllByChannel_ChannelId(String channelId);
 
+    long countByChannel_ChannelId(String channelId);
 }
