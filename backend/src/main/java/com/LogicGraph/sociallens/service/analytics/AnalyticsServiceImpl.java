@@ -8,9 +8,12 @@ import com.LogicGraph.sociallens.repository.YouTubeChannelRepository;
 import com.LogicGraph.sociallens.repository.VideoMetricsSnapshotRepository;
 import com.LogicGraph.sociallens.repository.YouTubeVideoRepository;
 import org.springframework.stereotype.Service;
+import com.LogicGraph.sociallens.dto.analytics.TimeSeriesPointDto;
+import com.LogicGraph.sociallens.dto.analytics.TimeSeriesResponseDto;
+import com.LogicGraph.sociallens.entity.ChannelMetricsSnapshot;
+import java.util.List;
 
 import java.util.Collections;
-import java.util.List;
 
 @Service
 public class AnalyticsServiceImpl implements AnalyticsService {
@@ -52,6 +55,16 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 totalVideos = latest.getVideoCount();
             }
         }
+        List<ChannelMetricsSnapshot> snaps = channelSnapshotRepository
+                .findByChannel_ChannelIdOrderByCapturedAtAsc(channel.getChannelId());
+
+        List<TimeSeriesPointDto> viewsTrend = snaps.stream()
+                .map(s -> new TimeSeriesPointDto(s.getCapturedAt(), s.getViewCount()))
+                .toList();
+
+        List<TimeSeriesPointDto> subscribersTrend = snaps.stream()
+                .map(s -> new TimeSeriesPointDto(s.getCapturedAt(), s.getSubscriberCount()))
+                .toList();
 
         return new ChannelAnalyticsDto(
                 channel.getChannelId(),
@@ -59,8 +72,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 subscribers,
                 totalViews,
                 totalVideos,
-                Collections.emptyList(),
-                Collections.emptyList());
+                viewsTrend,
+                subscribersTrend);
     }
 
     @Override
@@ -74,6 +87,33 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         YouTubeChannel channel = resolveChannel(identifier);
         List<TimeSeriesPointDto> empty = Collections.emptyList();
         return new UploadFrequencyDto(channel.getChannelId(), "WEEK", empty);
+    }
+
+    @Override
+    public TimeSeriesResponseDto getChannelTimeSeries(String identifier, String metric) {
+
+        // Reuse the SAME resolver you already use in other endpoints
+        YouTubeChannel channel = resolveChannel(identifier);
+        String channelId = channel.getChannelId();
+
+        List<ChannelMetricsSnapshot> snaps = channelSnapshotRepository
+                .findByChannel_ChannelIdOrderByCapturedAtAsc(channelId);
+
+        List<TimeSeriesPointDto> points = snaps.stream()
+                .map(s -> new TimeSeriesPointDto(s.getCapturedAt(), pickMetricValue(s, metric)))
+                .toList();
+
+        return new TimeSeriesResponseDto(channelId, metric, points);
+    }
+
+    private Long pickMetricValue(ChannelMetricsSnapshot s, String metric) {
+        String m = (metric == null) ? "" : metric.toLowerCase();
+        return switch (m) {
+            case "views" -> s.getViewCount();
+            case "subscribers" -> s.getSubscriberCount();
+            case "videos" -> s.getVideoCount();
+            default -> throw new IllegalArgumentException("Unsupported metric: " + metric);
+        };
     }
 
     private YouTubeChannel resolveChannel(String identifier) {

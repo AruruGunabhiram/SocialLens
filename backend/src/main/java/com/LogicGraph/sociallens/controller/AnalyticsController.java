@@ -3,6 +3,7 @@ package com.LogicGraph.sociallens.controller;
 import com.LogicGraph.sociallens.dto.analytics.ChannelAnalyticsDto;
 import com.LogicGraph.sociallens.dto.analytics.TopVideosDto;
 import com.LogicGraph.sociallens.dto.analytics.UploadFrequencyDto;
+import com.LogicGraph.sociallens.dto.analytics.TimeSeriesResponseDto;
 import com.LogicGraph.sociallens.service.analytics.AnalyticsService;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,5 +34,12 @@ public class AnalyticsController {
             @RequestParam String identifier,
             @RequestParam(defaultValue = "12") int weeks) {
         return analyticsService.getUploadFrequency(identifier, weeks);
+    }
+
+    @GetMapping("/timeseries")
+    public TimeSeriesResponseDto timeSeries(
+            @RequestParam String identifier,
+            @RequestParam String metric) {
+        return analyticsService.getChannelTimeSeries(identifier, metric);
     }
 }

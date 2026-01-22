@@ -1,0 +1,90 @@
+.
+├── .DS_Store
+├── .env
+├── .gradle
+│   ├── 8.8
+│   │   ├── checksums
+│   │   │   ├── checksums.lock
+│   │   │   ├── md5-checksums.bin
+│   │   │   └── sha1-checksums.bin
+│   │   ├── dependencies-accessors
+│   │   │   └── gc.properties
+│   │   ├── executionHistory
+│   │   │   ├── executionHistory.bin
+│   │   │   └── executionHistory.lock
+│   │   ├── expanded
+│   │   ├── fileChanges
+│   │   │   └── last-build.bin
+│   │   ├── fileHashes
+│   │   │   ├── fileHashes.bin
+│   │   │   ├── fileHashes.lock
+│   │   │   └── resourceHashesCache.bin
+│   │   ├── gc.properties
+│   │   └── vcsMetadata
+│   ├── 9.2.1
+│   │   ├── checksums
+│   │   │   ├── checksums.lock
+│   │   │   ├── md5-checksums.bin
+│   │   │   └── sha1-checksums.bin
+│   │   ├── executionHistory
+│   │   │   ├── executionHistory.bin
+│   │   │   └── executionHistory.lock
+│   │   ├── expanded
+│   │   ├── fileChanges
+│   │   │   └── last-build.bin
+│   │   ├── fileHashes
+│   │   │   ├── fileHashes.bin
+│   │   │   ├── fileHashes.lock
+│   │   │   └── resourceHashesCache.bin
+│   │   ├── gc.properties
+│   │   └── vcsMetadata
+│   ├── buildOutputCleanup
+│   │   ├── buildOutputCleanup.lock
+│   │   ├── cache.properties
+│   │   └── outputFiles.bin
+│   ├── file-system.probe
+│   └── vcs-1
+│       └── gc.properties
+├── architecture-tree.txt
+├── architecture.txt
+├── build
+│   ├── classes
+│   │   └── java
+│   │       └── main
+│   ├── generated
+│   │   └── sources
+│   │       ├── annotationProcessor
+│   │       └── headers
+│   ├── libs
+│   │   ├── sociallens-0.0.1-SNAPSHOT-plain.jar
+│   │   └── sociallens-0.0.1-SNAPSHOT.jar
+│   ├── resolvedMainClassName
+│   ├── resources
+│   │   └── main
+│   │       └── application.properties
+│   └── tmp
+│       ├── bootJar
+│       │   └── MANIFEST.MF
+│       ├── compileJava
+│       │   └── previous-compilation-data.bin
+│       └── jar
+│           └── MANIFEST.MF
+├── build.gradle
+├── gradle
+│   └── wrapper
+│       ├── gradle-wrapper.jar
+│       └── gradle-wrapper.properties
+├── gradlew
+├── gradlew.bat
+├── settings.gradle
+└── src
+    ├── .DS_Store
+    └── main
+        ├── .DS_Store
+        ├── java
+        │   ├── .DS_Store
+        │   └── com
+        └── resources
+            └── application.properties
+
+41 directories, 47 files
