@@ -1,8 +1,14 @@
 # Environment
 .env
 .env.local
-*-local.properties
 .application-local.properties
+# local-only configs
+src/main/resources/application-local.properties
+
+
+# docker volumes / misc
+*.log
+
 
 # Java
 target/
