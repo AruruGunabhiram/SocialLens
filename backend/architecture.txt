@@ -1,74 +1,5 @@
 .
-├── .DS_Store
-├── .env
-├── .gradle
-│   ├── 8.8
-│   │   ├── checksums
-│   │   │   ├── checksums.lock
-│   │   │   ├── md5-checksums.bin
-│   │   │   └── sha1-checksums.bin
-│   │   ├── dependencies-accessors
-│   │   │   └── gc.properties
-│   │   ├── executionHistory
-│   │   │   ├── executionHistory.bin
-│   │   │   └── executionHistory.lock
-│   │   ├── expanded
-│   │   ├── fileChanges
-│   │   │   └── last-build.bin
-│   │   ├── fileHashes
-│   │   │   ├── fileHashes.bin
-│   │   │   ├── fileHashes.lock
-│   │   │   └── resourceHashesCache.bin
-│   │   ├── gc.properties
-│   │   └── vcsMetadata
-│   ├── 9.2.1
-│   │   ├── checksums
-│   │   │   ├── checksums.lock
-│   │   │   ├── md5-checksums.bin
-│   │   │   └── sha1-checksums.bin
-│   │   ├── executionHistory
-│   │   │   ├── executionHistory.bin
-│   │   │   └── executionHistory.lock
-│   │   ├── expanded
-│   │   ├── fileChanges
-│   │   │   └── last-build.bin
-│   │   ├── fileHashes
-│   │   │   ├── fileHashes.bin
-│   │   │   ├── fileHashes.lock
-│   │   │   └── resourceHashesCache.bin
-│   │   ├── gc.properties
-│   │   └── vcsMetadata
-│   ├── buildOutputCleanup
-│   │   ├── buildOutputCleanup.lock
-│   │   ├── cache.properties
-│   │   └── outputFiles.bin
-│   ├── file-system.probe
-│   └── vcs-1
-│       └── gc.properties
-├── architecture-tree.txt
 ├── architecture.txt
-├── build
-│   ├── classes
-│   │   └── java
-│   │       └── main
-│   ├── generated
-│   │   └── sources
-│   │       ├── annotationProcessor
-│   │       └── headers
-│   ├── libs
-│   │   ├── sociallens-0.0.1-SNAPSHOT-plain.jar
-│   │   └── sociallens-0.0.1-SNAPSHOT.jar
-│   ├── resolvedMainClassName
-│   ├── resources
-│   │   └── main
-│   │       └── application.properties
-│   └── tmp
-│       ├── bootJar
-│       │   └── MANIFEST.MF
-│       ├── compileJava
-│       │   └── previous-compilation-data.bin
-│       └── jar
-│           └── MANIFEST.MF
 ├── build.gradle
 ├── gradle
 │   └── wrapper
@@ -78,13 +9,91 @@
 ├── gradlew.bat
 ├── settings.gradle
 └── src
-    ├── .DS_Store
     └── main
-        ├── .DS_Store
         ├── java
-        │   ├── .DS_Store
         │   └── com
+        │       └── LogicGraph
+        │           └── sociallens
+        │               ├── SocialLensApplication.java
+        │               ├── config
+        │               │   ├── CorsConfig.java
+        │               │   ├── OpenApiConfig.java
+        │               │   ├── SecurityConfig.java
+        │               │   └── YouTubeConfig.java
+        │               ├── controller
+        │               │   ├── AnalyticsController.java
+        │               │   ├── ConnectedAccountController.java
+        │               │   ├── HealthController.java
+        │               │   ├── UserController.java
+        │               │   ├── YouTubeController.java
+        │               │   ├── YouTubeOAuthController.java
+        │               │   └── YouTubeSyncController.java
+        │               ├── dto
+        │               │   ├── Youtube
+        │               │   │   ├── ChannelSummaryDto.java
+        │               │   │   ├── YouTubeChannelResponse.java
+        │               │   │   ├── YouTubePlaylistItemsResponse.java
+        │               │   │   ├── YouTubeSyncRequestDto.java
+        │               │   │   └── YouTubeSyncResponseDto.java
+        │               │   ├── account
+        │               │   │   ├── ConnectAccountRequest.java
+        │               │   │   └── ConnectedAccountResponse.java
+        │               │   ├── analytics
+        │               │   │   ├── ChannelAnalyticsDto.java
+        │               │   │   ├── TimeSeriesPointDto.java
+        │               │   │   ├── TimeSeriesResponseDto.java
+        │               │   │   ├── TopVideosDto.java
+        │               │   │   └── UploadFrequencyDto.java
+        │               │   ├── oauth
+        │               │   │   ├── OAuthCallbackResponse.java
+        │               │   │   └── OAuthStartResponse.java
+        │               │   └── user
+        │               │       ├── CreateUserRequest.java
+        │               │       └── UserResponse.java
+        │               ├── entity
+        │               │   ├── ChannelMetricsSnapshot.java
+        │               │   ├── ConnectedAccount.java
+        │               │   ├── Hashtag.java
+        │               │   ├── OAuthState.java
+        │               │   ├── User.java
+        │               │   ├── VideoHashtag.java
+        │               │   ├── VideoMetricsSnapshot.java
+        │               │   ├── YouTubeChannel.java
+        │               │   └── YouTubeVideo.java
+        │               ├── enums
+        │               │   └── Platform.java
+        │               ├── exception
+        │               │   ├── ApiExceptionHandler.java
+        │               │   ├── ErrorResponse.java
+        │               │   ├── NotFoundException.java
+        │               │   └── RateLimitException.java
+        │               ├── repository
+        │               │   ├── ChannelMetricsSnapshotRepository.java
+        │               │   ├── ConnectedAccountRepository.java
+        │               │   ├── HashtagRepository.java
+        │               │   ├── OAuthStateRepository.java
+        │               │   ├── UserRepository.java
+        │               │   ├── VideoHashtagRepository.java
+        │               │   ├── VideoMetricsSnapshotRepository.java
+        │               │   ├── YouTubeChannelRepository.java
+        │               │   └── YouTubeVideoRepository.java
+        │               └── service
+        │                   ├── ConnectedAccountService.java
+        │                   ├── UserService.java
+        │                   ├── YouTubeService.java
+        │                   ├── YouTubeSyncService.java
+        │                   ├── analytics
+        │                   │   ├── AnalyticsService.java
+        │                   │   └── AnalyticsServiceImpl.java
+        │                   ├── channel
+        │                   │   ├── ChannelIdentifierType.java
+        │                   │   ├── ChannelResolver.java
+        │                   │   ├── DefaultChannelResolver.java
+        │                   │   └── ResolvedChannelIdentifier.java
+        │                   └── oauth
+        │                       └── YouTubeOAuthService.java
         └── resources
+            ├── application-local.properties
             └── application.properties
 
-41 directories, 47 files
+26 directories, 71 files
