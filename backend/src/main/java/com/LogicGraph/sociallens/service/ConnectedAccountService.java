@@ -62,7 +62,7 @@ public class ConnectedAccountService {
                 .orElseThrow(() -> new IllegalArgumentException("user not found: " + userId));
 
         ConnectedAccount account = connectedAccountRepository
-                .findByUser_IdAndPlatform(userId, request.getPlatform())
+                .findByUserIdAndPlatform(userId, request.getPlatform())
                 .orElse(null);
 
         if (account == null) {
@@ -96,7 +96,10 @@ public class ConnectedAccountService {
 
     @Transactional(readOnly = true)
     public boolean isConnected(Long userId, Platform platform) {
-        return connectedAccountRepository.existsByUser_IdAndPlatform(userId, platform);
+        return connectedAccountRepository
+        .findByUserIdAndPlatform(userId, platform)
+        .isPresent();
+
     }
 
     /**
@@ -106,7 +109,7 @@ public class ConnectedAccountService {
     @Transactional
     public String getValidAccessToken(Long userId, Platform platform) {
         ConnectedAccount account = connectedAccountRepository
-                .findByUser_IdAndPlatform(userId, platform)
+                .findByUserIdAndPlatform(userId, platform)
                 .orElseThrow(() -> new IllegalStateException("No connected account for " + platform));
 
         // If expires in more than 60 seconds, it’s safe
