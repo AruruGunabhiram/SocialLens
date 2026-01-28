@@ -37,15 +37,15 @@ public class ConnectedAccountService {
 
     public ConnectedAccountService(
             ConnectedAccountRepository connectedAccountRepository,
-            UserRepository userRepository
-    ) {
+            UserRepository userRepository) {
         this.connectedAccountRepository = connectedAccountRepository;
         this.userRepository = userRepository;
     }
 
     /**
      * Creates or updates the user's connection for a platform.
-     * NOTE: refreshToken is optional; never overwrite an existing refresh token with null/blank.
+     * NOTE: refreshToken is optional; never overwrite an existing refresh token
+     * with null/blank.
      */
     @Transactional
     public ConnectedAccountResponse upsertConnection(Long userId, ConnectAccountRequest request) {
@@ -62,7 +62,7 @@ public class ConnectedAccountService {
                 .orElseThrow(() -> new IllegalArgumentException("user not found: " + userId));
 
         ConnectedAccount account = connectedAccountRepository
-                .findByUserIdAndPlatform(userId, request.getPlatform())
+                .findByUser_IdAndPlatform(userId, request.getPlatform())
                 .orElse(null);
 
         if (account == null) {
@@ -73,8 +73,7 @@ public class ConnectedAccountService {
                     request.getRefreshToken(), // may be null
                     request.getExpiresAt(),
                     request.getScopes(),
-                    user
-            );
+                    user);
 
             ConnectedAccount saved = connectedAccountRepository.save(created);
             return toResponse(saved);
@@ -97,9 +96,14 @@ public class ConnectedAccountService {
     @Transactional(readOnly = true)
     public boolean isConnected(Long userId, Platform platform) {
         return connectedAccountRepository
-        .findByUserIdAndPlatform(userId, platform)
-        .isPresent();
+                .findByUser_IdAndPlatform(userId, platform)
+                .isPresent();
 
+    }
+
+    @Transactional
+    public ConnectedAccount save(ConnectedAccount account) {
+        return connectedAccountRepository.save(account);
     }
 
     /**
@@ -109,7 +113,7 @@ public class ConnectedAccountService {
     @Transactional
     public String getValidAccessToken(Long userId, Platform platform) {
         ConnectedAccount account = connectedAccountRepository
-                .findByUserIdAndPlatform(userId, platform)
+                .findByUser_IdAndPlatform(userId, platform)
                 .orElseThrow(() -> new IllegalStateException("No connected account for " + platform));
 
         // If expires in more than 60 seconds, it’s safe
@@ -153,8 +157,7 @@ public class ConnectedAccountService {
                     TOKEN_URL,
                     HttpMethod.POST,
                     request,
-                    Map.class
-            );
+                    Map.class);
 
             Map<String, Object> body = response.getBody();
             if (body == null || body.get("access_token") == null || body.get("expires_in") == null) {
@@ -175,8 +178,7 @@ public class ConnectedAccountService {
         } catch (RestClientResponseException ex) {
             throw new IllegalStateException(
                     "Token refresh failed: HTTP " + ex.getRawStatusCode() + " - " + ex.getResponseBodyAsString(),
-                    ex
-            );
+                    ex);
         }
     }
 
@@ -186,7 +188,6 @@ public class ConnectedAccountService {
                 saved.getPlatform(),
                 saved.getChannelId(),
                 saved.getExpiresAt(),
-                saved.getScopes()
-        );
+                saved.getScopes());
     }
 }

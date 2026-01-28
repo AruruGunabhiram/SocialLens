@@ -2,12 +2,12 @@ package com.LogicGraph.sociallens.service.analytics;
 
 import com.LogicGraph.sociallens.dto.analytics.YtAnalyticsSummaryDto;
 import com.LogicGraph.sociallens.service.oauth.GoogleTokenService;
-import com.LogicGraph.sociallens.entity.ConnectedAccount;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -21,6 +21,9 @@ public class YtAnalyticsService {
     }
 
     public YtAnalyticsSummaryDto fetchSummary(Long userId, int days) {
+        if (userId == null) throw new IllegalArgumentException("userId is required");
+        if (days <= 0) throw new IllegalArgumentException("days must be > 0");
+
         String accessToken = googleTokenService.getValidAccessToken(userId);
 
         LocalDate end = LocalDate.now().minusDays(1);
@@ -31,22 +34,24 @@ public class YtAnalyticsService {
                 "?ids=channel==MINE" +
                 "&startDate=" + start +
                 "&endDate=" + end +
-                // SAFE analytics metrics:
                 "&metrics=views,estimatedMinutesWatched,averageViewDuration,subscribersGained,subscribersLost";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
-        headers.setAccept(java.util.List.of(MediaType.APPLICATION_JSON));
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
 
         try {
             ResponseEntity<Map> res = restTemplate.exchange(
-                    url, HttpMethod.GET, new HttpEntity<>(headers), Map.class
+                    url,
+                    HttpMethod.GET,
+                    new HttpEntity<>(headers),
+                    Map.class
             );
 
             Map body = res.getBody();
             if (body == null) throw new IllegalStateException("YouTube Analytics returned empty body");
 
-            java.util.List rows = (java.util.List) body.get("rows");
+            List rows = (List) body.get("rows");
 
             YtAnalyticsSummaryDto dto = new YtAnalyticsSummaryDto();
             dto.startDate = start.toString();
@@ -54,27 +59,26 @@ public class YtAnalyticsService {
 
             if (rows == null || rows.isEmpty()) return dto;
 
-            java.util.List first = (java.util.List) rows.get(0);
+            List first = (List) rows.get(0);
 
             dto.views = toLong(first.get(0));
             dto.estimatedMinutesWatched = toLong(first.get(1));
             dto.averageViewDurationSeconds = toLong(first.get(2));
             dto.subscribersGained = toLong(first.get(3));
             dto.subscribersLost = toLong(first.get(4));
+
             dto.netSubscribers = (dto.subscribersGained == null || dto.subscribersLost == null)
-                    ? null : (dto.subscribersGained - dto.subscribersLost);
+                    ? null
+                    : (dto.subscribersGained - dto.subscribersLost);
 
             return dto;
 
         } catch (org.springframework.web.client.HttpStatusCodeException e) {
-            System.err.println("YT Analytics failed: " + e.getStatusCode() +
-                    " body=" + e.getResponseBodyAsString());
             throw new IllegalStateException(
                     "YouTube Analytics API failed: " + e.getStatusCode() + " body=" + e.getResponseBodyAsString(),
                     e
             );
         }
-        
     }
 
     private Long toLong(Object o) {

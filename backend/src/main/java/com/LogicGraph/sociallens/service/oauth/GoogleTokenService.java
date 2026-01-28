@@ -32,7 +32,7 @@ public class GoogleTokenService {
 
     public ConnectedAccount getYouTubeAccount(Long userId) {
         return connectedAccountRepository
-                .findByUserIdAndPlatform(userId, com.LogicGraph.sociallens.enums.Platform.YOUTUBE)
+                .findByUser_IdAndPlatform(userId, com.LogicGraph.sociallens.enums.Platform.YOUTUBE)
                 .orElseThrow(() -> new NotFoundException("No YouTube connected account for userId=" + userId));
     }
 
@@ -42,7 +42,7 @@ public class GoogleTokenService {
      */
     public String getValidAccessToken(Long userId) {
         ConnectedAccount acc = connectedAccountRepository
-                .findByUserIdAndPlatform(userId, com.LogicGraph.sociallens.enums.Platform.YOUTUBE)
+                .findByUser_IdAndPlatform(userId, com.LogicGraph.sociallens.enums.Platform.YOUTUBE)
                 .orElseThrow(() -> new NotFoundException("No YouTube connected account for userId=" + userId));
 
         // Refresh if token expires within next 60 seconds
