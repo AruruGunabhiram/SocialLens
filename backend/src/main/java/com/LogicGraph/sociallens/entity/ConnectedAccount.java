@@ -19,21 +19,19 @@ public class ConnectedAccount {
     @Column(nullable = false)
     private Platform platform;
 
-    @Column(nullable = false)
+    @Column(name = "channel_id", nullable = false)
     private String channelId;
 
-    @Column(nullable = false, length = 2048)
+    @Column(name = "access_token", columnDefinition = "TEXT")
     private String accessToken;
 
-    // IMPORTANT: refresh_token may not be returned on every OAuth flow.
-    // So this MUST be nullable.
-    @Column(length = 2048)
+    @Column(name = "refresh_token", columnDefinition = "TEXT")
     private String refreshToken;
 
-    @Column(nullable = false)
+    @Column(name = "expires_at")
     private Instant expiresAt;
 
-    @Column(length = 512)
+    @Column(name = "scopes", columnDefinition = "TEXT")
     private String scopes;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

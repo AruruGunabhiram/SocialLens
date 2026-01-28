@@ -1,6 +1,9 @@
 .
 ├── architecture.txt
 ├── build.gradle
+├── data
+│   ├── sociallens.mv.db
+│   └── sociallens.trace.db
 ├── gradle
 │   └── wrapper
 │       ├── gradle-wrapper.jar
@@ -23,11 +26,13 @@
         │               ├── controller
         │               │   ├── AnalyticsController.java
         │               │   ├── ConnectedAccountController.java
+        │               │   ├── CreatorIntelligenceController.java
         │               │   ├── HealthController.java
         │               │   ├── UserController.java
         │               │   ├── YouTubeController.java
         │               │   ├── YouTubeOAuthController.java
-        │               │   └── YouTubeSyncController.java
+        │               │   ├── YouTubeSyncController.java
+        │               │   └── YtAnalyticsController.java
         │               ├── dto
         │               │   ├── Youtube
         │               │   │   ├── ChannelSummaryDto.java
@@ -43,7 +48,14 @@
         │               │   │   ├── TimeSeriesPointDto.java
         │               │   │   ├── TimeSeriesResponseDto.java
         │               │   │   ├── TopVideosDto.java
-        │               │   │   └── UploadFrequencyDto.java
+        │               │   │   ├── UploadFrequencyDto.java
+        │               │   │   └── YtAnalyticsSummaryDto.java
+        │               │   ├── creator
+        │               │   │   ├── CreatorDiagnosisDto.java
+        │               │   │   ├── RetentionDiagnosisRequest.java
+        │               │   │   ├── RetentionDiagnosisResponse.java
+        │               │   │   ├── RetentionDropEventDto.java
+        │               │   │   └── RetentionPoint.java
         │               │   ├── oauth
         │               │   │   ├── OAuthCallbackResponse.java
         │               │   │   └── OAuthStartResponse.java
@@ -84,16 +96,24 @@
         │                   ├── YouTubeSyncService.java
         │                   ├── analytics
         │                   │   ├── AnalyticsService.java
-        │                   │   └── AnalyticsServiceImpl.java
+        │                   │   ├── AnalyticsServiceImpl.java
+        │                   │   ├── YtAnalyticsService.java
+        │                   │   └── YtAnalyticsServiceImpl.jav
         │                   ├── channel
         │                   │   ├── ChannelIdentifierType.java
         │                   │   ├── ChannelResolver.java
         │                   │   ├── DefaultChannelResolver.java
         │                   │   └── ResolvedChannelIdentifier.java
-        │                   └── oauth
-        │                       └── YouTubeOAuthService.java
+        │                   ├── creator
+        │                   │   ├── RetentionDiagnosisService.java
+        │                   │   └── RetentionDiagnosisServiceImpl.java
+        │                   ├── oauth
+        │                   │   ├── GoogleTokenService.java
+        │                   │   └── YouTubeOAuthService.java
+        │                   └── youtube
+        │                       └── YouTubeAnalyticsClient.java
         └── resources
             ├── application-local.properties
             └── application.properties
 
-26 directories, 71 files
+30 directories, 87 files

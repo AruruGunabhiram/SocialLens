@@ -37,7 +37,7 @@ public class YtAnalyticsServiceImpl implements YtAnalyticsService {
         if (days <= 0 || days > 365) days = 28;
 
         ConnectedAccount account = connectedAccountRepository
-                .findByUserIdAndPlatform(userId, Platform.YOUTUBE)
+                .findByUser_IdAndPlatform(userId, Platform.YOUTUBE)
                 .orElseThrow(() -> new NotFoundException("No connected YouTube account for userId=" + userId));
 
         // 1) refresh if near-expired

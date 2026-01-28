@@ -1,35 +1,46 @@
-# Environment
+# =========================
+# Environment / Secrets
+# =========================
 .env
 .env.local
-.application-local.properties
-# local-only configs
+*.env
+
+# Local-only Spring configs
 src/main/resources/application-local.properties
+src/main/resources/application-local.yml
 
-
-# docker volumes / misc
+# =========================
+# Build / Runtime
+# =========================
+target/
+build/
+.gradle/
 *.log
 
+# H2 / local DB files
+*.db
+*.mv.db
+*.trace.db
+/data/
 
-# Java
-target/
-*.class
-*.jar
-*.war
-*.ear
-
-# Gradle
-.gradle/
-build/
-/backend/build/
-
-# Maven
-.mvn/
-!.mvn/wrapper/maven-wrapper.jar
-
+# =========================
 # IDEs
+# =========================
 .idea/
 .vscode/
 *.iml
 
+# =========================
 # OS
+# =========================
 .DS_Store
+
+# =========================
+# Node (frontend)
+# =========================
+node_modules/
+
+# =========================
+# Docker
+# =========================
+docker-compose.override.yml
