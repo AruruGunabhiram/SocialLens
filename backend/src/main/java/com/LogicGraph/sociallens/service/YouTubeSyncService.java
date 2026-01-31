@@ -233,4 +233,16 @@ public class YouTubeSyncService {
         videoRepository.save(video);
         return !exists;
     }
+    public void syncChannel(String channelId) {
+        // TODO: delegate to your existing sync pipeline method
+        // Example delegates (pick the one that exists in your codebase):
+        // syncChannelByChannelId(channelId);
+        // syncChannelData(channelId);
+        // runFullSync(channelId);
+    
+        throw new UnsupportedOperationException(
+                "syncChannel(String) wrapper added for jobs. Wire it to your existing sync method."
+        );
+    }
+    
 }
