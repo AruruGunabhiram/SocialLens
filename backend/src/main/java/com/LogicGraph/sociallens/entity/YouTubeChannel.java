@@ -33,4 +33,15 @@ public class YouTubeChannel {
 
     private String country;
     private String thumbnailUrl;
+    // default to true
+    private boolean active = true;
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
 }
