@@ -1,119 +1,112 @@
-.
-├── architecture.txt
-├── build.gradle
-├── data
-│   ├── sociallens.mv.db
-│   └── sociallens.trace.db
-├── gradle
-│   └── wrapper
-│       ├── gradle-wrapper.jar
-│       └── gradle-wrapper.properties
-├── gradlew
-├── gradlew.bat
-├── settings.gradle
-└── src
-    └── main
-        ├── java
-        │   └── com
-        │       └── LogicGraph
-        │           └── sociallens
-        │               ├── SocialLensApplication.java
-        │               ├── config
-        │               │   ├── CorsConfig.java
-        │               │   ├── OpenApiConfig.java
-        │               │   ├── SecurityConfig.java
-        │               │   └── YouTubeConfig.java
-        │               ├── controller
-        │               │   ├── AnalyticsController.java
-        │               │   ├── ConnectedAccountController.java
-        │               │   ├── CreatorIntelligenceController.java
-        │               │   ├── HealthController.java
-        │               │   ├── UserController.java
-        │               │   ├── YouTubeController.java
-        │               │   ├── YouTubeOAuthController.java
-        │               │   ├── YouTubeSyncController.java
-        │               │   └── YtAnalyticsController.java
-        │               ├── dto
-        │               │   ├── Youtube
-        │               │   │   ├── ChannelSummaryDto.java
-        │               │   │   ├── YouTubeChannelResponse.java
-        │               │   │   ├── YouTubePlaylistItemsResponse.java
-        │               │   │   ├── YouTubeSyncRequestDto.java
-        │               │   │   └── YouTubeSyncResponseDto.java
-        │               │   ├── account
-        │               │   │   ├── ConnectAccountRequest.java
-        │               │   │   └── ConnectedAccountResponse.java
-        │               │   ├── analytics
-        │               │   │   ├── ChannelAnalyticsDto.java
-        │               │   │   ├── TimeSeriesPointDto.java
-        │               │   │   ├── TimeSeriesResponseDto.java
-        │               │   │   ├── TopVideosDto.java
-        │               │   │   ├── UploadFrequencyDto.java
-        │               │   │   └── YtAnalyticsSummaryDto.java
-        │               │   ├── creator
-        │               │   │   ├── CreatorDiagnosisDto.java
-        │               │   │   ├── RetentionDiagnosisRequest.java
-        │               │   │   ├── RetentionDiagnosisResponse.java
-        │               │   │   ├── RetentionDropEventDto.java
-        │               │   │   └── RetentionPoint.java
-        │               │   ├── oauth
-        │               │   │   ├── OAuthCallbackResponse.java
-        │               │   │   └── OAuthStartResponse.java
-        │               │   └── user
-        │               │       ├── CreateUserRequest.java
-        │               │       └── UserResponse.java
-        │               ├── entity
-        │               │   ├── ChannelMetricsSnapshot.java
-        │               │   ├── ConnectedAccount.java
-        │               │   ├── Hashtag.java
-        │               │   ├── OAuthState.java
-        │               │   ├── User.java
-        │               │   ├── VideoHashtag.java
-        │               │   ├── VideoMetricsSnapshot.java
-        │               │   ├── YouTubeChannel.java
-        │               │   └── YouTubeVideo.java
-        │               ├── enums
-        │               │   └── Platform.java
-        │               ├── exception
-        │               │   ├── ApiExceptionHandler.java
-        │               │   ├── ErrorResponse.java
-        │               │   ├── NotFoundException.java
-        │               │   └── RateLimitException.java
-        │               ├── repository
-        │               │   ├── ChannelMetricsSnapshotRepository.java
-        │               │   ├── ConnectedAccountRepository.java
-        │               │   ├── HashtagRepository.java
-        │               │   ├── OAuthStateRepository.java
-        │               │   ├── UserRepository.java
-        │               │   ├── VideoHashtagRepository.java
-        │               │   ├── VideoMetricsSnapshotRepository.java
-        │               │   ├── YouTubeChannelRepository.java
-        │               │   └── YouTubeVideoRepository.java
-        │               └── service
-        │                   ├── ConnectedAccountService.java
-        │                   ├── UserService.java
-        │                   ├── YouTubeService.java
-        │                   ├── YouTubeSyncService.java
-        │                   ├── analytics
-        │                   │   ├── AnalyticsService.java
-        │                   │   ├── AnalyticsServiceImpl.java
-        │                   │   ├── YtAnalyticsService.java
-        │                   │   └── YtAnalyticsServiceImpl.jav
-        │                   ├── channel
-        │                   │   ├── ChannelIdentifierType.java
-        │                   │   ├── ChannelResolver.java
-        │                   │   ├── DefaultChannelResolver.java
-        │                   │   └── ResolvedChannelIdentifier.java
-        │                   ├── creator
-        │                   │   ├── RetentionDiagnosisService.java
-        │                   │   └── RetentionDiagnosisServiceImpl.java
-        │                   ├── oauth
-        │                   │   ├── GoogleTokenService.java
-        │                   │   └── YouTubeOAuthService.java
-        │                   └── youtube
-        │                       └── YouTubeAnalyticsClient.java
-        └── resources
-            ├── application-local.properties
-            └── application.properties
+src/main/java
+└── com
+    └── LogicGraph
+        └── sociallens
+            ├── SocialLensApplication.java
+            ├── config
+            │   ├── CorsConfig.java
+            │   ├── OpenApiConfig.java
+            │   ├── SchedulingConfig.java
+            │   ├── SecurityConfig.java
+            │   └── YouTubeConfig.java
+            ├── controller
+            │   ├── AnalyticsController.java
+            │   ├── ConnectedAccountController.java
+            │   ├── CreatorIntelligenceController.java
+            │   ├── HealthController.java
+            │   ├── UserController.java
+            │   ├── YouTubeController.java
+            │   ├── YouTubeOAuthController.java
+            │   ├── YouTubeSyncController.java
+            │   └── YtAnalyticsController.java
+            ├── dto
+            │   ├── Youtube
+            │   │   ├── ChannelSummaryDto.java
+            │   │   ├── YouTubeChannelResponse.java
+            │   │   ├── YouTubePlaylistItemsResponse.java
+            │   │   ├── YouTubeSyncRequestDto.java
+            │   │   └── YouTubeSyncResponseDto.java
+            │   ├── account
+            │   │   ├── ConnectAccountRequest.java
+            │   │   └── ConnectedAccountResponse.java
+            │   ├── analytics
+            │   │   ├── ChannelAnalyticsDto.java
+            │   │   ├── TimeSeriesPointDto.java
+            │   │   ├── TimeSeriesResponseDto.java
+            │   │   ├── TopVideosDto.java
+            │   │   ├── UploadFrequencyDto.java
+            │   │   └── YtAnalyticsSummaryDto.java
+            │   ├── creator
+            │   │   ├── CreatorDiagnosisDto.java
+            │   │   ├── RetentionDiagnosisRequest.java
+            │   │   ├── RetentionDiagnosisResponse.java
+            │   │   ├── RetentionDropEventDto.java
+            │   │   └── RetentionPoint.java
+            │   ├── oauth
+            │   │   ├── OAuthCallbackResponse.java
+            │   │   └── OAuthStartResponse.java
+            │   └── user
+            │       ├── CreateUserRequest.java
+            │       └── UserResponse.java
+            ├── entity
+            │   ├── ChannelMetricsSnapshot.java
+            │   ├── ConnectedAccount.java
+            │   ├── Hashtag.java
+            │   ├── OAuthState.java
+            │   ├── User.java
+            │   ├── VideoHashtag.java
+            │   ├── VideoMetricsSnapshot.java
+            │   ├── YouTubeChannel.java
+            │   └── YouTubeVideo.java
+            ├── enums
+            │   └── Platform.java
+            ├── exception
+            │   ├── ApiExceptionHandler.java
+            │   ├── ErrorResponse.java
+            │   ├── NotFoundException.java
+            │   └── RateLimitException.java
+            ├── jobs
+            │   ├── ApiCallBudget.java
+            │   ├── DailyRefreshJob.java
+            │   ├── JobProperties.java
+            │   ├── JobStartupProbe.java
+            │   └── OAuthRefreshJob.java
+            ├── repository
+            │   ├── ChannelMetricsSnapshotRepository.java
+            │   ├── ConnectedAccountRepository.java
+            │   ├── HashtagRepository.java
+            │   ├── OAuthStateRepository.java
+            │   ├── UserRepository.java
+            │   ├── VideoHashtagRepository.java
+            │   ├── VideoMetricsSnapshotRepository.java
+            │   ├── YouTubeChannelRepository.java
+            │   └── YouTubeVideoRepository.java
+            └── service
+                ├── ConnectedAccountService.java
+                ├── UserService.java
+                ├── YouTubeService.java
+                ├── YouTubeSyncService.java
+                ├── analytics
+                │   ├── AnalyticsService.java
+                │   ├── AnalyticsServiceImpl.java
+                │   ├── YtAnalyticsService.java
+                │   └── YtAnalyticsServiceImpl.jav
+                ├── channel
+                │   ├── ChannelIdentifierType.java
+                │   ├── ChannelResolver.java
+                │   ├── DefaultChannelResolver.java
+                │   └── ResolvedChannelIdentifier.java
+                ├── creator
+                │   ├── RetentionDiagnosisService.java
+                │   └── RetentionDiagnosisServiceImpl.java
+                ├── oauth
+                │   ├── GoogleTokenService.java
+                │   └── YouTubeOAuthService.java
+                └── youtube
+                    └── YouTubeAnalyticsClient.java
+src/main/resources
+├── application-local.properties
+├── application-local.properties.example
+└── application.properties
 
-30 directories, 87 files
+25 directories, 85 files
