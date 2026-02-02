@@ -2,8 +2,9 @@ package com.LogicGraph.sociallens.repository;
 
 import com.LogicGraph.sociallens.entity.ChannelMetricsSnapshot;
 import org.springframework.data.jpa.repository.JpaRepository;
-
+import java.time.LocalDate;
 import java.util.List;
+import java.time.Instant;
 import java.util.Optional;
 
 public interface ChannelMetricsSnapshotRepository
@@ -20,4 +21,10 @@ public interface ChannelMetricsSnapshotRepository
          * Example: /analytics/timeseries
          */
         List<ChannelMetricsSnapshot> findByChannel_ChannelIdOrderByCapturedAtAsc(String channelId);
+
+        Optional<ChannelMetricsSnapshot> findByChannelIdAndSnapshotDate(Long channelId, LocalDate snapshotDate);
+
+        Optional<ChannelMetricsSnapshot> findFirstByChannel_IdAndCapturedAtBetweenOrderByCapturedAtDesc(
+                        Long channelId, Instant startInclusive, Instant endExclusive);
+
 }

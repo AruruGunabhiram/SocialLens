@@ -5,6 +5,7 @@ import com.LogicGraph.sociallens.dto.account.ConnectedAccountResponse;
 import com.LogicGraph.sociallens.dto.oauth.OAuthCallbackResponse;
 import com.LogicGraph.sociallens.dto.oauth.OAuthStartResponse;
 import com.LogicGraph.sociallens.entity.ConnectedAccount;
+import com.LogicGraph.sociallens.repository.connectedAccountRepository;
 import com.LogicGraph.sociallens.entity.OAuthState;
 import com.LogicGraph.sociallens.enums.Platform;
 import com.LogicGraph.sociallens.repository.OAuthStateRepository;
@@ -222,13 +223,23 @@ public class YouTubeOAuthService {
         }
     }
 
-    public boolean refreshIfNeeded(ConnectedAccount acc) {
-        // TODO: implement token health logic based on YOUR entity fields.
-        // Typical rule: refresh if expires within next 5 minutes.
-        // You likely have something like: acc.getAccessTokenExpiresAt()
 
-        throw new UnsupportedOperationException(
-                "refreshIfNeeded(ConnectedAccount) wrapper added for jobs. Implement expiry check + refresh.");
+    public boolean refreshIfNeeded(ConnectedAccount acc) {
+        // If you store expiresAt, check it. Otherwise always attempt refresh for now.
+        // Return true only if refresh was performed and tokens were updated.
+        if (acc.getExpiresAt() == null) {
+            // If no expiry tracked, choose a conservative behavior:
+            // attempt refresh (or return false). I recommend attempt refresh for now.
+        }
+    
+        // pseudo-logic:
+        // if (acc.getExpiresAt().isAfter(Instant.now().plusSeconds(60))) return false;
+    
+        TokenRefreshResult result = refreshAccessToken(acc.getRefreshToken());
+        acc.setAccessToken(result.accessToken());
+        acc.setExpiresAt(result.expiresAt());
+        connectedAccountRepository.save(acc);
+        return true;
     }
 
     private String fetchChannelId(String accessToken) {
@@ -279,6 +290,9 @@ public class YouTubeOAuthService {
                     ex);
         }
     }
+
+   
+    
 
     private record TokenRefreshResult(String accessToken, long expiresInSeconds) {
     }

@@ -9,5 +9,8 @@ import java.util.Optional;
 public interface ConnectedAccountRepository extends JpaRepository<ConnectedAccount, Long> {
 
     Optional<ConnectedAccount> findByUser_IdAndPlatform(Long userId, Platform platform);
+    
+    List<ConnectedAccount> findByStatus(ConnectedAccountStatus status);
+
 
 }

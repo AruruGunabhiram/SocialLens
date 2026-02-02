@@ -4,6 +4,10 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import java.time.Instant;
+import com.LogicGraph.sociallens.enums.RefreshStatus;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor
@@ -33,6 +37,18 @@ public class YouTubeChannel {
 
     private String country;
     private String thumbnailUrl;
+
+    // Cursor for incremental video sync
+    private Instant lastVideoSyncAt;
+
+    // Observability for the overall daily refresh
+    private Instant lastSuccessfulRefreshAt;
+
+    @Enumerated(EnumType.STRING)
+    private RefreshStatus lastRefreshStatus = RefreshStatus.NEVER_RUN;
+
+    private String lastRefreshError;
+
     // default to true
     private boolean active = true;
 

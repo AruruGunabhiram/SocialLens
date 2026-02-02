@@ -14,23 +14,29 @@ import com.LogicGraph.sociallens.service.channel.ResolvedChannelIdentifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.LogicGraph.sociallens.exception.NotFoundException;
+import com.LogicGraph.sociallens.entity.VideoMetricsSnapshot;
+import com.LogicGraph.sociallens.repository.VideoMetricsSnapshotRepository;
+import java.time.ZoneOffset;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.time.LocalDate;
 
 @Service
 public class YouTubeSyncService {
 
     private final YouTubeService youTubeService;
     private final YouTubeChannelRepository channelRepository;
-    private final YouTubeVideoRepository videoRepository;
+    private final YouTubeVideoRepository videoRepository; 
+    private final VideoMetricsSnapshotRepository videoSnapRepo;
     private final ChannelMetricsSnapshotRepository channelSnapshotRepository;
     private final ChannelResolver channelResolver;
 
     public YouTubeSyncService(
             YouTubeService youTubeService,
             YouTubeChannelRepository channelRepository,
+            VideoMetricsSnapshotRepository videoSnapRepo,
             YouTubeVideoRepository videoRepository,
             ChannelMetricsSnapshotRepository channelSnapshotRepository,
             ChannelResolver channelResolver) {
@@ -233,16 +239,78 @@ public class YouTubeSyncService {
         videoRepository.save(video);
         return !exists;
     }
+
     public void syncChannel(String channelId) {
         // TODO: delegate to your existing sync pipeline method
         // Example delegates (pick the one that exists in your codebase):
         // syncChannelByChannelId(channelId);
         // syncChannelData(channelId);
         // runFullSync(channelId);
-    
+
         throw new UnsupportedOperationException(
-                "syncChannel(String) wrapper added for jobs. Wire it to your existing sync method."
-        );
+                "syncChannel(String) wrapper added for jobs. Wire it to your existing sync method.");
     }
-    
+
+    public int syncIncrementalVideos(String channelId, Instant publishedAfter) {
+        // Implement:
+        // 1) YouTube search.list with channelId + publishedAfter
+        // 2) batch fetch video stats
+        // 3) upsert into YouTubeVideoRepository
+        // return count updated/inserted
+        return 0;
+    }
+
+
+    public void writeChannelSnapshotIfNeeded(String channelId, LocalDate dateUtc) {
+        Instant start = dateUtc.atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant end = dateUtc.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+
+        var ch = channelRepo.findByChannelId(channelId)
+                .orElseThrow(() -> new IllegalArgumentException("Channel not found channelId=" + channelId));
+
+        // You must ensure ch has subscriberCount/viewCount/videoCount somewhere.
+        // If not, you need to fetch fresh stats before snapshotting.
+        // For now, snapshot whatever is currently stored (null-safe).
+        ChannelMetricsSnapshot snap = channelSnapRepo
+                .findFirstByChannel_IdAndCapturedAtBetweenOrderByCapturedAtDesc(ch.getId(), start, end)
+                .orElseGet(ChannelMetricsSnapshot::new);
+
+        snap.setChannel(ch);
+
+        // Use "now" as capturedAt but keep it within today's window
+        snap.setCapturedAt(Instant.now());
+
+        // TODO: Replace these getters with your actual stored fields on YouTubeChannel
+        // If YouTubeChannel doesn't store counts, you need to add them OR fetch from
+        // API here.
+        // Example:
+        // snap.setSubscriberCount(ch.getSubscriberCount());
+        // snap.setViewCount(ch.getViewCount());
+        // snap.setVideoCount(ch.getVideoCount());
+
+        channelSnapRepo.save(snap);
+    }
+
+    public void writeVideoSnapshotIfNeeded(Long videoDbId, LocalDate dateUtc) {
+        Instant start = dateUtc.atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant end = dateUtc.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+
+        var v = videoRepo.findById(videoDbId)
+                .orElseThrow(() -> new IllegalArgumentException("Video not found id=" + videoDbId));
+
+        VideoMetricsSnapshot snap = videoSnapRepo
+                .findFirstByVideo_IdAndCapturedAtBetweenOrderByCapturedAtDesc(v.getId(), start, end)
+                .orElseGet(VideoMetricsSnapshot::new);
+
+        snap.setVideo(v);
+        snap.setCapturedAt(Instant.now());
+
+        // Same issue: YouTubeVideo entity currently doesn't store view/like/comment
+        // counts.
+        // If you want real values, add fields to YouTubeVideo OR fetch from API here.
+        // For now these will remain null unless you fill them.
+
+        videoSnapRepo.save(snap);
+    }
+
 }

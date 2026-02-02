@@ -2,8 +2,10 @@ package com.LogicGraph.sociallens.entity;
 
 import com.LogicGraph.sociallens.enums.Platform;
 import jakarta.persistence.*;
-
 import java.time.Instant;
+import com.LogicGraph.sociallens.enums.ConnectedAccountStatus;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 
 @Entity
 @Table(name = "connected_accounts", uniqueConstraints = {
@@ -74,6 +76,13 @@ public class ConnectedAccount {
         this.scopes = scopes;
         this.user = user;
     }
+
+    @Enumerated(EnumType.STRING)
+    private ConnectedAccountStatus status = ConnectedAccountStatus.ACTIVE;
+
+    private String disconnectReason;
+
+    private Instant lastAnalyticsRefreshAt;
 
     // ===== getters =====
     public Long getId() {
