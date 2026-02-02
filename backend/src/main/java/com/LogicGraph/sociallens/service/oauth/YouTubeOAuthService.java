@@ -5,7 +5,6 @@ import com.LogicGraph.sociallens.dto.account.ConnectedAccountResponse;
 import com.LogicGraph.sociallens.dto.oauth.OAuthCallbackResponse;
 import com.LogicGraph.sociallens.dto.oauth.OAuthStartResponse;
 import com.LogicGraph.sociallens.entity.ConnectedAccount;
-import com.LogicGraph.sociallens.repository.connectedAccountRepository;
 import com.LogicGraph.sociallens.entity.OAuthState;
 import com.LogicGraph.sociallens.enums.Platform;
 import com.LogicGraph.sociallens.repository.OAuthStateRepository;
@@ -46,11 +45,13 @@ public class YouTubeOAuthService {
 
     private static final List<String> SCOPES = List.of(
             "https://www.googleapis.com/auth/yt-analytics.readonly",
-            "https://www.googleapis.com/auth/youtube.readonly");
+            "https://www.googleapis.com/auth/youtube.readonly"
+    );
 
     public YouTubeOAuthService(
             OAuthStateRepository oAuthStateRepository,
-            ConnectedAccountService connectedAccountService) {
+            ConnectedAccountService connectedAccountService
+    ) {
         this.oAuthStateRepository = oAuthStateRepository;
         this.connectedAccountService = connectedAccountService;
     }
@@ -62,7 +63,7 @@ public class YouTubeOAuthService {
         os.setState(state);
         os.setUserId(userId);
         os.setUsed(false);
-        os.setExpiresAt(Instant.now().plusSeconds(600)); // 10 min
+        os.setExpiresAt(Instant.now().plusSeconds(600));
         oAuthStateRepository.save(os);
 
         String scopeParam = String.join(" ", SCOPES);
@@ -87,10 +88,8 @@ public class YouTubeOAuthService {
         OAuthState savedState = oAuthStateRepository.findByState(state)
                 .orElseThrow(() -> new IllegalStateException("Invalid OAuth state"));
 
-        if (savedState.isUsed())
-            throw new IllegalStateException("OAuth state already used");
-        if (savedState.getExpiresAt().isBefore(Instant.now()))
-            throw new IllegalStateException("OAuth state expired");
+        if (savedState.isUsed()) throw new IllegalStateException("OAuth state already used");
+        if (savedState.getExpiresAt().isBefore(Instant.now())) throw new IllegalStateException("OAuth state expired");
 
         Map<String, Object> tokenResponse = exchangeCodeForTokens(code);
 
@@ -122,11 +121,10 @@ public class YouTubeOAuthService {
 
     /**
      * Returns an access token valid "now".
-     * If refreshed, this method persists the updated tokens.
+     * If refreshed, persists updated tokens.
      */
     public String getValidAccessToken(ConnectedAccount account) {
-        if (account == null)
-            throw new IllegalArgumentException("ConnectedAccount is null");
+        if (account == null) throw new IllegalArgumentException("ConnectedAccount is null");
 
         String accessToken = account.getAccessToken();
         if (accessToken == null || accessToken.isBlank()) {
@@ -134,17 +132,14 @@ public class YouTubeOAuthService {
         }
 
         Instant expiresAt = account.getExpiresAt();
-        if (expiresAt == null)
-            return accessToken; // best-effort
+        if (expiresAt == null) return accessToken; // best-effort
 
         boolean expiredOrNear = Instant.now().isAfter(expiresAt.minusSeconds(60));
-        if (!expiredOrNear)
-            return accessToken;
+        if (!expiredOrNear) return accessToken;
 
         String refreshToken = account.getRefreshToken();
         if (refreshToken == null || refreshToken.isBlank()) {
-            throw new IllegalStateException(
-                    "Access token expired and refresh token missing for account id=" + account.getId());
+            throw new IllegalStateException("Access token expired and refresh token missing for account id=" + account.getId());
         }
 
         TokenRefreshResult refreshed = refreshAccessToken(refreshToken);
@@ -152,10 +147,36 @@ public class YouTubeOAuthService {
         Instant newExpiresAt = Instant.now().plusSeconds(refreshed.expiresInSeconds());
         account.updateTokens(refreshed.accessToken(), null, newExpiresAt, account.getScopes());
 
-        // ✅ CRITICAL: persist refreshed tokens
         connectedAccountService.save(account);
 
         return account.getAccessToken();
+    }
+
+    /**
+     * Job-friendly method: refresh only if needed.
+     * Returns true only if refresh was performed and persisted.
+     */
+    public boolean refreshIfNeeded(ConnectedAccount acc) {
+        if (acc == null) throw new IllegalArgumentException("ConnectedAccount is null");
+
+        Instant expiresAt = acc.getExpiresAt();
+        // If we have expiry and it is still valid for >60s, do nothing.
+        if (expiresAt != null && Instant.now().isBefore(expiresAt.minusSeconds(60))) {
+            return false;
+        }
+
+        String refreshToken = acc.getRefreshToken();
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new IllegalStateException("Refresh token missing for account id=" + acc.getId());
+        }
+
+        TokenRefreshResult result = refreshAccessToken(refreshToken);
+
+        Instant newExpiresAt = Instant.now().plusSeconds(result.expiresInSeconds());
+        acc.updateTokens(result.accessToken(), null, newExpiresAt, acc.getScopes());
+
+        connectedAccountService.save(acc);
+        return true;
     }
 
     private Map<String, Object> exchangeCodeForTokens(String code) {
@@ -173,8 +194,7 @@ public class YouTubeOAuthService {
 
         try {
             @SuppressWarnings("unchecked")
-            ResponseEntity<Map> response = restTemplate.exchange(
-                    TOKEN_URL, HttpMethod.POST, request, Map.class);
+            ResponseEntity<Map> response = restTemplate.exchange(TOKEN_URL, HttpMethod.POST, request, Map.class);
 
             Map<String, Object> body = response.getBody();
             if (body == null || body.get("access_token") == null || body.get("expires_in") == null) {
@@ -184,8 +204,7 @@ public class YouTubeOAuthService {
 
         } catch (RestClientResponseException ex) {
             throw new IllegalStateException(
-                    "Token exchange failed: HTTP " + ex.getRawStatusCode() + " - " + ex.getResponseBodyAsString(),
-                    ex);
+                    "Token exchange failed: HTTP " + ex.getRawStatusCode() + " - " + ex.getResponseBodyAsString(), ex);
         }
     }
 
@@ -203,8 +222,7 @@ public class YouTubeOAuthService {
 
         try {
             @SuppressWarnings("unchecked")
-            ResponseEntity<Map> response = restTemplate.exchange(
-                    TOKEN_URL, HttpMethod.POST, request, Map.class);
+            ResponseEntity<Map> response = restTemplate.exchange(TOKEN_URL, HttpMethod.POST, request, Map.class);
 
             Map<String, Object> body = response.getBody();
             if (body == null || body.get("access_token") == null || body.get("expires_in") == null) {
@@ -218,28 +236,8 @@ public class YouTubeOAuthService {
 
         } catch (RestClientResponseException ex) {
             throw new IllegalStateException(
-                    "Token refresh failed: HTTP " + ex.getRawStatusCode() + " - " + ex.getResponseBodyAsString(),
-                    ex);
+                    "Token refresh failed: HTTP " + ex.getRawStatusCode() + " - " + ex.getResponseBodyAsString(), ex);
         }
-    }
-
-
-    public boolean refreshIfNeeded(ConnectedAccount acc) {
-        // If you store expiresAt, check it. Otherwise always attempt refresh for now.
-        // Return true only if refresh was performed and tokens were updated.
-        if (acc.getExpiresAt() == null) {
-            // If no expiry tracked, choose a conservative behavior:
-            // attempt refresh (or return false). I recommend attempt refresh for now.
-        }
-    
-        // pseudo-logic:
-        // if (acc.getExpiresAt().isAfter(Instant.now().plusSeconds(60))) return false;
-    
-        TokenRefreshResult result = refreshAccessToken(acc.getRefreshToken());
-        acc.setAccessToken(result.accessToken());
-        acc.setExpiresAt(result.expiresAt());
-        connectedAccountRepository.save(acc);
-        return true;
     }
 
     private String fetchChannelId(String accessToken) {
@@ -258,8 +256,7 @@ public class YouTubeOAuthService {
 
         try {
             @SuppressWarnings("unchecked")
-            ResponseEntity<Map> response = restTemplate.exchange(
-                    url, HttpMethod.GET, request, Map.class);
+            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, request, Map.class);
 
             Map<String, Object> body = response.getBody();
             if (body == null || body.get("items") == null) {
@@ -277,24 +274,15 @@ public class YouTubeOAuthService {
             }
 
             Object idObj = first.get("id");
-            if (idObj == null) {
-                throw new IllegalStateException("YouTube channel id missing in response");
-            }
+            if (idObj == null) throw new IllegalStateException("YouTube channel id missing in response");
 
             return idObj.toString();
 
         } catch (RestClientResponseException ex) {
             throw new IllegalStateException(
-                    "YouTube channel lookup failed: HTTP " + ex.getRawStatusCode() + " - "
-                            + ex.getResponseBodyAsString(),
-                    ex);
+                    "YouTube channel lookup failed: HTTP " + ex.getRawStatusCode() + " - " + ex.getResponseBodyAsString(), ex);
         }
     }
 
-   
-    
-
-    private record TokenRefreshResult(String accessToken, long expiresInSeconds) {
-    }
-
+    private record TokenRefreshResult(String accessToken, long expiresInSeconds) { }
 }

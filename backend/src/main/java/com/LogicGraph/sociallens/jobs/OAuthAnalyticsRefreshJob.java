@@ -1,5 +1,6 @@
 package com.LogicGraph.sociallens.jobs;
 
+import com.LogicGraph.sociallens.enums.ConnectedAccountStatus;
 import com.LogicGraph.sociallens.repository.ConnectedAccountRepository;
 import com.LogicGraph.sociallens.service.oauth.YouTubeOAuthService;
 import org.slf4j.Logger;
@@ -41,7 +42,7 @@ public class OAuthAnalyticsRefreshJob {
 
         for (var acc : accounts) {
             try {
-                boolean didRefresh = oauthService.refreshIfNeeded(acc); // you must add this method
+                boolean didRefresh = oauthService.refreshIfNeeded(acc);
                 if (didRefresh) refreshed++;
             } catch (Exception ex) {
                 failed++;
@@ -49,6 +50,7 @@ public class OAuthAnalyticsRefreshJob {
             }
         }
 
-        log.info("OAuthAnalyticsRefreshJob finished: refreshed={} failed={} total={}", refreshed, failed, accounts.size());
+        log.info("OAuthAnalyticsRefreshJob finished: refreshed={} failed={} total={}",
+                refreshed, failed, accounts.size());
     }
 }

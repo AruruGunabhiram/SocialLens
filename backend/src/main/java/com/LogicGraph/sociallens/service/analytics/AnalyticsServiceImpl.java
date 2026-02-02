@@ -48,8 +48,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
         if (latestOpt.isPresent()) {
             var latest = latestOpt.get();
-            subscribers = latest.getSubscriberCount();
-            totalViews = latest.getViewCount();
+            subscribers = latest.getSubscriberCount() == null ? 0L : latest.getSubscriberCount();
+            totalViews = latest.getViewCount() == null ? 0L : latest.getViewCount();
 
             if (totalVideos == 0L && latest.getVideoCount() != null) {
                 totalVideos = latest.getVideoCount();

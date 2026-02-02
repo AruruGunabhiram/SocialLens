@@ -1,5 +1,6 @@
 package com.LogicGraph.sociallens.enums;
 
-public class ConnectedAccountStatus {
-    
+public enum ConnectedAccountStatus {
+    ACTIVE,
+    DISCONNECTED
 }
