@@ -27,10 +27,19 @@ public class JobProperties {
     public void setMaxApiCallsPerRun(int maxApiCallsPerRun) { this.maxApiCallsPerRun = maxApiCallsPerRun; }
 
     public static class DailyRefresh {
+        private boolean enabled = true;
+        private int maxChannelsPerRun = 25;
         private String cron = "0 15 3 * * *"; // 03:15 daily (server time)
+    
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+    
+        public int getMaxChannelsPerRun() { return maxChannelsPerRun; }
+        public void setMaxChannelsPerRun(int maxChannelsPerRun) { this.maxChannelsPerRun = maxChannelsPerRun; }
+    
         public String getCron() { return cron; }
         public void setCron(String cron) { this.cron = cron; }
-    }
+    }    
 
     public static class OAuthRefresh {
         private boolean enabled = true;

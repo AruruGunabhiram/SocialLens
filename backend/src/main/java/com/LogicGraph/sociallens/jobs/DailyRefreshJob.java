@@ -1,7 +1,6 @@
 package com.LogicGraph.sociallens.jobs;
 
 import com.LogicGraph.sociallens.repository.YouTubeChannelRepository;
-import com.LogicGraph.sociallens.service.YouTubeSyncService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -14,62 +13,48 @@ public class DailyRefreshJob {
 
     private final JobProperties props;
     private final YouTubeChannelRepository channelRepo;
-    private final YouTubeSyncService syncService;
+    private final DailyRefreshWorker worker;
 
     public DailyRefreshJob(
             JobProperties props,
             YouTubeChannelRepository channelRepo,
-            YouTubeSyncService syncService
+            DailyRefreshWorker worker
     ) {
         this.props = props;
         this.channelRepo = channelRepo;
-        this.syncService = syncService;
+        this.worker = worker;
     }
 
     @Scheduled(cron = "${sociallens.jobs.daily-refresh.cron}")
     public void runDailyRefresh() {
-        if (!props.isEnabled()) {
-            log.debug("Jobs disabled: skipping DailyRefreshJob");
+        if (!props.isEnabled() || !props.getDailyRefresh().isEnabled()) {
+            log.debug("Daily refresh disabled: skipping DailyRefreshJob");
             return;
         }
 
-        // Hard cap budget per run
-        ApiCallBudget budget = new ApiCallBudget(props.getMaxApiCallsPerRun());
-
-        // NOTE: You will need an 'active' flag on YouTubeChannel OR you approximate eligibility differently.
-        // If you don't have it yet, your “guardrail” is: refresh only channels that exist + optionally recently synced.
-        var channels = channelRepo.findByActiveTrue(); // replace with findByActiveTrue() when you add active flag
+        var channels = channelRepo.findByActiveTrue();
 
         int processed = 0;
-        int maxChannels = props.getMaxChannelsPerRun();
+        int ok = 0;
+        int failed = 0;
 
-        log.info("DailyRefreshJob starting: channels={}, maxChannelsPerRun={}, maxApiCallsPerRun={}",
-                channels.size(), maxChannels, budget.max());
+        int maxChannels = props.getDailyRefresh().getMaxChannelsPerRun();
+
+        log.info("DailyRefreshJob starting: channels={} maxChannels={}", channels.size(), maxChannels);
 
         for (var ch : channels) {
             if (processed >= maxChannels) break;
+            processed++;
 
             try {
-                // Minimal call budgeting assumption:
-                // - channel metadata + video list + metrics snapshot could be ~5-15 calls depending on pagination
-                // You will refine this later based on your YouTubeService implementation.
-                if (!budget.tryConsume(10)) {
-                    log.warn("DailyRefreshJob budget exhausted: used={}, remaining={}", budget.used(), budget.remaining());
-                    break;
-                }
-
-                // If you implement refresh scopes later, pass flags. For now, call your existing sync method.
-                // Example: syncService.syncChannelByChannelId(ch.getChannelId());
-                syncService.syncChannel(ch.getChannelId());
-
-                processed++;
+                worker.refreshOneChannel(ch.getId());
+                ok++;
             } catch (Exception ex) {
-                // Don’t kill the whole run because one channel fails.
-                log.error("DailyRefreshJob failed for channelId={}: {}", ch.getChannelId(), ex.getMessage(), ex);
+                failed++;
+                log.warn("DailyRefreshJob failed channelId={}: {}", ch.getChannelId(), ex.getMessage(), ex);
             }
         }
 
-        log.info("DailyRefreshJob finished: processed={}, apiCallsUsed={}, apiCallsRemaining={}",
-                processed, budget.used(), budget.remaining());
+        log.info("DailyRefreshJob finished: processed={} ok={} failed={}", processed, ok, failed);
     }
 }

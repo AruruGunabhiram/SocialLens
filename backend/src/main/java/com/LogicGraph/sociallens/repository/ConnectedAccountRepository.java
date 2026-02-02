@@ -3,6 +3,8 @@ package com.LogicGraph.sociallens.repository;
 import com.LogicGraph.sociallens.entity.ConnectedAccount;
 import com.LogicGraph.sociallens.enums.Platform;
 import org.springframework.data.jpa.repository.JpaRepository;
+import com.LogicGraph.sociallens.enums.ConnectedAccountStatus; 
+import java.util.List;
 
 import java.util.Optional;
 
@@ -10,4 +12,8 @@ public interface ConnectedAccountRepository extends JpaRepository<ConnectedAccou
 
     Optional<ConnectedAccount> findByUser_IdAndPlatform(Long userId, Platform platform);
 
+    List<ConnectedAccount> findByStatus(ConnectedAccountStatus status);
+
+
 }
+

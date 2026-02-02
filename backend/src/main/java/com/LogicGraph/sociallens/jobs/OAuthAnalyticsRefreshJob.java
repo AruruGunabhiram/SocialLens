@@ -1,5 +1,6 @@
 package com.LogicGraph.sociallens.jobs;
 
+import com.LogicGraph.sociallens.enums.ConnectedAccountStatus;
 import com.LogicGraph.sociallens.repository.ConnectedAccountRepository;
 import com.LogicGraph.sociallens.service.oauth.YouTubeOAuthService;
 import org.slf4j.Logger;
@@ -8,15 +9,15 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
-public class OAuthRefreshJob {
+public class OAuthAnalyticsRefreshJob {
 
-    private static final Logger log = LoggerFactory.getLogger(OAuthRefreshJob.class);
+    private static final Logger log = LoggerFactory.getLogger(OAuthAnalyticsRefreshJob.class);
 
     private final JobProperties props;
     private final ConnectedAccountRepository connectedAccountRepository;
     private final YouTubeOAuthService oauthService;
 
-    public OAuthRefreshJob(
+    public OAuthAnalyticsRefreshJob(
             JobProperties props,
             ConnectedAccountRepository connectedAccountRepository,
             YouTubeOAuthService oauthService
@@ -29,25 +30,27 @@ public class OAuthRefreshJob {
     @Scheduled(cron = "${sociallens.jobs.oauth-refresh.cron}")
     public void runOAuthRefresh() {
         if (!props.isEnabled() || !props.getOauthRefresh().isEnabled()) {
-            log.debug("OAuth refresh disabled: skipping OAuthRefreshJob");
+            log.debug("OAuth refresh disabled: skipping OAuthAnalyticsRefreshJob");
             return;
         }
 
-        var accounts = connectedAccountRepository.findAll();
-        log.info("OAuthRefreshJob starting: connectedAccounts={}", accounts.size());
+        var accounts = connectedAccountRepository.findByStatus(ConnectedAccountStatus.ACTIVE);
+        log.info("OAuthAnalyticsRefreshJob starting: connectedAccounts={}", accounts.size());
 
         int refreshed = 0;
+        int failed = 0;
+
         for (var acc : accounts) {
             try {
-                // You should implement a method like: oauthService.refreshIfNeeded(acc)
-                // If you don't have it, add it in YouTubeOAuthService.
                 boolean didRefresh = oauthService.refreshIfNeeded(acc);
                 if (didRefresh) refreshed++;
             } catch (Exception ex) {
-                log.warn("OAuthRefreshJob failed for accountId={}: {}", acc.getId(), ex.getMessage());
+                failed++;
+                log.warn("OAuthAnalyticsRefreshJob failed for accountId={}: {}", acc.getId(), ex.getMessage(), ex);
             }
         }
 
-        log.info("OAuthRefreshJob finished: refreshed={}/{}", refreshed, accounts.size());
+        log.info("OAuthAnalyticsRefreshJob finished: refreshed={} failed={} total={}",
+                refreshed, failed, accounts.size());
     }
 }
