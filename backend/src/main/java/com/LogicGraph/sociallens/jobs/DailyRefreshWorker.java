@@ -44,7 +44,7 @@ public class DailyRefreshWorker {
                 .orElseThrow(() -> new IllegalArgumentException("Channel not found id=" + channelDbId));
 
         Instant started = Instant.now();
-        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        LocalDate todayUtc = LocalDate.now(ZoneOffset.UTC);
 
         try {
             // 1) Refresh channel metadata (Data API)
@@ -57,38 +57,43 @@ public class DailyRefreshWorker {
                 since = Instant.now().minusSeconds(30L * 24 * 3600);
             }
 
+            // Capture a cursor *now*, but DO NOT persist it yet.
+            // We only persist after the whole refresh succeeds (including snapshots).
+            Instant newCursor = Instant.now();
+
             int newOrUpdated = syncService.syncIncrementalVideos(ch.getChannelId(), since);
 
-            // Only advance cursor if incremental sync completed
-            ch.setLastVideoSyncAt(Instant.now());
-
             // 3) Write daily snapshots (idempotent)
-            syncService.writeChannelSnapshotIfNeeded(ch.getChannelId(), today);
+            // IMPORTANT: these should be DB-guarded with UNIQUE(channel_id, day) and UNIQUE(video_id, day)
+            // and catch DataIntegrityViolationException inside the writer methods.
+            syncService.writeChannelSnapshotIfNeeded(ch.getId(), todayUtc);
 
-            // Snapshot ALL videos for now (since you don't have viewCount)
+            // Snapshot ALL videos for now (OK for dev; add paging/caps later)
             var videos = videoRepo.findAllByChannel_ChannelId(ch.getChannelId());
             for (var v : videos) {
-                syncService.writeVideoSnapshotIfNeeded(v.getId(), today);
+                syncService.writeVideoSnapshotIfNeeded(v.getId(), todayUtc);
             }
 
-            // 4) success status
+            // Only now: advance cursor, mark success
+            ch.setLastVideoSyncAt(newCursor);
             ch.setLastSuccessfulRefreshAt(Instant.now());
             ch.setLastRefreshStatus(RefreshStatus.SUCCESS);
             ch.setLastRefreshError(null);
             channelRepo.save(ch);
 
             long ms = Instant.now().toEpochMilli() - started.toEpochMilli();
-            log.info("DailyRefreshWorker success channelId={} newOrUpdatedVideos={} totalVideos={} ms={}",
-                    ch.getChannelId(), newOrUpdated, videos.size(), ms);
+            log.info("DailyRefreshWorker success channelId={} channelDbId={} newOrUpdatedVideos={} totalVideos={} dayUtc={} ms={}",
+                    ch.getChannelId(), ch.getId(), newOrUpdated, videos.size(), todayUtc, ms);
 
         } catch (Exception ex) {
+            // DO NOT advance cursor on failure
             ch.setLastRefreshStatus(RefreshStatus.FAILED);
             ch.setLastRefreshError(safeErr(ex));
             channelRepo.save(ch);
 
             long ms = Instant.now().toEpochMilli() - started.toEpochMilli();
-            log.warn("DailyRefreshWorker FAILED channelId={} ms={} err={}",
-                    ch.getChannelId(), ms, ex.getMessage(), ex);
+            log.warn("DailyRefreshWorker FAILED channelId={} channelDbId={} dayUtc={} ms={} err={}",
+                    ch.getChannelId(), ch.getId(), todayUtc, ms, ex.getMessage(), ex);
 
             throw ex;
         }

@@ -2,18 +2,23 @@ package com.LogicGraph.sociallens.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
-import lombok.Setter;
-import java.time.Instant;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.time.Instant;
+import java.time.LocalDate;
 
 @NoArgsConstructor
-@Entity
-@Table(
-  name = "channel_metrics_snapshot",
-  indexes = @Index(name = "idx_channel_captured", columnList = "channel_id,capturedAt")
-)
 @Getter
 @Setter
+@Entity
+@Table(
+    name = "channel_metrics_snapshot",
+    uniqueConstraints = @UniqueConstraint(
+        name = "uk_channel_snapshot_day",
+        columnNames = {"channel_id", "captured_day_utc"}
+    )
+)
 public class ChannelMetricsSnapshot {
 
     @Id
@@ -21,13 +26,16 @@ public class ChannelMetricsSnapshot {
     private Long id;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "channel_id")
+    @JoinColumn(name = "channel_id", nullable = false)
     private YouTubeChannel channel;
-
-    @Column(nullable = false)
-    private Instant capturedAt;
 
     private Long subscriberCount;
     private Long viewCount;
     private Long videoCount;
+
+    @Column(name = "captured_at", nullable = false)
+    private Instant capturedAt;
+
+    @Column(name = "captured_day_utc", nullable = false)
+    private LocalDate capturedDayUtc;
 }
