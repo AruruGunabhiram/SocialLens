@@ -14,6 +14,7 @@ import com.LogicGraph.sociallens.repository.YouTubeChannelRepository;
 import com.LogicGraph.sociallens.repository.YouTubeVideoRepository;
 import com.LogicGraph.sociallens.service.channel.ChannelResolver;
 import com.LogicGraph.sociallens.service.channel.ResolvedChannelIdentifier;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,8 +41,7 @@ public class YouTubeSyncService {
             YouTubeVideoRepository videoRepository,
             VideoMetricsSnapshotRepository videoSnapRepo,
             ChannelMetricsSnapshotRepository channelSnapshotRepository,
-            ChannelResolver channelResolver
-    ) {
+            ChannelResolver channelResolver) {
         this.youTubeService = youTubeService;
         this.channelRepository = channelRepository;
         this.videoRepository = videoRepository;
@@ -73,15 +73,6 @@ public class YouTubeSyncService {
         // 3) Upsert channel
         YouTubeChannel savedChannel = upsertChannel(dto);
 
-        // 4) Snapshot (historical)
-        ChannelMetricsSnapshot snap = new ChannelMetricsSnapshot();
-        snap.setCapturedAt(Instant.now());
-        snap.setSubscriberCount(dto.subscribers);
-        snap.setViewCount(dto.views);
-        snap.setVideoCount(dto.videos);
-        snap.setChannel(savedChannel);
-        channelSnapshotRepository.save(snap);
-
         // 4.3) Pagination: fetch uploads playlist videos page-by-page
         int maxPages = 2;
         int pageSize = 50;
@@ -98,12 +89,13 @@ public class YouTubeSyncService {
             String pageToken = null;
 
             while (pagesFetched < maxPages) {
-                YouTubePlaylistItemsResponse page =
-                        youTubeService.getUploadsVideoIdsPage(uploadsPlaylistId, pageToken, pageSize);
+                YouTubePlaylistItemsResponse page = youTubeService.getUploadsVideoIdsPage(uploadsPlaylistId, pageToken,
+                        pageSize);
 
                 pagesFetched++;
 
-                if (page == null || page.items == null || page.items.isEmpty()) break;
+                if (page == null || page.items == null || page.items.isEmpty())
+                    break;
 
                 for (var item : page.items) {
                     String videoId = null;
@@ -116,16 +108,20 @@ public class YouTubeSyncService {
                         videoId = item.snippet.resourceId.videoId;
                     }
 
-                    if (videoId == null || videoId.isBlank()) continue;
+                    if (videoId == null || videoId.isBlank())
+                        continue;
 
                     boolean created = upsertVideo(videoId, savedChannel);
-                    if (created) videosSaved++;
-                    else videosUpdated++;
+                    if (created)
+                        videosSaved++;
+                    else
+                        videosUpdated++;
                 }
 
                 videosFetched += page.items.size();
                 pageToken = page.nextPageToken;
-                if (pageToken == null || pageToken.isBlank()) break;
+                if (pageToken == null || pageToken.isBlank())
+                    break;
             }
 
         } catch (Exception e) {
@@ -165,13 +161,6 @@ public class YouTubeSyncService {
         ChannelSummaryDto dto = youTubeService.getChannelSummaryByChannelId(channelId);
         YouTubeChannel savedChannel = upsertChannel(dto);
 
-        ChannelMetricsSnapshot snap = new ChannelMetricsSnapshot();
-        snap.setCapturedAt(Instant.now());
-        snap.setSubscriberCount(dto.subscribers);
-        snap.setViewCount(dto.views);
-        snap.setVideoCount(dto.videos);
-        snap.setChannel(savedChannel);
-        channelSnapshotRepository.save(snap);
     }
 
     /**
@@ -199,49 +188,59 @@ public class YouTubeSyncService {
     }
 
     /**
-     * Idempotent per-day channel snapshot using capturedAt window [start,end) in UTC.
+     * Idempotent per-day channel snapshot using capturedAt window [start,end) in
+     * UTC.
      */
     @Transactional
-    public void writeChannelSnapshotIfNeeded(String channelId, LocalDate dateUtc) {
-        Instant start = dateUtc.atStartOfDay(ZoneOffset.UTC).toInstant();
-        Instant end = dateUtc.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
-
-        YouTubeChannel ch = channelRepository.findByChannelId(channelId)
-                .orElseThrow(() -> new IllegalArgumentException("Channel not found channelId=" + channelId));
-
-        ChannelMetricsSnapshot snap = channelSnapshotRepository
-                .findFirstByChannel_IdAndCapturedAtBetweenOrderByCapturedAtDesc(ch.getId(), start, end)
-                .orElseGet(ChannelMetricsSnapshot::new);
-
-        snap.setChannel(ch);
-        snap.setCapturedAt(Instant.now());
-
-        // You don't store counts on YouTubeChannel yet, so use latest known snapshot values if needed.
-        // Right now: do nothing additional (nulls are allowed) OR copy from latest existing snapshot.
-        // If you want: we can add subscriberCount/viewCount/videoCount to YouTubeChannel next.
-
-        channelSnapshotRepository.save(snap);
+public void writeChannelSnapshotIfNeeded(Long channelDbId, LocalDate dayUtc) {
+    if (channelSnapshotRepository.existsByChannel_IdAndCapturedDayUtc(channelDbId, dayUtc)) {
+        return;
     }
+
+    YouTubeChannel ch = channelRepository.findById(channelDbId)
+            .orElseThrow(() -> new IllegalArgumentException("Channel not found id=" + channelDbId));
+
+    ChannelMetricsSnapshot snap = new ChannelMetricsSnapshot();
+    snap.setChannel(ch);
+    snap.setCapturedAt(Instant.now());
+    snap.setCapturedDayUtc(dayUtc);
+
+    // TODO: persist metrics when you add them to YouTubeChannel or fetch them here
+
+    try {
+        channelSnapshotRepository.saveAndFlush(snap);
+    } catch (DataIntegrityViolationException ignore) {
+        // expected under concurrency if UNIQUE(channel_id, captured_day_utc) exists
+    }
+}
+
 
     /**
      * Idempotent per-day video snapshot using capturedAt window [start,end) in UTC.
      */
     @Transactional
-    public void writeVideoSnapshotIfNeeded(Long videoDbId, LocalDate dateUtc) {
-        Instant start = dateUtc.atStartOfDay(ZoneOffset.UTC).toInstant();
-        Instant end = dateUtc.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+    public void writeVideoSnapshotIfNeeded(Long videoDbId, LocalDate dayUtc) {
+        if (videoSnapRepo.existsByVideo_IdAndCapturedDayUtc(videoDbId, dayUtc)) {
+            return;
+        }
 
         YouTubeVideo v = videoRepository.findById(videoDbId)
                 .orElseThrow(() -> new IllegalArgumentException("Video not found id=" + videoDbId));
 
-        VideoMetricsSnapshot snap = videoSnapRepo
-                .findFirstByVideo_IdAndCapturedAtBetweenOrderByCapturedAtDesc(v.getId(), start, end)
-                .orElseGet(VideoMetricsSnapshot::new);
-
+        VideoMetricsSnapshot snap = new VideoMetricsSnapshot();
         snap.setVideo(v);
         snap.setCapturedAt(Instant.now());
+        snap.setCapturedDayUtc(dayUtc); // YOU NEED THIS FIELD
 
-        videoSnapRepo.save(snap);
+        // Copy metrics from the video row (when you add them)
+        // snap.setViewCount(v.getViewCount());
+        // snap.setLikeCount(v.getLikeCount());
+
+        try {
+            videoSnapRepo.saveAndFlush(snap);
+        } catch (DataIntegrityViolationException ignore) {
+            // concurrent creation, expected
+        }
     }
 
     // =========================

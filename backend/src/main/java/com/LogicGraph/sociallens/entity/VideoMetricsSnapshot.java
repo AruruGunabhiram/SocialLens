@@ -1,32 +1,41 @@
 package com.LogicGraph.sociallens.entity;
 
 import jakarta.persistence.*;
-import java.time.Instant;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
+import java.time.LocalDate;
+
+@NoArgsConstructor
 @Getter
 @Setter
 @Entity
-@Table(name = "video_metrics_snapshot", indexes = @Index(name = "idx_video_captured", columnList = "video_id,capturedAt"))
+@Table(
+    name = "video_metrics_snapshot",
+    uniqueConstraints = @UniqueConstraint(
+        name = "uk_video_snapshot_day",
+        columnNames = {"video_id", "captured_day_utc"}
+    )
+)
 public class VideoMetricsSnapshot {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-  @ManyToOne(optional = false)
-  @JoinColumn(name = "video_id")
-  private YouTubeVideo video;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "video_id", nullable = false)
+    private YouTubeVideo video;
 
-  @Column(nullable = false)
-  private Instant capturedAt;
+    private Long viewCount;
+    private Long likeCount;
+    private Long commentCount;
 
-  private Long viewCount;
-  private Long likeCount;
-  private Long commentCount;
+    @Column(name = "captured_at", nullable = false)
+    private Instant capturedAt;
 
-  public Long getId() {
-    return id;
-  }
+    @Column(name = "captured_day_utc", nullable = false)
+    private LocalDate capturedDayUtc;
 }

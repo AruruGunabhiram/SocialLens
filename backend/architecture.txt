@@ -6,6 +6,7 @@ src/main/java
             ├── config
             │   ├── CorsConfig.java
             │   ├── OpenApiConfig.java
+            │   ├── SchedulerConfig.java
             │   ├── SchedulingConfig.java
             │   ├── SecurityConfig.java
             │   └── YouTubeConfig.java
@@ -14,18 +15,13 @@ src/main/java
             │   ├── ConnectedAccountController.java
             │   ├── CreatorIntelligenceController.java
             │   ├── HealthController.java
+            │   ├── JobsController.java
             │   ├── UserController.java
             │   ├── YouTubeController.java
             │   ├── YouTubeOAuthController.java
             │   ├── YouTubeSyncController.java
             │   └── YtAnalyticsController.java
             ├── dto
-            │   ├── Youtube
-            │   │   ├── ChannelSummaryDto.java
-            │   │   ├── YouTubeChannelResponse.java
-            │   │   ├── YouTubePlaylistItemsResponse.java
-            │   │   ├── YouTubeSyncRequestDto.java
-            │   │   └── YouTubeSyncResponseDto.java
             │   ├── account
             │   │   ├── ConnectAccountRequest.java
             │   │   └── ConnectedAccountResponse.java
@@ -42,12 +38,21 @@ src/main/java
             │   │   ├── RetentionDiagnosisResponse.java
             │   │   ├── RetentionDropEventDto.java
             │   │   └── RetentionPoint.java
+            │   ├── jobs
+            │   │   ├── JobRunResultDto.java
+            │   │   └── OAuthAnalyticsJobRunResultDto.java
             │   ├── oauth
             │   │   ├── OAuthCallbackResponse.java
             │   │   └── OAuthStartResponse.java
-            │   └── user
-            │       ├── CreateUserRequest.java
-            │       └── UserResponse.java
+            │   ├── user
+            │   │   ├── CreateUserRequest.java
+            │   │   └── UserResponse.java
+            │   └── youtube
+            │       ├── ChannelSummaryDto.java
+            │       ├── YouTubeChannelResponse.java
+            │       ├── YouTubePlaylistItemsResponse.java
+            │       ├── YouTubeSyncRequestDto.java
+            │       └── YouTubeSyncResponseDto.java
             ├── entity
             │   ├── ChannelMetricsSnapshot.java
             │   ├── ConnectedAccount.java
@@ -59,7 +64,9 @@ src/main/java
             │   ├── YouTubeChannel.java
             │   └── YouTubeVideo.java
             ├── enums
-            │   └── Platform.java
+            │   ├── ConnectedAccountStatus.java
+            │   ├── Platform.java
+            │   └── RefreshStatus.java
             ├── exception
             │   ├── ApiExceptionHandler.java
             │   ├── ErrorResponse.java
@@ -68,9 +75,11 @@ src/main/java
             ├── jobs
             │   ├── ApiCallBudget.java
             │   ├── DailyRefreshJob.java
+            │   ├── DailyRefreshWorker.java
             │   ├── JobProperties.java
             │   ├── JobStartupProbe.java
-            │   └── OAuthRefreshJob.java
+            │   ├── OAuthAnalyticsRefreshJob.java
+            │   └── OAuthAnalyticsRefreshWorker.java
             ├── repository
             │   ├── ChannelMetricsSnapshotRepository.java
             │   ├── ConnectedAccountRepository.java
@@ -109,4 +118,4 @@ src/main/resources
 ├── application-local.properties.example
 └── application.properties
 
-25 directories, 85 files
+26 directories, 93 files
