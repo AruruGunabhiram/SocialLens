@@ -1,3 +1,4 @@
+// Changelog: Use DB-limited video query, keep snapshots and refresh flow intact.
 package com.LogicGraph.sociallens.jobs;
 
 import com.LogicGraph.sociallens.entity.YouTubeChannel;
@@ -6,14 +7,13 @@ import com.LogicGraph.sociallens.repository.YouTubeChannelRepository;
 import com.LogicGraph.sociallens.repository.YouTubeVideoRepository;
 import com.LogicGraph.sociallens.service.YouTubeService;
 import com.LogicGraph.sociallens.service.YouTubeSyncService;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.beans.factory.annotation.Value;
-
-import com.LogicGraph.sociallens.jobs.JobProperties;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -66,8 +66,6 @@ public class DailyRefreshWorker {
             Instant newCursor = Instant.now();
 
             int newOrUpdated = syncService.syncIncrementalVideos(ch.getChannelId(), since);
-            // TEMP: force failure to test cursor safety (REMOVE AFTER TEST)
-            throw new RuntimeException("FORCED_FAIL_AFTER_SYNC");
 
             // 3) Write daily snapshots (idempotent)
             // IMPORTANT: these should be DB-guarded with UNIQUE(channel_id, day) and
@@ -77,12 +75,11 @@ public class DailyRefreshWorker {
 
             // Snapshot videos with a cap (prevents huge channels melting the job)
             int maxVideos = props.getDailyRefresh().getMaxVideosPerChannelPerRun();
-            var videos = videoRepo.findAllByChannel_ChannelId(ch.getChannelId());
+            var videos = videoRepo.findByChannel_ChannelId(
+                    ch.getChannelId(),
+                    PageRequest.of(0, maxVideos, Sort.by(Sort.Direction.DESC, "publishedAt")));
 
-            int count = 0;
             for (var v : videos) {
-                if (count++ >= maxVideos)
-                    break;
                 syncService.writeVideoSnapshotIfNeeded(v.getId(), todayUtc);
             }
 
