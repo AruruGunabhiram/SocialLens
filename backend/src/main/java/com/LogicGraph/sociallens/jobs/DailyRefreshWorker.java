@@ -1,3 +1,4 @@
+// Changelog: Use DB-limited video query, keep snapshots and refresh flow intact.
 package com.LogicGraph.sociallens.jobs;
 
 import com.LogicGraph.sociallens.entity.YouTubeChannel;
@@ -6,12 +7,13 @@ import com.LogicGraph.sociallens.repository.YouTubeChannelRepository;
 import com.LogicGraph.sociallens.repository.YouTubeVideoRepository;
 import com.LogicGraph.sociallens.service.YouTubeService;
 import com.LogicGraph.sociallens.service.YouTubeSyncService;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -19,6 +21,7 @@ import java.time.ZoneOffset;
 @Component
 public class DailyRefreshWorker {
 
+    private final JobProperties props;
     private static final Logger log = LoggerFactory.getLogger(DailyRefreshWorker.class);
 
     private final YouTubeChannelRepository channelRepo;
@@ -30,11 +33,12 @@ public class DailyRefreshWorker {
             YouTubeChannelRepository channelRepo,
             YouTubeVideoRepository videoRepo,
             YouTubeService ytService,
-            YouTubeSyncService syncService
-    ) {
+            JobProperties props,
+            YouTubeSyncService syncService) {
         this.channelRepo = channelRepo;
         this.videoRepo = videoRepo;
         this.ytService = ytService;
+        this.props = props;
         this.syncService = syncService;
     }
 
@@ -64,12 +68,17 @@ public class DailyRefreshWorker {
             int newOrUpdated = syncService.syncIncrementalVideos(ch.getChannelId(), since);
 
             // 3) Write daily snapshots (idempotent)
-            // IMPORTANT: these should be DB-guarded with UNIQUE(channel_id, day) and UNIQUE(video_id, day)
+            // IMPORTANT: these should be DB-guarded with UNIQUE(channel_id, day) and
+            // UNIQUE(video_id, day)
             // and catch DataIntegrityViolationException inside the writer methods.
             syncService.writeChannelSnapshotIfNeeded(ch.getId(), todayUtc);
 
-            // Snapshot ALL videos for now (OK for dev; add paging/caps later)
-            var videos = videoRepo.findAllByChannel_ChannelId(ch.getChannelId());
+            // Snapshot videos with a cap (prevents huge channels melting the job)
+            int maxVideos = props.getDailyRefresh().getMaxVideosPerChannelPerRun();
+            var videos = videoRepo.findByChannel_ChannelId(
+                    ch.getChannelId(),
+                    PageRequest.of(0, maxVideos, Sort.by(Sort.Direction.DESC, "publishedAt")));
+
             for (var v : videos) {
                 syncService.writeVideoSnapshotIfNeeded(v.getId(), todayUtc);
             }
@@ -82,7 +91,8 @@ public class DailyRefreshWorker {
             channelRepo.save(ch);
 
             long ms = Instant.now().toEpochMilli() - started.toEpochMilli();
-            log.info("DailyRefreshWorker success channelId={} channelDbId={} newOrUpdatedVideos={} totalVideos={} dayUtc={} ms={}",
+            log.info(
+                    "DailyRefreshWorker success channelId={} channelDbId={} newOrUpdatedVideos={} totalVideos={} dayUtc={} ms={}",
                     ch.getChannelId(), ch.getId(), newOrUpdated, videos.size(), todayUtc, ms);
 
         } catch (Exception ex) {
@@ -101,7 +111,8 @@ public class DailyRefreshWorker {
 
     private String safeErr(Exception ex) {
         String msg = ex.getMessage();
-        if (msg == null) return ex.getClass().getSimpleName();
+        if (msg == null)
+            return ex.getClass().getSimpleName();
         return msg.length() > 800 ? msg.substring(0, 800) : msg;
     }
 }

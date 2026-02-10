@@ -1,3 +1,4 @@
+// Changelog: Populate snapshots with metrics, rely on insert-once semantics, and sync channel metrics.
 package com.LogicGraph.sociallens.service;
 
 import com.LogicGraph.sociallens.dto.youtube.ChannelSummaryDto;
@@ -20,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -192,27 +192,24 @@ public class YouTubeSyncService {
      * UTC.
      */
     @Transactional
-public void writeChannelSnapshotIfNeeded(Long channelDbId, LocalDate dayUtc) {
-    if (channelSnapshotRepository.existsByChannel_IdAndCapturedDayUtc(channelDbId, dayUtc)) {
-        return;
+    public void writeChannelSnapshotIfNeeded(Long channelDbId, LocalDate dayUtc) {
+        YouTubeChannel ch = channelRepository.findById(channelDbId)
+                .orElseThrow(() -> new IllegalArgumentException("Channel not found id=" + channelDbId));
+
+        ChannelMetricsSnapshot snap = new ChannelMetricsSnapshot();
+        snap.setChannel(ch);
+        snap.setCapturedAt(Instant.now());
+        snap.setCapturedDayUtc(dayUtc);
+        snap.setSubscriberCount(ch.getSubscriberCount());
+        snap.setViewCount(ch.getViewCount());
+        snap.setVideoCount(ch.getVideoCount());
+
+        try {
+            channelSnapshotRepository.saveAndFlush(snap);
+        } catch (DataIntegrityViolationException ignore) {
+            // concurrent create expected when UNIQUE(channel_id, captured_day_utc) holds
+        }
     }
-
-    YouTubeChannel ch = channelRepository.findById(channelDbId)
-            .orElseThrow(() -> new IllegalArgumentException("Channel not found id=" + channelDbId));
-
-    ChannelMetricsSnapshot snap = new ChannelMetricsSnapshot();
-    snap.setChannel(ch);
-    snap.setCapturedAt(Instant.now());
-    snap.setCapturedDayUtc(dayUtc);
-
-    // TODO: persist metrics when you add them to YouTubeChannel or fetch them here
-
-    try {
-        channelSnapshotRepository.saveAndFlush(snap);
-    } catch (DataIntegrityViolationException ignore) {
-        // expected under concurrency if UNIQUE(channel_id, captured_day_utc) exists
-    }
-}
 
 
     /**
@@ -220,10 +217,6 @@ public void writeChannelSnapshotIfNeeded(Long channelDbId, LocalDate dayUtc) {
      */
     @Transactional
     public void writeVideoSnapshotIfNeeded(Long videoDbId, LocalDate dayUtc) {
-        if (videoSnapRepo.existsByVideo_IdAndCapturedDayUtc(videoDbId, dayUtc)) {
-            return;
-        }
-
         YouTubeVideo v = videoRepository.findById(videoDbId)
                 .orElseThrow(() -> new IllegalArgumentException("Video not found id=" + videoDbId));
 
@@ -231,10 +224,9 @@ public void writeChannelSnapshotIfNeeded(Long channelDbId, LocalDate dayUtc) {
         snap.setVideo(v);
         snap.setCapturedAt(Instant.now());
         snap.setCapturedDayUtc(dayUtc); // YOU NEED THIS FIELD
-
-        // Copy metrics from the video row (when you add them)
-        // snap.setViewCount(v.getViewCount());
-        // snap.setLikeCount(v.getLikeCount());
+        snap.setViewCount(v.getViewCount());
+        snap.setLikeCount(v.getLikeCount());
+        snap.setCommentCount(v.getCommentCount());
 
         try {
             videoSnapRepo.saveAndFlush(snap);
@@ -255,6 +247,9 @@ public void writeChannelSnapshotIfNeeded(Long channelDbId, LocalDate dayUtc) {
         channel.setChannelId(dto.channelId);
         channel.setTitle(dto.title);
         channel.setDescription(dto.description);
+        channel.setViewCount(dto.views);
+        channel.setSubscriberCount(dto.subscribers);
+        channel.setVideoCount(dto.videos);
 
         return channelRepository.save(channel);
     }

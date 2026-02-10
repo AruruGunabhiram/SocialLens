@@ -1,3 +1,4 @@
+// Changelog: Add channel metric fields to persist and snapshot counts from YouTube API.
 package com.LogicGraph.sociallens.entity;
 
 import jakarta.persistence.*;
@@ -48,6 +49,11 @@ public class YouTubeChannel {
     private RefreshStatus lastRefreshStatus = RefreshStatus.NEVER_RUN;
 
     private String lastRefreshError;
+
+    // Latest metrics pulled from the Data API; mirrored into daily snapshots.
+    private Long subscriberCount;
+    private Long viewCount;
+    private Long videoCount;
 
     // default to true
     private boolean active = true;
