@@ -18,8 +18,7 @@ public class DailyRefreshJob {
     public DailyRefreshJob(
             JobProperties props,
             YouTubeChannelRepository channelRepo,
-            DailyRefreshWorker worker
-    ) {
+            DailyRefreshWorker worker) {
         this.props = props;
         this.channelRepo = channelRepo;
         this.worker = worker;
@@ -43,7 +42,8 @@ public class DailyRefreshJob {
         log.info("DailyRefreshJob starting: channels={} maxChannels={}", channels.size(), maxChannels);
 
         for (var ch : channels) {
-            if (processed >= maxChannels) break;
+            if (processed >= maxChannels)
+                break;
             processed++;
 
             try {
@@ -52,6 +52,9 @@ public class DailyRefreshJob {
             } catch (Exception ex) {
                 failed++;
                 log.warn("DailyRefreshJob failed channelId={}: {}", ch.getChannelId(), ex.getMessage(), ex);
+                log.warn("DailyRefreshJob failed channelDbId={} channelId={} err={}",
+                        ch.getId(), ch.getChannelId(), ex.getMessage(), ex);
+
             }
         }
 

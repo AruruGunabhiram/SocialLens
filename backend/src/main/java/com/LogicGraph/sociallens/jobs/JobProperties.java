@@ -30,7 +30,8 @@ public class JobProperties {
         private boolean enabled = true;
         private int maxChannelsPerRun = 25;
         private String cron = "0 15 3 * * *"; // 03:15 daily (server time)
-    
+        private int maxVideosPerChannelPerRun = 400;
+
         public boolean isEnabled() { return enabled; }
         public void setEnabled(boolean enabled) { this.enabled = enabled; }
     
@@ -39,6 +40,9 @@ public class JobProperties {
     
         public String getCron() { return cron; }
         public void setCron(String cron) { this.cron = cron; }
+
+        public int getMaxVideosPerChannelPerRun() { return maxVideosPerChannelPerRun; }
+        public void setMaxVideosPerChannelPerRun(int maxVideosPerChannelPerRun) { this.maxVideosPerChannelPerRun = maxVideosPerChannelPerRun; }
     }    
 
     public static class OAuthRefresh {
