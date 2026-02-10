@@ -14,10 +14,23 @@ target/
 build/
 /backend/build/
 
+<<<<<<< Updated upstream
 # Maven
 .mvn/
 !.mvn/wrapper/maven-wrapper.jar
 
+=======
+# H2 / local DB files
+*.db
+*.mv.db
+*.trace.db
+/data/
+# Local databases
+*.mv.db
+*.trace.db
+backend/data/
+# =========================
+>>>>>>> Stashed changes
 # IDEs
 .idea/
 .vscode/
