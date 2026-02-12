@@ -1,40 +1,59 @@
-# Environment
+# =========================
+# Environment Variables
+# =========================
 .env
 .env.local
+.env.*.local
+frontend/.env
+backend/.env
 
-# Java
-target/
+# =========================
+# Java / Spring Boot
+# =========================
 *.class
 *.jar
 *.war
 *.ear
+hs_err_pid*
+replay_pid*
 
 # Gradle
 .gradle/
 build/
-/backend/build/
+backend/build/
 
-<<<<<<< Updated upstream
-# Maven
+# Maven (if ever used)
 .mvn/
 !.mvn/wrapper/maven-wrapper.jar
 
-=======
-# H2 / local DB files
+# =========================
+# Database Files
+# =========================
 *.db
 *.mv.db
 *.trace.db
-/data/
-# Local databases
-*.mv.db
-*.trace.db
 backend/data/
+data/
+
 # =========================
->>>>>>> Stashed changes
+# Node / Frontend
+# =========================
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+.vite/
+frontend/.vite/
+
+# =========================
 # IDEs
+# =========================
 .idea/
 .vscode/
 *.iml
 
+# =========================
 # OS
+# =========================
 .DS_Store
+Thumbs.db
