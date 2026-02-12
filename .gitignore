@@ -64,4 +64,17 @@ frontend/.vite/
 # OS
 # =========================
 .DS_Store
+
 Thumbs.db
+
+
+# =========================
+# Node (frontend)
+# =========================
+node_modules/
+
+# =========================
+# Docker
+# =========================
+docker-compose.override.yml
+
