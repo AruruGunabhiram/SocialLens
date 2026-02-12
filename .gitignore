@@ -4,6 +4,8 @@
 .env
 .env.local
 .env.*.local
+frontend/.env
+backend/.env
 
 # =========================
 # Local Spring configs
@@ -17,13 +19,18 @@ src/main/resources/application-local.yml
 target/
 build/
 .gradle/
+backend/build/
 *.class
 *.jar
 *.war
 *.ear
 *.log
+hs_err_pid*
+replay_pid*
 
-# Maven wrapper
+# =========================
+# Maven
+# =========================
 .mvn/
 !.mvn/wrapper/maven-wrapper.jar
 
@@ -33,7 +40,7 @@ build/
 *.db
 *.mv.db
 *.trace.db
-/data/
+data/
 backend/data/
 
 # =========================
