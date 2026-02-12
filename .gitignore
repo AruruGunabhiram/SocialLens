@@ -1,40 +1,60 @@
-# Environment
+# =========================
+# Environment / Secrets
+# =========================
 .env
 .env.local
+.env.*.local
 
-# Java
+# =========================
+# Local Spring configs
+# =========================
+src/main/resources/application-local.properties
+src/main/resources/application-local.yml
+
+# =========================
+# Java / Build
+# =========================
 target/
+build/
+.gradle/
 *.class
 *.jar
 *.war
 *.ear
+*.log
 
-# Gradle
-.gradle/
-build/
-/backend/build/
-
-<<<<<<< Updated upstream
-# Maven
+# Maven wrapper
 .mvn/
 !.mvn/wrapper/maven-wrapper.jar
 
-=======
-# H2 / local DB files
+# =========================
+# H2 / Local DB files
+# =========================
 *.db
 *.mv.db
 *.trace.db
 /data/
-# Local databases
-*.mv.db
-*.trace.db
 backend/data/
+
 # =========================
->>>>>>> Stashed changes
+# Node / Frontend
+# =========================
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+.vite/
+frontend/.vite/
+
+# =========================
 # IDEs
+# =========================
 .idea/
 .vscode/
 *.iml
 
+# =========================
 # OS
+# =========================
 .DS_Store
+Thumbs.db
