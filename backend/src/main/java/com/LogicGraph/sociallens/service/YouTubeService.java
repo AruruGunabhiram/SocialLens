@@ -299,4 +299,10 @@ public class YouTubeService {
             return 0L;
         }
     }
+
+    public void refreshChannelMetadata(String channelId) {
+        // Call your existing channel fetch logic (Data API)
+        // Upsert the YouTubeChannel fields in DB (title, thumbnail, subs, views, etc.)
+    }
+
 }

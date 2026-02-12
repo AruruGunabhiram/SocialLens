@@ -4,6 +4,7 @@ import com.LogicGraph.sociallens.entity.YouTubeChannel;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
+import java.util.List;
 
 public interface YouTubeChannelRepository
         extends JpaRepository<YouTubeChannel, Long> {
@@ -11,5 +12,7 @@ public interface YouTubeChannelRepository
     Optional<YouTubeChannel> findByChannelId(String channelId);
 
     Optional<YouTubeChannel> findByHandle(String handle);
+
+    List<YouTubeChannel> findByActiveTrue();    
 
 }

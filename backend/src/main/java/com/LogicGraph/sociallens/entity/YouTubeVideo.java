@@ -1,3 +1,4 @@
+// Changelog: Added metric fields to persist latest video stats for snapshotting.
 package com.LogicGraph.sociallens.entity;
 
 import jakarta.persistence.*;
@@ -37,6 +38,11 @@ public class YouTubeVideo {
     private String duration;
     private String categoryId;
     private String thumbnailUrl;
+
+    // Latest metrics pulled from the Data API; mirrored into daily snapshots.
+    private Long viewCount;
+    private Long likeCount;
+    private Long commentCount;
 
     public Long getId() {
         return id;

@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:16
+    container_name: sociallens-postgres
+    environment:
+      POSTGRES_DB: sociallens
+      POSTGRES_USER: sociallens
+      POSTGRES_PASSWORD: sociallens
+    ports:
+      - "5432:5432"
+    volumes:
+      - sociallens_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sociallens -d sociallens"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  sociallens_pgdata:

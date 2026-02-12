@@ -1,5 +1,5 @@
 # =========================
-# Environment Variables
+# Environment / Secrets
 # =========================
 .env
 .env.local
@@ -8,32 +8,40 @@ frontend/.env
 backend/.env
 
 # =========================
-# Java / Spring Boot
+# Local Spring configs
 # =========================
+src/main/resources/application-local.properties
+src/main/resources/application-local.yml
+
+# =========================
+# Java / Build
+# =========================
+target/
+build/
+.gradle/
+backend/build/
 *.class
 *.jar
 *.war
 *.ear
+*.log
 hs_err_pid*
 replay_pid*
 
-# Gradle
-.gradle/
-build/
-backend/build/
-
-# Maven (if ever used)
+# =========================
+# Maven
+# =========================
 .mvn/
 !.mvn/wrapper/maven-wrapper.jar
 
 # =========================
-# Database Files
+# H2 / Local DB files
 # =========================
 *.db
 *.mv.db
 *.trace.db
-backend/data/
 data/
+backend/data/
 
 # =========================
 # Node / Frontend
