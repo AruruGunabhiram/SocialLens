@@ -3,25 +3,48 @@
 # =========================
 .env
 .env.local
-*.env
+.env.*.local
 
-# Local-only Spring configs
+# =========================
+# Local Spring configs
+# =========================
 src/main/resources/application-local.properties
 src/main/resources/application-local.yml
 
 # =========================
-# Build / Runtime
+# Java / Build
 # =========================
 target/
 build/
 .gradle/
+*.class
+*.jar
+*.war
+*.ear
 *.log
 
-# H2 / local DB files
+# Maven wrapper
+.mvn/
+!.mvn/wrapper/maven-wrapper.jar
+
+# =========================
+# H2 / Local DB files
+# =========================
 *.db
 *.mv.db
 *.trace.db
 /data/
+backend/data/
+
+# =========================
+# Node / Frontend
+# =========================
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+.vite/
+frontend/.vite/
 
 # =========================
 # IDEs
@@ -34,13 +57,4 @@ build/
 # OS
 # =========================
 .DS_Store
-
-# =========================
-# Node (frontend)
-# =========================
-node_modules/
-
-# =========================
-# Docker
-# =========================
-docker-compose.override.yml
+Thumbs.db
