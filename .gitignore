@@ -25,18 +25,15 @@ backend/build/
 *.war
 *.ear
 *.log
-hs_err_pid*
-replay_pid*
 
-# =========================
-# Maven
-# =========================
-.mvn/
-!.mvn/wrapper/maven-wrapper.jar
+# Gradle (ignore in all submodules)
+**/.gradle/
+**/build/
 
-# =========================
-# H2 / Local DB files
-# =========================
+
+
+
+# H2 / local DB files
 *.db
 *.mv.db
 *.trace.db
@@ -64,4 +61,17 @@ frontend/.vite/
 # OS
 # =========================
 .DS_Store
+
 Thumbs.db
+
+
+# =========================
+# Node (frontend)
+# =========================
+node_modules/
+
+# =========================
+# Docker
+# =========================
+docker-compose.override.yml
+
