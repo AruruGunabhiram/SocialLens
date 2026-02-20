@@ -52,6 +52,8 @@ dist/
 frontend/dist/
 .vite/
 frontend/.vite/
+frontend/.npm-cache/
+.npm-cache/
 
 # =========================
 # IDEs
