@@ -54,6 +54,7 @@ frontend/dist/
 frontend/.vite/
 frontend/.npm-cache/
 .npm-cache/
+*.tsbuildinfo
 
 # =========================
 # IDEs
