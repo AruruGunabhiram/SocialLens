@@ -1,0 +1,52 @@
+import axios, { AxiosError } from 'axios'
+
+export type AppError = {
+  status?: number
+  code?: string
+  message: string
+  details?: unknown
+  requestId?: string
+}
+
+export const isAppError = (value: unknown): value is AppError => {
+  return typeof value === 'object' && value !== null && 'message' in value
+}
+
+const extractAxiosError = (error: AxiosError): AppError => {
+  const status = error.response?.status
+  const code =
+    (error.response?.data as { code?: string } | undefined)?.code ||
+    error.code ||
+    (status ? `HTTP_${status}` : undefined)
+  const message =
+    (error.response?.data as { message?: string } | undefined)?.message ||
+    error.message ||
+    'Request failed'
+  const requestId =
+    (error.response?.headers as Record<string, string | undefined> | undefined)?.['x-request-id'] ||
+    (error.response?.data as { requestId?: string } | undefined)?.requestId
+
+  return {
+    status,
+    code,
+    message,
+    details: error.response?.data,
+    requestId,
+  }
+}
+
+export function normalizeHttpError(error: unknown): AppError {
+  if (axios.isAxiosError(error)) {
+    return extractAxiosError(error)
+  }
+
+  if (error instanceof Error) {
+    return {
+      message: error.message,
+    }
+  }
+
+  return {
+    message: 'Unknown error occurred',
+  }
+}

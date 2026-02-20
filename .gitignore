@@ -49,6 +49,11 @@ dist/
 frontend/dist/
 .vite/
 frontend/.vite/
+frontend/.npm-cache/
+.npm-cache/
+*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
 
 # =========================
 # IDEs
@@ -74,4 +79,5 @@ node_modules/
 # Docker
 # =========================
 docker-compose.override.yml
+
 
