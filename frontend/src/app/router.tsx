@@ -1,12 +1,25 @@
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
+
+import { AppShell } from './layout/AppShell'
+import ChannelOverviewPage from '@/features/channels/pages/ChannelOverviewPage'
+import InsightsPage from '@/features/insights/pages/InsightsPage'
+import TrendsPage from '@/features/trends/pages/TrendsPage'
+import VideosPage from '@/features/videos/pages/VideosPage'
 import DashboardPage from '@/pages/DashboardPage'
 import NotFoundPage from '@/pages/NotFoundPage'
 
 export function AppRouter() {
   return (
     <Routes>
-      <Route path="/" element={<DashboardPage />} />
-      <Route path="*" element={<NotFoundPage />} />
+      <Route element={<AppShell />}>
+        <Route index element={<Navigate to="/channel" replace />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/channel" element={<ChannelOverviewPage />} />
+        <Route path="/videos" element={<VideosPage />} />
+        <Route path="/trends" element={<TrendsPage />} />
+        <Route path="/insights" element={<InsightsPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
     </Routes>
   )
 }

@@ -1,5 +1,7 @@
 import axios from 'axios'
 
+import { normalizeHttpError } from './httpError'
+
 const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081'
 
 export const axiosClient = axios.create({
@@ -8,17 +10,13 @@ export const axiosClient = axios.create({
     'Content-Type': 'application/json',
     Accept: 'application/json',
   },
+  withCredentials: false,
+  timeout: 30_000,
 })
 
-export function normalizeAxiosError(error: unknown) {
-  if (axios.isAxiosError(error)) {
-    const message =
-      error.response?.data?.message ||
-      error.response?.statusText ||
-      error.message ||
-      'Request failed'
-    return new Error(message)
+axiosClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    return Promise.reject(normalizeHttpError(error))
   }
-
-  return error instanceof Error ? error : new Error('Unknown error')
-}
+)
