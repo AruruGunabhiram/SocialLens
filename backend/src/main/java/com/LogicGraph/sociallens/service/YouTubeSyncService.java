@@ -134,6 +134,11 @@ public class YouTubeSyncService {
         YouTubeSyncResponseDto res = new YouTubeSyncResponseDto();
         res.identifier = identifier;
 
+        // Populate channel metadata from DB entity
+        res.channelDbId = savedChannel.getId();
+        res.channelId = savedChannel.getChannelId();
+        res.title = savedChannel.getTitle();
+
         res.resolved = new YouTubeSyncResponseDto.Resolved();
         res.resolved.channelId = dto.channelId;
         res.resolved.resolvedFrom = resolved.getType().name();

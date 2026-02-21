@@ -19,4 +19,12 @@ public interface YouTubeVideoRepository extends JpaRepository<YouTubeVideo, Long
     List<YouTubeVideo> findByChannel_ChannelId(String channelId, Pageable pageable);
 
     long countByChannel_ChannelId(String channelId);
+
+    // Database ID-based queries for direct channel DB ID access
+    long countByChannel_Id(Long channelDbId);
+
+    // Top videos queries (ordered by metrics)
+    List<YouTubeVideo> findByChannel_ChannelIdOrderByViewCountDesc(String channelId, Pageable pageable);
+
+    List<YouTubeVideo> findByChannel_IdOrderByViewCountDesc(Long channelDbId, Pageable pageable);
 }

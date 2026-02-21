@@ -1,5 +1,31 @@
 import { z } from 'zod'
 
+// YouTube Sync Response from POST /youtube/sync
+export const YouTubeSyncResponseSchema = z.object({
+  identifier: z.string(),
+  channelDbId: z.number(),
+  channelId: z.string(),
+  title: z.string().optional(),
+  resolved: z.object({
+    channelId: z.string(),
+    resolvedFrom: z.string(),
+    normalizedInput: z.string(),
+  }),
+  result: z.object({
+    videosFetched: z.number(),
+    videosSaved: z.number(),
+    videosUpdated: z.number(),
+    pagesFetched: z.number(),
+    pageSize: z.number(),
+  }),
+  timing: z.object({
+    startedAt: z.string(),
+    finishedAt: z.string(),
+    durationMs: z.number(),
+  }),
+  warnings: z.array(z.string()).optional(),
+})
+
 export const ChannelMetricPointSchema = z
   .object({
     date: z.string(),

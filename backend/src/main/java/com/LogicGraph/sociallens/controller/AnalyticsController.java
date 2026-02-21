@@ -17,6 +17,10 @@ public class AnalyticsController {
         this.analyticsService = analyticsService;
     }
 
+    // ============================================
+    // Original endpoints using identifier
+    // ============================================
+
     @GetMapping("/channel")
     public ChannelAnalyticsDto channel(@RequestParam String identifier) {
         return analyticsService.getChannelAnalytics(identifier);
@@ -41,5 +45,35 @@ public class AnalyticsController {
             @RequestParam String identifier,
             @RequestParam String metric) {
         return analyticsService.getChannelTimeSeries(identifier, metric);
+    }
+
+    // ============================================
+    // New endpoints using database channel ID
+    // ============================================
+
+    @GetMapping("/channel/by-id")
+    public ChannelAnalyticsDto channelById(@RequestParam Long channelDbId) {
+        return analyticsService.getChannelAnalyticsById(channelDbId);
+    }
+
+    @GetMapping("/videos/by-id")
+    public TopVideosDto topVideosById(
+            @RequestParam Long channelDbId,
+            @RequestParam(defaultValue = "10") int limit) {
+        return analyticsService.getTopVideosById(channelDbId, limit);
+    }
+
+    @GetMapping("/upload-frequency/by-id")
+    public UploadFrequencyDto uploadFrequencyById(
+            @RequestParam Long channelDbId,
+            @RequestParam(defaultValue = "12") int weeks) {
+        return analyticsService.getUploadFrequencyById(channelDbId, weeks);
+    }
+
+    @GetMapping("/timeseries/by-id")
+    public TimeSeriesResponseDto timeSeriesById(
+            @RequestParam Long channelDbId,
+            @RequestParam String metric) {
+        return analyticsService.getChannelTimeSeriesById(channelDbId, metric);
     }
 }

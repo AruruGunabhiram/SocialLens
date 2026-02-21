@@ -11,13 +11,16 @@ import { Separator } from '@/components/ui/separator'
 import { ChannelHeader } from '../components/ChannelHeader'
 import { ChannelStats } from '../components/ChannelStats'
 import { ChannelChart } from '../components/ChannelChart'
-import { useChannelAnalyticsQuery } from '../queries'
+import { useChannelAnalyticsByIdQuery } from '../queries'
 
 export default function ChannelOverviewPage() {
   const [searchParams] = useSearchParams()
+  const channelDbId = searchParams.get('channelDbId')
   const channelId = searchParams.get('channelId') ?? ''
 
-  const { data, isLoading, isFetching, isError, error, refetch } = useChannelAnalyticsQuery(channelId)
+  const { data, isLoading, isFetching, isError, error, refetch } = useChannelAnalyticsByIdQuery(
+    channelDbId ? Number(channelDbId) : undefined
+  )
 
   const lastRefreshedAt = useMemo(
     () => data?.lastRefreshedAt || data?.lastUpdatedAt || data?.refreshedAt,
@@ -25,19 +28,20 @@ export default function ChannelOverviewPage() {
   )
 
   const detailsRows =
-    data && channelId
+    data && channelDbId
       ? [
-          { label: 'Channel ID', value: channelId },
+          { label: 'Database ID', value: channelDbId },
+          { label: 'Channel ID', value: data.channelId ?? channelId ?? '—' },
           { label: 'Title', value: data.title ?? '—' },
           { label: 'Videos', value: data.videoCount ?? '—' },
         ]
       : []
 
-  if (!channelId) {
+  if (!channelDbId) {
     return (
       <EmptyState
-        title="No channel selected"
-        description="Use the top bar to enter a channel ID and load analytics."
+        title="No channel loaded"
+        description="Use the top bar to enter a channel identifier (@handle, UC..., or URL) and click Load."
       />
     )
   }
