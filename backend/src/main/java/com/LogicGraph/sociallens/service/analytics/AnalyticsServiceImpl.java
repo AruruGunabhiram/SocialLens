@@ -41,42 +41,37 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     public ChannelAnalyticsDto getChannelAnalytics(String identifier) {
         YouTubeChannel channel = resolveChannel(identifier);
 
-        var latestOpt = channelSnapshotRepository
-                .findTopByChannel_ChannelIdOrderByCapturedAtDesc(channel.getChannelId());
+        // Read metrics directly from youtube_channel table (populated by sync)
+        long subscriberCount = channel.getSubscriberCount() != null ? channel.getSubscriberCount() : 0L;
+        long totalViews = channel.getViewCount() != null ? channel.getViewCount() : 0L;
+        long videoCount = videoRepository.countByChannel_ChannelId(channel.getChannelId());
 
-        long subscribers = 0L;
-        long totalViews = 0L;
-
-        long totalVideos = videoRepository.countByChannel_ChannelId(channel.getChannelId());
-
-        if (latestOpt.isPresent()) {
-            var latest = latestOpt.get();
-            subscribers = latest.getSubscriberCount() == null ? 0L : latest.getSubscriberCount();
-            totalViews = latest.getViewCount() == null ? 0L : latest.getViewCount();
-
-            if (totalVideos == 0L && latest.getVideoCount() != null) {
-                totalVideos = latest.getVideoCount();
-            }
-        }
+        // For timeseries, use snapshots if available
         List<ChannelMetricsSnapshot> snaps = channelSnapshotRepository
                 .findByChannel_ChannelIdOrderByCapturedAtAsc(channel.getChannelId());
 
-        List<TimeSeriesPointDto> viewsTrend = snaps.stream()
-                .map(s -> new TimeSeriesPointDto(s.getCapturedAt(), s.getViewCount()))
-                .toList();
-
-        List<TimeSeriesPointDto> subscribersTrend = snaps.stream()
-                .map(s -> new TimeSeriesPointDto(s.getCapturedAt(), s.getSubscriberCount()))
+        List<TimeSeriesPointDto> timeseries = snaps.stream()
+                .map(s -> {
+                    TimeSeriesPointDto dto = new TimeSeriesPointDto();
+                    dto.date = s.getCapturedAt() != null ? s.getCapturedAt().toString() : "";
+                    dto.views = s.getViewCount();
+                    dto.subscribers = s.getSubscriberCount();
+                    dto.likes = null;  // Not in channel snapshots
+                    dto.comments = null;  // Not in channel snapshots
+                    dto.uploads = s.getVideoCount();
+                    return dto;
+                })
                 .toList();
 
         return new ChannelAnalyticsDto(
                 channel.getChannelId(),
                 channel.getTitle(),
-                subscribers,
+                subscriberCount,
                 totalViews,
-                totalVideos,
-                viewsTrend,
-                subscribersTrend);
+                videoCount,
+                null,  // likeCount - not tracked at channel level
+                null,  // commentCount - not tracked at channel level
+                timeseries);
     }
 
     @Override
@@ -120,20 +115,19 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 .findByChannel_ChannelIdOrderByCapturedAtAsc(channelId);
 
         List<TimeSeriesPointDto> points = snaps.stream()
-                .map(s -> new TimeSeriesPointDto(s.getCapturedAt(), pickMetricValue(s, metric)))
+                .map(s -> {
+                    TimeSeriesPointDto dto = new TimeSeriesPointDto();
+                    dto.date = s.getCapturedAt() != null ? s.getCapturedAt().toString() : "";
+                    dto.views = s.getViewCount();
+                    dto.subscribers = s.getSubscriberCount();
+                    dto.likes = null;
+                    dto.comments = null;
+                    dto.uploads = s.getVideoCount();
+                    return dto;
+                })
                 .toList();
 
         return new TimeSeriesResponseDto(channelId, metric, points);
-    }
-
-    private Long pickMetricValue(ChannelMetricsSnapshot s, String metric) {
-        String m = (metric == null) ? "" : metric.toLowerCase();
-        return switch (m) {
-            case "views" -> s.getViewCount();
-            case "subscribers" -> s.getSubscriberCount();
-            case "videos" -> s.getVideoCount();
-            default -> throw new IllegalArgumentException("Unsupported metric: " + metric);
-        };
     }
 
     // ============================================
@@ -145,43 +139,37 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         YouTubeChannel channel = channelRepository.findById(channelDbId)
                 .orElseThrow(() -> new NotFoundException("Channel not found with id: " + channelDbId));
 
-        var latestOpt = channelSnapshotRepository
-                .findTopByChannel_IdOrderByCapturedAtDesc(channelDbId);
+        // Read metrics directly from youtube_channel table (populated by sync)
+        long subscriberCount = channel.getSubscriberCount() != null ? channel.getSubscriberCount() : 0L;
+        long totalViews = channel.getViewCount() != null ? channel.getViewCount() : 0L;
+        long videoCount = videoRepository.countByChannel_Id(channelDbId);
 
-        long subscribers = 0L;
-        long totalViews = 0L;
-
-        long totalVideos = videoRepository.countByChannel_Id(channelDbId);
-
-        if (latestOpt.isPresent()) {
-            var latest = latestOpt.get();
-            subscribers = latest.getSubscriberCount() == null ? 0L : latest.getSubscriberCount();
-            totalViews = latest.getViewCount() == null ? 0L : latest.getViewCount();
-
-            if (totalVideos == 0L && latest.getVideoCount() != null) {
-                totalVideos = latest.getVideoCount();
-            }
-        }
-
+        // For timeseries, use snapshots if available
         List<ChannelMetricsSnapshot> snaps = channelSnapshotRepository
                 .findByChannel_IdOrderByCapturedAtAsc(channelDbId);
 
-        List<TimeSeriesPointDto> viewsTrend = snaps.stream()
-                .map(s -> new TimeSeriesPointDto(s.getCapturedAt(), s.getViewCount()))
-                .toList();
-
-        List<TimeSeriesPointDto> subscribersTrend = snaps.stream()
-                .map(s -> new TimeSeriesPointDto(s.getCapturedAt(), s.getSubscriberCount()))
+        List<TimeSeriesPointDto> timeseries = snaps.stream()
+                .map(s -> {
+                    TimeSeriesPointDto dto = new TimeSeriesPointDto();
+                    dto.date = s.getCapturedAt() != null ? s.getCapturedAt().toString() : "";
+                    dto.views = s.getViewCount();
+                    dto.subscribers = s.getSubscriberCount();
+                    dto.likes = null;  // Not in channel snapshots
+                    dto.comments = null;  // Not in channel snapshots
+                    dto.uploads = s.getVideoCount();
+                    return dto;
+                })
                 .toList();
 
         return new ChannelAnalyticsDto(
                 channel.getChannelId(),
                 channel.getTitle(),
-                subscribers,
+                subscriberCount,
                 totalViews,
-                totalVideos,
-                viewsTrend,
-                subscribersTrend);
+                videoCount,
+                null,  // likeCount - not tracked at channel level
+                null,  // commentCount - not tracked at channel level
+                timeseries);
     }
 
     @Override
@@ -225,7 +213,16 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 .findByChannel_IdOrderByCapturedAtAsc(channelDbId);
 
         List<TimeSeriesPointDto> points = snaps.stream()
-                .map(s -> new TimeSeriesPointDto(s.getCapturedAt(), pickMetricValue(s, metric)))
+                .map(s -> {
+                    TimeSeriesPointDto dto = new TimeSeriesPointDto();
+                    dto.date = s.getCapturedAt() != null ? s.getCapturedAt().toString() : "";
+                    dto.views = s.getViewCount();
+                    dto.subscribers = s.getSubscriberCount();
+                    dto.likes = null;
+                    dto.comments = null;
+                    dto.uploads = s.getVideoCount();
+                    return dto;
+                })
                 .toList();
 
         return new TimeSeriesResponseDto(channel.getChannelId(), metric, points);

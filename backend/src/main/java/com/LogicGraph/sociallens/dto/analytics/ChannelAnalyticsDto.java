@@ -7,12 +7,13 @@ public class ChannelAnalyticsDto {
     public String channelId;
     public String title;
 
-    public Long subscribers;
+    public Long subscriberCount;
     public Long totalViews;
-    public Long totalVideos;
+    public Long videoCount;
+    public Long likeCount;
+    public Long commentCount;
 
-    public List<TimeSeriesPointDto> viewsTrend;
-    public List<TimeSeriesPointDto> subscribersTrend;
+    public List<TimeSeriesPointDto> timeseries;
 
     public ChannelAnalyticsDto() {
     }
@@ -20,17 +21,19 @@ public class ChannelAnalyticsDto {
     public ChannelAnalyticsDto(
             String channelId,
             String title,
-            Long subscribers,
+            Long subscriberCount,
             Long totalViews,
-            Long totalVideos,
-            List<TimeSeriesPointDto> viewsTrend,
-            List<TimeSeriesPointDto> subscribersTrend) {
+            Long videoCount,
+            Long likeCount,
+            Long commentCount,
+            List<TimeSeriesPointDto> timeseries) {
         this.channelId = channelId;
         this.title = title;
-        this.subscribers = subscribers;
+        this.subscriberCount = subscriberCount;
         this.totalViews = totalViews;
-        this.totalVideos = totalVideos;
-        this.viewsTrend = viewsTrend;
-        this.subscribersTrend = subscribersTrend;
+        this.videoCount = videoCount;
+        this.likeCount = likeCount;
+        this.commentCount = commentCount;
+        this.timeseries = timeseries;
     }
 }
