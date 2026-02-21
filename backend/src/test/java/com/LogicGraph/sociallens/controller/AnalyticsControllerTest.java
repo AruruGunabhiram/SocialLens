@@ -1,0 +1,214 @@
+package com.LogicGraph.sociallens.controller;
+
+import com.LogicGraph.sociallens.dto.analytics.ChannelAnalyticsDto;
+import com.LogicGraph.sociallens.dto.analytics.TimeSeriesPointDto;
+import com.LogicGraph.sociallens.dto.analytics.TimeSeriesResponseDto;
+import com.LogicGraph.sociallens.dto.analytics.TopVideosDto;
+import com.LogicGraph.sociallens.dto.analytics.UploadFrequencyDto;
+import com.LogicGraph.sociallens.exception.NotFoundException;
+import com.LogicGraph.sociallens.service.analytics.AnalyticsService;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.Collections;
+import java.util.List;
+
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@WebMvcTest(AnalyticsController.class)
+@AutoConfigureMockMvc(addFilters = false)
+class AnalyticsControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private AnalyticsService analyticsService;
+
+    // ============================================
+    // Tests for new /by-id endpoints
+    // ============================================
+
+    @Test
+    void channelByIdShouldReturnAnalytics() throws Exception {
+        // Given: a mock channel analytics response
+        ChannelAnalyticsDto mockDto = new ChannelAnalyticsDto(
+                "UC_test123",
+                "Test Channel",
+                100000L,
+                5000000L,
+                150L,
+                Collections.emptyList(),
+                Collections.emptyList()
+        );
+
+        when(analyticsService.getChannelAnalyticsById(123L)).thenReturn(mockDto);
+
+        // When: GET /analytics/channel/by-id?channelDbId=123
+        mockMvc.perform(get("/analytics/channel/by-id")
+                        .param("channelDbId", "123"))
+                // Then: should return 200 with channel analytics
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.channelId").value("UC_test123"))
+                .andExpect(jsonPath("$.title").value("Test Channel"))
+                .andExpect(jsonPath("$.subscribers").value(100000))
+                .andExpect(jsonPath("$.totalViews").value(5000000))
+                .andExpect(jsonPath("$.totalVideos").value(150));
+    }
+
+    @Test
+    void channelByIdShouldReturn404WhenNotFound() throws Exception {
+        // Given: service throws NotFoundException
+        when(analyticsService.getChannelAnalyticsById(999L))
+                .thenThrow(new NotFoundException("Channel not found with id: 999"));
+
+        // When: GET /analytics/channel/by-id?channelDbId=999
+        mockMvc.perform(get("/analytics/channel/by-id")
+                        .param("channelDbId", "999"))
+                // Then: should return 404 with error message
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Channel not found with id: 999"));
+    }
+
+    @Test
+    void topVideosByIdShouldReturnVideos() throws Exception {
+        // Given: a mock top videos response
+        TopVideosDto mockDto = new TopVideosDto("UC_test123", Collections.emptyList());
+
+        when(analyticsService.getTopVideosById(123L, 10)).thenReturn(mockDto);
+
+        // When: GET /analytics/videos/by-id?channelDbId=123&limit=10
+        mockMvc.perform(get("/analytics/videos/by-id")
+                        .param("channelDbId", "123")
+                        .param("limit", "10"))
+                // Then: should return 200 with videos
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.channelId").value("UC_test123"))
+                .andExpect(jsonPath("$.videos").isArray());
+    }
+
+    @Test
+    void topVideosByIdShouldUseDefaultLimit() throws Exception {
+        // Given: a mock response
+        TopVideosDto mockDto = new TopVideosDto("UC_test123", Collections.emptyList());
+
+        when(analyticsService.getTopVideosById(eq(123L), anyInt())).thenReturn(mockDto);
+
+        // When: GET /analytics/videos/by-id?channelDbId=123 (no limit param)
+        mockMvc.perform(get("/analytics/videos/by-id")
+                        .param("channelDbId", "123"))
+                // Then: should use default limit of 10
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.channelId").value("UC_test123"));
+    }
+
+    @Test
+    void uploadFrequencyByIdShouldReturnFrequency() throws Exception {
+        // Given: a mock upload frequency response
+        UploadFrequencyDto mockDto = new UploadFrequencyDto(
+                "UC_test123",
+                "WEEK",
+                Collections.emptyList()
+        );
+
+        when(analyticsService.getUploadFrequencyById(123L, 12)).thenReturn(mockDto);
+
+        // When: GET /analytics/upload-frequency/by-id?channelDbId=123&weeks=12
+        mockMvc.perform(get("/analytics/upload-frequency/by-id")
+                        .param("channelDbId", "123")
+                        .param("weeks", "12"))
+                // Then: should return 200 with frequency data
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.channelId").value("UC_test123"))
+                .andExpect(jsonPath("$.interval").value("WEEK"))
+                .andExpect(jsonPath("$.uploads").isArray());
+    }
+
+    @Test
+    void uploadFrequencyByIdShouldReturn404WhenNotFound() throws Exception {
+        // Given: service throws NotFoundException
+        when(analyticsService.getUploadFrequencyById(999L, 12))
+                .thenThrow(new NotFoundException("Channel not found with id: 999"));
+
+        // When: GET /analytics/upload-frequency/by-id?channelDbId=999
+        mockMvc.perform(get("/analytics/upload-frequency/by-id")
+                        .param("channelDbId", "999")
+                        .param("weeks", "12"))
+                // Then: should return 404
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Channel not found with id: 999"));
+    }
+
+    @Test
+    void timeSeriesByIdShouldReturnTimeSeries() throws Exception {
+        // Given: a mock time series response
+        List<TimeSeriesPointDto> points = List.of(
+                new TimeSeriesPointDto(null, 1000L),
+                new TimeSeriesPointDto(null, 2000L)
+        );
+        TimeSeriesResponseDto mockDto = new TimeSeriesResponseDto("UC_test123", "VIEWS", points);
+
+        when(analyticsService.getChannelTimeSeriesById(123L, "VIEWS")).thenReturn(mockDto);
+
+        // When: GET /analytics/timeseries/by-id?channelDbId=123&metric=VIEWS
+        mockMvc.perform(get("/analytics/timeseries/by-id")
+                        .param("channelDbId", "123")
+                        .param("metric", "VIEWS"))
+                // Then: should return 200 with time series data
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.channelId").value("UC_test123"))
+                .andExpect(jsonPath("$.metric").value("VIEWS"))
+                .andExpect(jsonPath("$.points").isArray())
+                .andExpect(jsonPath("$.points.length()").value(2));
+    }
+
+    @Test
+    void timeSeriesByIdShouldReturn404WhenNotFound() throws Exception {
+        // Given: service throws NotFoundException
+        when(analyticsService.getChannelTimeSeriesById(999L, "VIEWS"))
+                .thenThrow(new NotFoundException("Channel not found with id: 999"));
+
+        // When: GET /analytics/timeseries/by-id?channelDbId=999&metric=VIEWS
+        mockMvc.perform(get("/analytics/timeseries/by-id")
+                        .param("channelDbId", "999")
+                        .param("metric", "VIEWS"))
+                // Then: should return 404
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Channel not found with id: 999"));
+    }
+
+    // ============================================
+    // Test that original endpoints still work
+    // ============================================
+
+    @Test
+    void originalChannelEndpointShouldStillWork() throws Exception {
+        // Given: a mock channel analytics response
+        ChannelAnalyticsDto mockDto = new ChannelAnalyticsDto(
+                "UC_test123",
+                "Test Channel",
+                100000L,
+                5000000L,
+                150L,
+                Collections.emptyList(),
+                Collections.emptyList()
+        );
+
+        when(analyticsService.getChannelAnalytics("@testchannel")).thenReturn(mockDto);
+
+        // When: GET /analytics/channel?identifier=@testchannel
+        mockMvc.perform(get("/analytics/channel")
+                        .param("identifier", "@testchannel"))
+                // Then: should return 200 with channel analytics
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.channelId").value("UC_test123"))
+                .andExpect(jsonPath("$.title").value("Test Channel"));
+    }
+}

@@ -1,6 +1,13 @@
 export const endpoints = {
+  youtube: {
+    sync: '/youtube/sync',
+  },
   analytics: {
     channel: '/analytics/channel',
+    channelById: '/analytics/channel/by-id',
+    videosById: '/analytics/videos/by-id',
+    timeseriesById: '/analytics/timeseries/by-id',
+    uploadFrequencyById: '/analytics/upload-frequency/by-id',
   },
   jobs: {
     // Adjust if backend path differs; kept centralized for easy updates.

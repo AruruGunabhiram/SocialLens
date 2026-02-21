@@ -5,6 +5,12 @@ import java.util.List;
 public class YouTubeSyncResponseDto {
 
     public String identifier;
+
+    // Channel metadata from DB
+    public Long channelDbId;
+    public String channelId;
+    public String title;
+
     public Resolved resolved;
     public Result result;
     public Timing timing;

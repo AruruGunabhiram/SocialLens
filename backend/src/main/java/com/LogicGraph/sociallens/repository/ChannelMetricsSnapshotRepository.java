@@ -28,6 +28,18 @@ public interface ChannelMetricsSnapshotRepository
          */
         List<ChannelMetricsSnapshot> findByChannel_ChannelIdOrderByCapturedAtAsc(String channelId);
 
+        /**
+         * Used for "current totals" (latest snapshot) - by database ID
+         * Example: /analytics/channel/by-id
+         */
+        Optional<ChannelMetricsSnapshot> findTopByChannel_IdOrderByCapturedAtDesc(Long channelDbId);
+
+        /**
+         * Used for time series / trends - by database ID
+         * Example: /analytics/timeseries/by-id
+         */
+        List<ChannelMetricsSnapshot> findByChannel_IdOrderByCapturedAtAsc(Long channelDbId);
+
         Optional<ChannelMetricsSnapshot> findFirstByChannel_IdAndCapturedAtBetweenOrderByCapturedAtDesc(
                         Long channelId, Instant startInclusive, Instant endExclusive);
 
