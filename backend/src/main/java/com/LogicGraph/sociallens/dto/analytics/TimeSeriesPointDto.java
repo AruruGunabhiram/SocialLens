@@ -1,5 +1,8 @@
 package com.LogicGraph.sociallens.dto.analytics;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class TimeSeriesPointDto {
     public String date;
     public Long views;

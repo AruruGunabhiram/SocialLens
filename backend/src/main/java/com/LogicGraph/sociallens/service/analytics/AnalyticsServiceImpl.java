@@ -56,8 +56,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     dto.date = s.getCapturedAt() != null ? s.getCapturedAt().toString() : "";
                     dto.views = s.getViewCount();
                     dto.subscribers = s.getSubscriberCount();
-                    dto.likes = null;  // Not in channel snapshots
-                    dto.comments = null;  // Not in channel snapshots
+                    // likes and comments not set (will be omitted from JSON via NON_NULL)
                     dto.uploads = s.getVideoCount();
                     return dto;
                 })
@@ -120,8 +119,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     dto.date = s.getCapturedAt() != null ? s.getCapturedAt().toString() : "";
                     dto.views = s.getViewCount();
                     dto.subscribers = s.getSubscriberCount();
-                    dto.likes = null;
-                    dto.comments = null;
+                    // likes and comments not set (will be omitted from JSON via NON_NULL)
                     dto.uploads = s.getVideoCount();
                     return dto;
                 })
@@ -154,8 +152,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     dto.date = s.getCapturedAt() != null ? s.getCapturedAt().toString() : "";
                     dto.views = s.getViewCount();
                     dto.subscribers = s.getSubscriberCount();
-                    dto.likes = null;  // Not in channel snapshots
-                    dto.comments = null;  // Not in channel snapshots
+                    // likes and comments not set (will be omitted from JSON via NON_NULL)
                     dto.uploads = s.getVideoCount();
                     return dto;
                 })
@@ -218,8 +215,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                     dto.date = s.getCapturedAt() != null ? s.getCapturedAt().toString() : "";
                     dto.views = s.getViewCount();
                     dto.subscribers = s.getSubscriberCount();
-                    dto.likes = null;
-                    dto.comments = null;
+                    // likes and comments not set (will be omitted from JSON via NON_NULL)
                     dto.uploads = s.getVideoCount();
                     return dto;
                 })
