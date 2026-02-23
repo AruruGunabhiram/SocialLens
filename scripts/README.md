@@ -5,23 +5,47 @@ Scripts for managing the SocialLens backend development server.
 ## Quick Reference
 
 ```bash
-# Start backend
+# Interactive start (prompts to kill if port is busy)
+./scripts/dev-backend.sh
+
+# Interactive start on an alternate port
+SERVER_PORT=8082 ./scripts/dev-backend.sh
+
+# Non-interactive start (background, logs to /tmp/backend.log)
 ./scripts/dev-up.sh
 
-# Start backend and auto-kill port conflicts
+# Non-interactive start and auto-kill port conflicts
 ./scripts/dev-up.sh --force
 
-# Stop backend
+# Stop background backend
 ./scripts/dev-down.sh
 
-# View logs
+# View logs (background mode)
 tail -f /tmp/backend.log
+```
+
+## Port Override
+
+Spring Boot honors `SERVER_PORT` (env var) and `--server.port` (CLI arg) without any config changes:
+
+```bash
+# Env var
+SERVER_PORT=8082 ./scripts/dev-backend.sh
+SERVER_PORT=8082 ./gradlew bootRun
+
+# Gradle args passthrough
+./gradlew bootRun --args='--server.port=8082'
+
+# Manual: find what is on 8081, then kill it
+lsof -i :8081
+kill <PID>
 ```
 
 ## Files
 
-- **dev-up.sh** - Starts the Spring Boot backend on port 8081
-- **dev-down.sh** - Stops the backend gracefully
+- **dev-backend.sh** - Interactive starter: shows the conflicting PID/command, prompts y/n to kill, then starts the backend in the foreground
+- **dev-up.sh** - Non-interactive background starter on port 8081
+- **dev-down.sh** - Stops the background backend gracefully
 
 ## How It Works
 
