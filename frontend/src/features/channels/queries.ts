@@ -1,4 +1,5 @@
 import {
+  keepPreviousData,
   useIsFetching,
   useMutation,
   useQuery,
@@ -6,10 +7,73 @@ import {
   type UseQueryOptions,
 } from '@tanstack/react-query'
 
-import { fetchChannelAnalytics, fetchChannelAnalyticsById, refreshChannelAnalytics, syncChannel } from './api'
+import {
+  fetchChannelAnalytics,
+  fetchChannelAnalyticsById,
+  fetchChannelById,
+  fetchChannels,
+  fetchChannelVideos,
+  refreshChannelAnalytics,
+  syncChannel,
+  type VideoQueryParams,
+} from './api'
 import type { ChannelAnalytics } from './schemas'
 import { toastError, toastSuccess } from '@/lib/toast'
-import type { YouTubeSyncResponse } from '@/api/types'
+import type { AppError } from '@/api/httpError'
+import type { ChannelItem, VideosPageResponse, YouTubeSyncResponse } from '@/api/types'
+
+// -----------------------------------------------------------------------
+// Query keys for new channels + videos endpoints
+// -----------------------------------------------------------------------
+
+export const channelListQueryKeys = {
+  root: ['channelList'] as const,
+  list: (includeInactive: boolean) =>
+    ['channelList', 'list', includeInactive] as const,
+  detail: (id: number) => ['channelList', 'detail', id] as const,
+  videos: (id: number, params: VideoQueryParams) =>
+    ['channelList', 'videos', id, params] as const,
+}
+
+// -----------------------------------------------------------------------
+// Channels list query  — GET /channels
+// -----------------------------------------------------------------------
+
+export function useChannelsQuery(includeInactive = false) {
+  return useQuery<ChannelItem[], AppError>({
+    queryKey: channelListQueryKeys.list(includeInactive),
+    queryFn: () => fetchChannels(includeInactive),
+    staleTime: 2 * 60 * 1000,
+  })
+}
+
+// -----------------------------------------------------------------------
+// Single channel query  — GET /channels/:id
+// Used by Topbar for title / by ChannelOverviewPage for meta
+// -----------------------------------------------------------------------
+
+export function useChannelQuery(channelDbId?: number) {
+  return useQuery<ChannelItem, AppError>({
+    queryKey: channelListQueryKeys.detail(channelDbId ?? -1),
+    queryFn: () => fetchChannelById(channelDbId!),
+    enabled: Boolean(channelDbId),
+    staleTime: 2 * 60 * 1000,
+  })
+}
+
+// -----------------------------------------------------------------------
+// Videos query  — GET /channels/:id/videos
+// -----------------------------------------------------------------------
+
+export function useVideosQuery(channelDbId: number, params: VideoQueryParams) {
+  return useQuery<VideosPageResponse, AppError>({
+    queryKey: channelListQueryKeys.videos(channelDbId, params),
+    queryFn: () => fetchChannelVideos(channelDbId, params),
+    enabled: Boolean(channelDbId),
+    placeholderData: keepPreviousData,
+    staleTime: 2 * 60 * 1000,
+  })
+}
 
 export const channelQueryKeys = {
   root: ['channels'] as const,

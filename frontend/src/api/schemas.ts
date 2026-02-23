@@ -1,5 +1,56 @@
 import { z } from 'zod'
 
+// -----------------------------------------------------------------------
+// Channels API — GET /channels, GET /channels/:id
+// -----------------------------------------------------------------------
+
+export const RefreshStatusSchema = z.enum(['NEVER_RUN', 'SUCCESS', 'FAILED', 'PARTIAL'])
+
+export const ChannelItemSchema = z.object({
+  id: z.number(),
+  title: z.string().nullish(),
+  handle: z.string().nullish(),
+  channelId: z.string(),
+  active: z.boolean(),
+  description: z.string().nullish(),
+  thumbnailUrl: z.string().nullish(),
+  country: z.string().nullish(),
+  publishedAt: z.string().nullish(),
+  lastSuccessfulRefreshAt: z.string().nullish(),
+  lastRefreshStatus: RefreshStatusSchema.nullish(),
+  lastSnapshotAt: z.string().nullish(),
+  subscriberCount: z.number().nullish(),
+  viewCount: z.number().nullish(),
+  videoCount: z.number().nullish(),
+})
+
+// -----------------------------------------------------------------------
+// Videos API — GET /channels/:id/videos
+// -----------------------------------------------------------------------
+
+export const VideoRowSchema = z.object({
+  id: z.number(),
+  videoId: z.string(),
+  title: z.string().nullish(),
+  publishedAt: z.string().nullish(),
+  thumbnailUrl: z.string().nullish(),
+  viewCount: z.number().nullish(),
+  likeCount: z.number().nullish(),
+  commentCount: z.number().nullish(),
+})
+
+export const PageMetaSchema = z.object({
+  page: z.number(),
+  size: z.number(),
+  totalItems: z.number(),
+  totalPages: z.number(),
+})
+
+export const VideosPageResponseSchema = z.object({
+  items: z.array(VideoRowSchema),
+  page: PageMetaSchema,
+})
+
 // YouTube Sync Response from POST /youtube/sync
 export const YouTubeSyncResponseSchema = z.object({
   identifier: z.string(),

@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 
 const navItems = [
   { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
-  { label: 'Channels', to: '/channel', icon: BarChart2 },
+  { label: 'Channels', to: '/channels', icon: BarChart2 },
   { label: 'Videos', to: '/videos', icon: PlaySquare },
   { label: 'Trends', to: '/trends', icon: TrendingUp },
   { label: 'Insights', to: '/insights', icon: Compass },

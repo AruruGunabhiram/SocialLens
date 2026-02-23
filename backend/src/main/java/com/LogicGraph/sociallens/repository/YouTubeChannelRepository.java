@@ -13,6 +13,10 @@ public interface YouTubeChannelRepository
 
     Optional<YouTubeChannel> findByHandle(String handle);
 
-    List<YouTubeChannel> findByActiveTrue();    
+    List<YouTubeChannel> findByActiveTrue();
+
+    List<YouTubeChannel> findByActiveTrueOrderByTitleAsc();
+
+    List<YouTubeChannel> findAllByOrderByTitleAsc();
 
 }

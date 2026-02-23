@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 
 import { isAppError } from '@/api/httpError'
 import { DataTable } from '@/components/common/DataTable'
@@ -14,8 +14,10 @@ import { ChannelChart } from '../components/ChannelChart'
 import { useChannelAnalyticsByIdQuery } from '../queries'
 
 export default function ChannelOverviewPage() {
+  // Support both /channels/:channelDbId (path param) and /channel?channelDbId= (legacy)
+  const { channelDbId: channelDbIdParam } = useParams<{ channelDbId?: string }>()
   const [searchParams] = useSearchParams()
-  const channelDbId = searchParams.get('channelDbId')
+  const channelDbId = channelDbIdParam ?? searchParams.get('channelDbId')
   const channelId = searchParams.get('channelId') ?? ''
 
   const { data, isLoading, isFetching, isError, error, refetch } = useChannelAnalyticsByIdQuery(
@@ -76,9 +78,18 @@ export default function ChannelOverviewPage() {
 
   return (
     <div className="space-y-6">
+      {channelDbIdParam && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Link to="/channels" className="hover:text-foreground transition-colors">
+            Channels
+          </Link>
+          <span>/</span>
+          <span className="text-foreground font-medium truncate">{data?.title ?? channelDbId}</span>
+        </div>
+      )}
       <ChannelHeader
         title={data?.title || 'Channel overview'}
-        channelId={channelId}
+        channelId={data?.channelId ?? channelId}
         lastRefreshedAt={lastRefreshedAt}
       />
 
@@ -87,11 +98,21 @@ export default function ChannelOverviewPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <ChannelChart data={data} />
         <div className="space-y-3 rounded-lg border bg-card/60 p-4 shadow-sm">
-          <div className="space-y-1">
-            <h2 className="text-lg font-semibold">Channel details</h2>
-            <p className="text-sm text-muted-foreground">
-              Basic metadata and freshness state.
-            </p>
+          <div className="flex items-start justify-between gap-2">
+            <div className="space-y-1">
+              <h2 className="text-lg font-semibold">Channel details</h2>
+              <p className="text-sm text-muted-foreground">
+                Basic metadata and freshness state.
+              </p>
+            </div>
+            {channelDbIdParam && (
+              <Link
+                to={`/channels/${channelDbId}/videos`}
+                className="shrink-0 rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              >
+                View videos →
+              </Link>
+            )}
           </div>
           <Separator />
           {isLoading ? (

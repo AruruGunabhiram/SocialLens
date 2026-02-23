@@ -15,7 +15,7 @@ export function AppShell() {
         <main className="flex-1 p-4 md:p-6">
           <AnimatePresence mode="wait">
             <motion.div
-              key={location.pathname + location.search}
+              key={location.pathname}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
