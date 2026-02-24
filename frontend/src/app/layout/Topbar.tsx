@@ -1,40 +1,66 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Loader2, RefreshCw } from 'lucide-react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import {
+  useChannelQuery,
   useChannelSyncMutation,
   useChannelRefreshByIdMutation,
   useIsChannelFetchingById,
 } from '@/features/channels/queries'
 import { cn } from '@/lib/utils'
 
+/**
+ * Returns the effective channelDbId for the current page.
+ * Checks path params first (/channels/:channelDbId), then falls back to
+ * the legacy ?channelDbId= search param.
+ */
+function useEffectiveChannelDbId(): number | undefined {
+  const { channelDbId: fromPath } = useParams<{ channelDbId?: string }>()
+  const [searchParams] = useSearchParams()
+  const fromSearch = searchParams.get('channelDbId')
+  const raw = fromPath ?? fromSearch
+  const id = raw ? Number(raw) : NaN
+  return Number.isFinite(id) && id > 0 ? id : undefined
+}
+
 export function Topbar() {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const currentChannelDbId = searchParams.get('channelDbId')
-  const currentChannelId = searchParams.get('channelId') ?? ''
+  const navigate = useNavigate()
+  const [, setSearchParams] = useSearchParams()
+
+  const channelDbId = useEffectiveChannelDbId()
+
+  // Legacy: preserve channelId in search params for the /channel route
+  const [legacySearchParams] = useSearchParams()
+  const legacyChannelId = legacySearchParams.get('channelId') ?? ''
+
   const [channelInput, setChannelInput] = useState('')
 
   const { mutateAsync: syncChannel, isPending: isSyncing } = useChannelSyncMutation()
   const { mutateAsync: refreshChannel, isPending: isRefreshing } = useChannelRefreshByIdMutation()
-  const isFetchingChannel = useIsChannelFetchingById(currentChannelDbId ? Number(currentChannelDbId) : undefined)
+  const isFetchingChannel = useIsChannelFetchingById(channelDbId)
+
+  // Fetch lightweight channel metadata for display (title, channelId for refresh)
+  const { data: channelInfo } = useChannelQuery(channelDbId)
+
+  // Derive the YouTube channel ID for the refresh mutation
+  const youtubeChannelId = channelInfo?.channelId ?? legacyChannelId
 
   useEffect(() => {
-    // Clear input when navigating away from channel
-    if (!currentChannelDbId) {
-      setChannelInput('')
-    }
-  }, [currentChannelDbId])
+    if (!channelDbId) setChannelInput('')
+  }, [channelDbId])
 
   const statusText = useMemo(() => {
     if (isSyncing) return 'Syncing channel…'
     if (isRefreshing) return 'Refreshing…'
     if (isFetchingChannel) return 'Fetching data…'
-    return currentChannelDbId ? 'Up to date' : 'No channel loaded'
-  }, [currentChannelDbId, isFetchingChannel, isRefreshing, isSyncing])
+    if (channelDbId && channelInfo?.title) return channelInfo.title
+    if (channelDbId) return 'Up to date'
+    return 'No channel loaded'
+  }, [channelDbId, channelInfo?.title, isFetchingChannel, isRefreshing, isSyncing])
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -42,30 +68,24 @@ export function Topbar() {
     if (!identifier) return
 
     try {
-      // Call sync endpoint
       const syncResult = await syncChannel(identifier)
-
-      // Update URL with channelDbId and channelId
-      const nextParams = new URLSearchParams()
-      nextParams.set('channelDbId', String(syncResult.channelDbId))
-      nextParams.set('channelId', syncResult.channelId)
-      setSearchParams(nextParams, { replace: false })
+      // Navigate to the new channel-detail route
+      navigate(`/channels/${syncResult.channelDbId}`)
     } catch {
       // Error toast handled in mutation onError
     }
   }
 
   const handleRefresh = async () => {
-    if (!currentChannelDbId || !currentChannelId) return
+    if (!channelDbId || !youtubeChannelId) return
     try {
-      await refreshChannel({
-        channelDbId: Number(currentChannelDbId),
-        channelId: currentChannelId,
-      })
+      await refreshChannel({ channelDbId, channelId: youtubeChannelId })
     } catch {
       // Error toast handled in mutation onError
     }
   }
+
+  const isActive = isSyncing || isRefreshing || isFetchingChannel
 
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b bg-card/80 px-4 backdrop-blur">
@@ -86,7 +106,7 @@ export function Topbar() {
           type="button"
           variant="ghost"
           className="gap-2"
-          disabled={!currentChannelDbId || isRefreshing || isSyncing}
+          disabled={!channelDbId || !youtubeChannelId || isRefreshing || isSyncing}
           onClick={handleRefresh}
         >
           {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
@@ -95,9 +115,10 @@ export function Topbar() {
       </form>
       <div
         className={cn(
-          'text-sm font-medium',
-          isRefreshing || isFetchingChannel || isSyncing ? 'text-primary' : 'text-muted-foreground'
+          'max-w-[220px] truncate text-sm font-medium',
+          isActive ? 'text-primary' : 'text-muted-foreground'
         )}
+        title={statusText}
       >
         {statusText}
       </div>

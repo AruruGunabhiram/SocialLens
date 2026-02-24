@@ -2,6 +2,10 @@ export const endpoints = {
   youtube: {
     sync: '/youtube/sync',
   },
+  channels: {
+    list: '/channels',
+    // Parameterized paths are built in api.ts: `/channels/${id}` etc.
+  },
   analytics: {
     channel: '/analytics/channel',
     channelById: '/analytics/channel/by-id',

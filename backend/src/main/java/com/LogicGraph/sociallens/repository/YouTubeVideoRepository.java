@@ -2,6 +2,7 @@
 package com.LogicGraph.sociallens.repository;
 
 import com.LogicGraph.sociallens.entity.YouTubeVideo;
+import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.domain.Pageable;
 
@@ -27,4 +28,9 @@ public interface YouTubeVideoRepository extends JpaRepository<YouTubeVideo, Long
     List<YouTubeVideo> findByChannel_ChannelIdOrderByViewCountDesc(String channelId, Pageable pageable);
 
     List<YouTubeVideo> findByChannel_IdOrderByViewCountDesc(Long channelDbId, Pageable pageable);
+
+    // Paginated queries for the /channels/{id}/videos endpoint
+    Page<YouTubeVideo> findByChannel_Id(Long channelDbId, Pageable pageable);
+
+    Page<YouTubeVideo> findByChannel_IdAndTitleContainingIgnoreCase(Long channelDbId, String q, Pageable pageable);
 }
