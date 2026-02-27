@@ -63,7 +63,7 @@ interface Insights {
 
 function computeInsights(filtered: TimeSeriesPoint[], field: string, range: number): Insights {
   const values = filtered.map(p => Number((p as Record<string, unknown>)[field] ?? 0))
-  const avg = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0
+  const avg = values.length >= 2 ? (values[values.length - 1] - values[0]) / range : 0
   const peakIdx = values.indexOf(Math.max(...values))
   const peakValue = values[peakIdx] ?? 0
   const peakDate = filtered[peakIdx]?.date ?? ''
@@ -295,7 +295,10 @@ export default function TrendsPage() {
         ) : (
           <EmptyState
             title="Not enough data"
-            description={`Need at least 2 snapshots in the last ${range} days. Try Refresh or widen the range.`}
+            description="Need at least 2 snapshots. Click Refresh."
+            actionLabel="Refresh"
+            onAction={() => void refetch()}
+            className="h-full border-0 shadow-none bg-transparent"
           />
         )}
       </ChartCard>
