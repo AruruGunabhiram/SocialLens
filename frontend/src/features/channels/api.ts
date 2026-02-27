@@ -112,12 +112,17 @@ export async function fetchChannelVideos(
 }
 
 // ==============================================
-// Refresh (legacy)
+// Refresh — POST /api/v1/jobs/refresh/channel?channelDbId={id}
+// Single entry point; always sends exactly the `channelDbId` query param.
 // ==============================================
 
-export async function refreshChannelAnalytics(channelId: string) {
+export async function refreshChannelById(channelDbId: number): Promise<{ status?: string }> {
   try {
-    const { data } = await axiosClient.post(endpoints.jobs.refreshChannel, { channelId })
+    const { data } = await axiosClient.post(
+      endpoints.jobs.refreshChannel,
+      null,                         // no request body
+      { params: { channelDbId } }  // MUST be `channelDbId` — backend @RequestParam
+    )
     return data as { status?: string }
   } catch (error) {
     throw normalizeHttpError(error)

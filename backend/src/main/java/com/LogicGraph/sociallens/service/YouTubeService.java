@@ -6,6 +6,7 @@ import com.LogicGraph.sociallens.dto.youtube.YouTubeChannelResponse;
 import com.LogicGraph.sociallens.dto.youtube.YouTubePlaylistItemsResponse;
 import com.LogicGraph.sociallens.dto.youtube.YouTubeSyncRequestDto;
 import com.LogicGraph.sociallens.dto.youtube.YouTubeSyncResponseDto;
+import com.LogicGraph.sociallens.dto.youtube.YouTubeVideosResponse;
 import com.LogicGraph.sociallens.service.channel.ResolvedChannelIdentifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +19,7 @@ import org.springframework.web.client.HttpServerErrorException;
 import com.LogicGraph.sociallens.exception.NotFoundException;
 import java.net.URI;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -303,6 +305,39 @@ public class YouTubeService {
     public void refreshChannelMetadata(String channelId) {
         // Call your existing channel fetch logic (Data API)
         // Upsert the YouTubeChannel fields in DB (title, thumbnail, subs, views, etc.)
+    }
+
+    /**
+     * Fetches video snippet, contentDetails, and statistics from videos.list.
+     * Batches at most 50 IDs per request (YouTube API limit).
+     *
+     * @param videoIds YouTube video IDs to enrich
+     * @return list of Item objects with populated snippet/contentDetails/statistics
+     */
+    public List<YouTubeVideosResponse.Item> fetchVideoDetails(List<String> videoIds) {
+        validateApiKey();
+
+        List<YouTubeVideosResponse.Item> result = new ArrayList<>();
+        int batchSize = 50;
+
+        for (int i = 0; i < videoIds.size(); i += batchSize) {
+            List<String> batch = videoIds.subList(i, Math.min(i + batchSize, videoIds.size()));
+            String ids = String.join(",", batch);
+
+            String url = UriComponentsBuilder
+                    .fromHttpUrl(YouTubeConfig.BASE_URL + "/videos")
+                    .queryParam("part", "snippet,contentDetails,statistics")
+                    .queryParam("id", ids)
+                    .queryParam("key", apiKey)
+                    .toUriString();
+
+            YouTubeVideosResponse body = ytGet(url, YouTubeVideosResponse.class);
+            if (body != null && body.items != null) {
+                result.addAll(body.items);
+            }
+        }
+
+        return result;
     }
 
 }

@@ -103,3 +103,28 @@ export const ChannelAnalyticsSchema = z
     timeseries: z.array(ChannelMetricPointSchema).optional(),
   })
   .passthrough()
+
+// -----------------------------------------------------------------------
+// Timeseries API — GET /analytics/timeseries/by-id
+// Matches TimeSeriesPointDto (@JsonInclude(NON_NULL) — only the active
+// metric field is populated per point) and TimeSeriesResponseDto.
+// -----------------------------------------------------------------------
+
+export const TimeSeriesPointSchema = z
+  .object({
+    date: z.string(),
+    views: z.number().nullish(),
+    subscribers: z.number().nullish(),
+    likes: z.number().nullish(),
+    comments: z.number().nullish(),
+    uploads: z.number().nullish(),
+  })
+  .passthrough()
+
+export const TimeSeriesResponseSchema = z
+  .object({
+    channelId: z.string().nullish(),
+    metric: z.string().nullish(),
+    points: z.array(TimeSeriesPointSchema),
+  })
+  .passthrough()

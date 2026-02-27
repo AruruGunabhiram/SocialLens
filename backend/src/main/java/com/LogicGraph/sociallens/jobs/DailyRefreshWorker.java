@@ -3,6 +3,7 @@ package com.LogicGraph.sociallens.jobs;
 
 import com.LogicGraph.sociallens.entity.YouTubeChannel;
 import com.LogicGraph.sociallens.enums.RefreshStatus;
+import com.LogicGraph.sociallens.exception.RefreshAlreadyRunningException;
 import com.LogicGraph.sociallens.repository.YouTubeChannelRepository;
 import com.LogicGraph.sociallens.repository.YouTubeVideoRepository;
 import com.LogicGraph.sociallens.service.YouTubeService;
@@ -17,12 +18,17 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class DailyRefreshWorker {
 
-    private final JobProperties props;
     private static final Logger log = LoggerFactory.getLogger(DailyRefreshWorker.class);
+
+    /** In-memory guard: channelDbId -> time the refresh started. Prevents double-runs. */
+    private final ConcurrentHashMap<Long, Instant> running = new ConcurrentHashMap<>();
+
+    private final JobProperties props;
 
     private final YouTubeChannelRepository channelRepo;
     private final YouTubeVideoRepository videoRepo;
@@ -44,8 +50,16 @@ public class DailyRefreshWorker {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void refreshOneChannel(Long channelDbId) {
+        // Concurrency guard: atomically claim this channel or reject if already running.
+        if (running.putIfAbsent(channelDbId, Instant.now()) != null) {
+            throw new RefreshAlreadyRunningException(channelDbId);
+        }
+
         YouTubeChannel ch = channelRepo.findById(channelDbId)
-                .orElseThrow(() -> new IllegalArgumentException("Channel not found id=" + channelDbId));
+                .orElseThrow(() -> {
+                    running.remove(channelDbId);
+                    return new IllegalArgumentException("Channel not found id=" + channelDbId);
+                });
 
         Instant started = Instant.now();
         LocalDate todayUtc = LocalDate.now(ZoneOffset.UTC);
@@ -66,6 +80,10 @@ public class DailyRefreshWorker {
             Instant newCursor = Instant.now();
 
             int newOrUpdated = syncService.syncIncrementalVideos(ch.getChannelId(), since);
+
+            // 2b) Enrich video metadata (snippet + statistics) for this channel
+            int enriched = syncService.enrichVideoMetadata(ch.getId());
+            log.info("DailyRefreshWorker enriched {} video rows for channelDbId={}", enriched, ch.getId());
 
             // 3) Write daily snapshots (idempotent)
             // IMPORTANT: these should be DB-guarded with UNIQUE(channel_id, day) and
@@ -106,6 +124,8 @@ public class DailyRefreshWorker {
                     ch.getChannelId(), ch.getId(), todayUtc, ms, ex.getMessage(), ex);
 
             throw ex;
+        } finally {
+            running.remove(channelDbId);
         }
     }
 

@@ -5,6 +5,8 @@ import {
   ChannelItemSchema,
   ChannelMetricPointSchema,
   PageMetaSchema,
+  TimeSeriesPointSchema,
+  TimeSeriesResponseSchema,
   VideoRowSchema,
   VideosPageResponseSchema,
   YouTubeSyncResponseSchema,
@@ -17,3 +19,5 @@ export type ChannelItem = z.infer<typeof ChannelItemSchema>
 export type VideoRow = z.infer<typeof VideoRowSchema>
 export type PageMeta = z.infer<typeof PageMetaSchema>
 export type VideosPageResponse = z.infer<typeof VideosPageResponseSchema>
+export type TimeSeriesPoint = z.infer<typeof TimeSeriesPointSchema>
+export type TimeSeriesResponse = z.infer<typeof TimeSeriesResponseSchema>

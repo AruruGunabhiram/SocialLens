@@ -14,8 +14,8 @@ export const endpoints = {
     uploadFrequencyById: '/analytics/upload-frequency/by-id',
   },
   jobs: {
-    // Adjust if backend path differs; kept centralized for easy updates.
-    refreshChannel: '/jobs/refresh/channel',
+    // POST /api/v1/jobs/refresh/channel?channelDbId={id}
+    refreshChannel: '/api/v1/jobs/refresh/channel',
   },
 }
 
