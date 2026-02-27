@@ -12,15 +12,17 @@ import {
   fetchChannelAnalyticsById,
   fetchChannelById,
   fetchChannels,
+  fetchChannelTimeSeries,
   fetchChannelVideos,
   refreshChannelById,
   syncChannel,
+  type TrendMetric,
   type VideoQueryParams,
 } from './api'
 import type { ChannelAnalytics } from './schemas'
 import { toastError, toastSuccess } from '@/lib/toast'
 import type { AppError } from '@/api/httpError'
-import type { ChannelItem, VideosPageResponse, YouTubeSyncResponse } from '@/api/types'
+import type { ChannelItem, TimeSeriesResponse, VideosPageResponse, YouTubeSyncResponse } from '@/api/types'
 
 // -----------------------------------------------------------------------
 // Query keys for new channels + videos endpoints
@@ -79,6 +81,25 @@ export const channelQueryKeys = {
   root: ['channels'] as const,
   analytics: (channelId: string) => [...channelQueryKeys.root, 'analytics', channelId] as const,
   analyticsById: (channelDbId: number) => [...channelQueryKeys.root, 'analytics-by-id', channelDbId] as const,
+}
+
+// -----------------------------------------------------------------------
+// Timeseries query keys + hook
+// -----------------------------------------------------------------------
+
+export const trendQueryKeys = {
+  root: ['trends'] as const,
+  timeseries: (channelDbId: number, metric: TrendMetric) =>
+    ['trends', 'timeseries', channelDbId, metric] as const,
+}
+
+export function useChannelTimeSeries(channelDbId?: number, metric: TrendMetric = 'VIEWS') {
+  return useQuery<TimeSeriesResponse, AppError>({
+    queryKey: trendQueryKeys.timeseries(channelDbId ?? -1, metric),
+    queryFn: () => fetchChannelTimeSeries(channelDbId!, metric),
+    enabled: Boolean(channelDbId),
+    staleTime: 2 * 60 * 1000,
+  })
 }
 
 // ==============================================

@@ -4,12 +4,14 @@ import { normalizeHttpError } from '@/api/httpError'
 import {
   ChannelAnalyticsSchema,
   ChannelItemSchema,
+  TimeSeriesResponseSchema,
   VideosPageResponseSchema,
   YouTubeSyncResponseSchema,
 } from '@/api/schemas'
 import type {
   ChannelAnalytics,
   ChannelItem,
+  TimeSeriesResponse,
   VideosPageResponse,
   YouTubeSyncResponse,
 } from '@/api/types'
@@ -106,6 +108,26 @@ export async function fetchChannelVideos(
   try {
     const { data } = await axiosClient.get(`/channels/${channelDbId}/videos`, { params })
     return VideosPageResponseSchema.parse(data)
+  } catch (error) {
+    throw normalizeHttpError(error)
+  }
+}
+
+// ==============================================
+// Timeseries — GET /analytics/timeseries/by-id?channelDbId={id}&metric={metric}
+// ==============================================
+
+export type TrendMetric = 'VIEWS' | 'SUBSCRIBERS' | 'UPLOADS'
+
+export async function fetchChannelTimeSeries(
+  channelDbId: number,
+  metric: TrendMetric
+): Promise<TimeSeriesResponse> {
+  try {
+    const { data } = await axiosClient.get(endpoints.analytics.timeseriesById, {
+      params: { channelDbId, metric },
+    })
+    return TimeSeriesResponseSchema.parse(data)
   } catch (error) {
     throw normalizeHttpError(error)
   }
