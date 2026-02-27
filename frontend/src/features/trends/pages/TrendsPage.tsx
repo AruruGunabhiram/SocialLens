@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { format, parseISO, subDays } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import {
   CartesianGrid,
   Line,
@@ -18,8 +18,9 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent } from '@/components/ui/card'
-import { useChannelQuery, useChannelTimeSeries } from '@/features/channels/queries'
-import type { TrendMetric } from '@/features/channels/api'
+import { useChannelQuery } from '@/features/channels/queries'
+import { useTimeSeries } from '../queries'
+import type { TrendMetric } from '../api'
 import type { TimeSeriesPoint } from '@/api/types'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -61,13 +62,14 @@ interface Insights {
   trendLabel: 'Up' | 'Down' | 'Flat'
 }
 
-function computeInsights(filtered: TimeSeriesPoint[], field: string, range: number): Insights {
-  const values = filtered.map(p => Number((p as Record<string, unknown>)[field] ?? 0))
-  const avg = values.length >= 2 ? (values[values.length - 1] - values[0]) / range : 0
+function computeInsights(pts: TimeSeriesPoint[], field: string): Insights {
+  const values = pts.map(p => Number((p as Record<string, unknown>)[field] ?? 0))
+  const avg = values.reduce((a, b) => a + b, 0) / values.length
   const peakIdx = values.indexOf(Math.max(...values))
   const peakValue = values[peakIdx] ?? 0
-  const peakDate = filtered[peakIdx]?.date ?? ''
-  const slope = values.length >= 2 ? (values[values.length - 1] - values[0]) / range : 0
+  const peakDate = pts[peakIdx]?.date ?? ''
+  const n = values.length
+  const slope = n >= 2 ? (values[n - 1] - values[0]) / (n - 1) : 0
   const trendLabel: 'Up' | 'Down' | 'Flat' = slope > 1 ? 'Up' : slope < -1 ? 'Down' : 'Flat'
   return { avg, peakValue, peakDate, slope, trendLabel }
 }
@@ -165,18 +167,14 @@ export default function TrendsPage() {
   const [range, setRange] = useState<Range>(30)
 
   const channelQuery = useChannelQuery(channelDbId)
-  const { data, isLoading, isError, error, refetch } = useChannelTimeSeries(channelDbId, metric)
+  const { data, isLoading, isError, error, refetch } = useTimeSeries(channelDbId, metric, range)
 
-  const filtered = useMemo(() => {
-    if (!data?.points) return []
-    const cutoff = subDays(new Date(), range)
-    return data.points.filter(p => parseISO(p.date) >= cutoff)
-  }, [data, range])
+  const points: TimeSeriesPoint[] = data?.points ?? []
 
   const insights = useMemo<Insights | null>(() => {
-    if (filtered.length < 2) return null
-    return computeInsights(filtered, METRIC_CONFIG[metric].field, range)
-  }, [filtered, metric, range])
+    if (points.length < 2) return null
+    return computeInsights(points, METRIC_CONFIG[metric].field)
+  }, [points, metric])
 
   // ── No channel selected ──────────────────────────────────────────────────
   if (!channelDbId) {
@@ -252,9 +250,9 @@ export default function TrendsPage() {
         title={`${config.label} — Last ${range} Days`}
         description={`Daily ${config.label.toLowerCase()} snapshots`}
       >
-        {filtered.length >= 2 ? (
+        {points.length >= 2 ? (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={filtered} margin={{ left: 8, right: 16, top: 12, bottom: 12 }}>
+            <LineChart data={points} margin={{ left: 8, right: 16, top: 12, bottom: 12 }}>
               <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#e5e7eb" />
               <XAxis
                 dataKey="date"
