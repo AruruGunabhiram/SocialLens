@@ -12,15 +12,17 @@ import {
   fetchChannelAnalyticsById,
   fetchChannelById,
   fetchChannels,
+  fetchChannelTimeSeries,
   fetchChannelVideos,
-  refreshChannelAnalytics,
+  refreshChannelById,
   syncChannel,
+  type TrendMetric,
   type VideoQueryParams,
 } from './api'
 import type { ChannelAnalytics } from './schemas'
 import { toastError, toastSuccess } from '@/lib/toast'
 import type { AppError } from '@/api/httpError'
-import type { ChannelItem, VideosPageResponse, YouTubeSyncResponse } from '@/api/types'
+import type { ChannelItem, TimeSeriesResponse, VideosPageResponse, YouTubeSyncResponse } from '@/api/types'
 
 // -----------------------------------------------------------------------
 // Query keys for new channels + videos endpoints
@@ -79,6 +81,25 @@ export const channelQueryKeys = {
   root: ['channels'] as const,
   analytics: (channelId: string) => [...channelQueryKeys.root, 'analytics', channelId] as const,
   analyticsById: (channelDbId: number) => [...channelQueryKeys.root, 'analytics-by-id', channelDbId] as const,
+}
+
+// -----------------------------------------------------------------------
+// Timeseries query keys + hook
+// -----------------------------------------------------------------------
+
+export const trendQueryKeys = {
+  root: ['trends'] as const,
+  timeseries: (channelDbId: number, metric: TrendMetric) =>
+    ['trends', 'timeseries', channelDbId, metric] as const,
+}
+
+export function useChannelTimeSeries(channelDbId?: number, metric: TrendMetric = 'VIEWS') {
+  return useQuery<TimeSeriesResponse, AppError>({
+    queryKey: trendQueryKeys.timeseries(channelDbId ?? -1, metric),
+    queryFn: () => fetchChannelTimeSeries(channelDbId!, metric),
+    enabled: Boolean(channelDbId),
+    staleTime: 2 * 60 * 1000,
+  })
 }
 
 // ==============================================
@@ -146,42 +167,30 @@ export function useChannelAnalyticsByIdQuery(
 }
 
 // ==============================================
-// Refresh Mutation (legacy)
-// ==============================================
-
-export function useChannelRefreshMutation() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: (channelId: string) => refreshChannelAnalytics(channelId),
-    onSuccess: (_data, channelId) => {
-      toastSuccess('Refresh requested', 'Latest metrics will load when ready.')
-      if (channelId) {
-        queryClient.invalidateQueries({ queryKey: channelQueryKeys.analytics(channelId) })
-      }
-    },
-    onError: (error) => {
-      toastError(error, 'Failed to request refresh')
-    },
-  })
-}
-
-// ==============================================
-// Refresh by DB ID
+// Refresh by DB ID  — calls POST /api/v1/jobs/refresh/channel?channelDbId=
+// This is the ONLY refresh hook. Always uses channelDbId as the query param.
 // ==============================================
 
 export function useChannelRefreshByIdMutation() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ channelDbId, channelId }: { channelDbId: number; channelId: string }) =>
-      refreshChannelAnalytics(channelId),
+    mutationFn: ({ channelDbId }: { channelDbId: number }) =>
+      refreshChannelById(channelDbId),
     onSuccess: (_data, { channelDbId }) => {
-      toastSuccess('Refresh requested', 'Latest metrics will load when ready.')
-      queryClient.invalidateQueries({ queryKey: channelQueryKeys.analyticsById(channelDbId) })
+      toastSuccess('Refresh triggered', 'Channel data is being updated in the background.')
+      // ['channels', ...] — analytics and any root-level channel queries
+      queryClient.invalidateQueries({ queryKey: channelQueryKeys.root })
+      // ['channelList', 'detail', id] — single channel metadata
+      queryClient.invalidateQueries({ queryKey: channelListQueryKeys.detail(channelDbId) })
+      // ['channelList', 'list', *] — channel list pages
+      queryClient.invalidateQueries({ queryKey: channelListQueryKeys.list(false) })
+      queryClient.invalidateQueries({ queryKey: channelListQueryKeys.list(true) })
+      // ['channelList', 'videos', id, *] — all paginated video queries for this channel
+      queryClient.invalidateQueries({ queryKey: ['channelList', 'videos', channelDbId] })
     },
     onError: (error) => {
-      toastError(error, 'Failed to request refresh')
+      toastError(error, 'Failed to trigger refresh')
     },
   })
 }

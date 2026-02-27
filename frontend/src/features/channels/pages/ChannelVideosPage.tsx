@@ -56,6 +56,14 @@ function parseSize(raw: string | null): number {
   return Number.isFinite(n) && n >= 1 && n <= 100 ? Math.floor(n) : DEFAULT_SIZE
 }
 
+/**
+ * Returns the title to display for a video row.
+ * Treats empty/whitespace-only title as absent and falls back to videoId.
+ */
+function displayTitle(v: VideoRow): string {
+  return v.title?.trim() || v.videoId
+}
+
 function fmtCompact(n?: number | null) {
   if (n == null) return '—'
   return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(n)
@@ -131,7 +139,7 @@ function SkeletonRows({ count = 5 }: { count?: number }) {
     <>
       {Array.from({ length: count }).map((_, i) => (
         <tr key={i}>
-          <td className="py-2 pr-4">
+          <td className="py-2 pl-4 pr-4">
             <Skeleton className="h-10 w-16 rounded" />
           </td>
           <td className="py-2 pr-4">
@@ -162,7 +170,7 @@ function SkeletonRows({ count = 5 }: { count?: number }) {
 function VideoTableRow({ video }: { video: VideoRow }) {
   return (
     <tr className="group align-middle hover:bg-muted/40 transition-colors">
-      <td className="py-2 pr-4">
+      <td className="py-2 pl-4 pr-4">
         {video.thumbnailUrl ? (
           <img
             src={video.thumbnailUrl}
@@ -179,9 +187,9 @@ function VideoTableRow({ video }: { video: VideoRow }) {
       <td className="max-w-xs py-2 pr-4">
         <span
           className="line-clamp-2 text-sm font-medium leading-snug"
-          title={video.title ?? undefined}
+          title={displayTitle(video)}
         >
-          {video.title ?? video.videoId}
+          {displayTitle(video)}
         </span>
       </td>
       <td className="py-2 pr-4 text-sm text-muted-foreground whitespace-nowrap">
@@ -345,6 +353,17 @@ export default function ChannelVideosPage() {
   const items = data?.items ?? []
   const meta = data?.page
 
+  // Client-side filter: normalize both sides (lowercase + trim) so searching
+  // by the displayed text (title or videoId fallback) always works.
+  const clientQ = urlQ.trim().toLowerCase()
+  const filteredItems = clientQ
+    ? items.filter((v) => displayTitle(v).toLowerCase().includes(clientQ))
+    : items
+
+  // Warning: >80% of this page's videos have no title → sync likely incomplete.
+  const missingTitleCount = items.filter((v) => !v.title?.trim()).length
+  const showTitleWarning = !isLoading && items.length > 0 && missingTitleCount / items.length > 0.8
+
   // -----------------------------------------------------------------------
   // Render
   // -----------------------------------------------------------------------
@@ -353,15 +372,22 @@ export default function ChannelVideosPage() {
     <div className="space-y-4">
       <VideosPageHeader channel={channel} channelDbId={channelDbId} />
 
+      {/* Missing-title warning banner */}
+      {showTitleWarning && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+          Video titles not available yet — sync may be incomplete. Showing video IDs as fallback. Search works against the displayed ID.
+        </div>
+      )}
+
       {/* Search bar */}
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
         <Input
           value={searchInput}
           onChange={handleSearchChange}
-          placeholder="Search by title…"
+          placeholder="Search by title or video ID…"
           className="pl-9"
-          aria-label="Search videos by title"
+          aria-label="Search videos by title or video ID"
         />
       </div>
 
@@ -419,8 +445,8 @@ export default function ChannelVideosPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {isLoading ? (
-                  <SkeletonRows count={size} />
-                ) : items.length === 0 ? (
+                  <SkeletonRows count={Math.min(size, 10)} />
+                ) : filteredItems.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-12">
                       <EmptyState
@@ -436,7 +462,7 @@ export default function ChannelVideosPage() {
                     </td>
                   </tr>
                 ) : (
-                  items.map((video) => <VideoTableRow key={video.id} video={video} />)
+                  filteredItems.map((video) => <VideoTableRow key={video.id} video={video} />)
                 )}
               </tbody>
             </table>

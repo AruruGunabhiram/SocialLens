@@ -29,14 +29,7 @@ function useEffectiveChannelDbId(): number | undefined {
 
 export function Topbar() {
   const navigate = useNavigate()
-  const [, setSearchParams] = useSearchParams()
-
   const channelDbId = useEffectiveChannelDbId()
-
-  // Legacy: preserve channelId in search params for the /channel route
-  const [legacySearchParams] = useSearchParams()
-  const legacyChannelId = legacySearchParams.get('channelId') ?? ''
-
   const [channelInput, setChannelInput] = useState('')
 
   const { mutateAsync: syncChannel, isPending: isSyncing } = useChannelSyncMutation()
@@ -45,9 +38,6 @@ export function Topbar() {
 
   // Fetch lightweight channel metadata for display (title, channelId for refresh)
   const { data: channelInfo } = useChannelQuery(channelDbId)
-
-  // Derive the YouTube channel ID for the refresh mutation
-  const youtubeChannelId = channelInfo?.channelId ?? legacyChannelId
 
   useEffect(() => {
     if (!channelDbId) setChannelInput('')
@@ -58,6 +48,7 @@ export function Topbar() {
     if (isRefreshing) return 'Refreshing…'
     if (isFetchingChannel) return 'Fetching data…'
     if (channelDbId && channelInfo?.title) return channelInfo.title
+
     if (channelDbId) return 'Up to date'
     return 'No channel loaded'
   }, [channelDbId, channelInfo?.title, isFetchingChannel, isRefreshing, isSyncing])
@@ -77,9 +68,9 @@ export function Topbar() {
   }
 
   const handleRefresh = async () => {
-    if (!channelDbId || !youtubeChannelId) return
+    if (!channelDbId) return
     try {
-      await refreshChannel({ channelDbId, channelId: youtubeChannelId })
+      await refreshChannel({ channelDbId })
     } catch {
       // Error toast handled in mutation onError
     }
@@ -106,7 +97,7 @@ export function Topbar() {
           type="button"
           variant="ghost"
           className="gap-2"
-          disabled={!channelDbId || !youtubeChannelId || isRefreshing || isSyncing}
+          disabled={!channelDbId || isRefreshing || isSyncing}
           onClick={handleRefresh}
         >
           {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}

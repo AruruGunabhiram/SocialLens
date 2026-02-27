@@ -4,12 +4,14 @@ import { normalizeHttpError } from '@/api/httpError'
 import {
   ChannelAnalyticsSchema,
   ChannelItemSchema,
+  TimeSeriesResponseSchema,
   VideosPageResponseSchema,
   YouTubeSyncResponseSchema,
 } from '@/api/schemas'
 import type {
   ChannelAnalytics,
   ChannelItem,
+  TimeSeriesResponse,
   VideosPageResponse,
   YouTubeSyncResponse,
 } from '@/api/types'
@@ -112,12 +114,37 @@ export async function fetchChannelVideos(
 }
 
 // ==============================================
-// Refresh (legacy)
+// Timeseries — GET /analytics/timeseries/by-id?channelDbId={id}&metric={metric}
 // ==============================================
 
-export async function refreshChannelAnalytics(channelId: string) {
+export type TrendMetric = 'VIEWS' | 'SUBSCRIBERS' | 'UPLOADS'
+
+export async function fetchChannelTimeSeries(
+  channelDbId: number,
+  metric: TrendMetric
+): Promise<TimeSeriesResponse> {
   try {
-    const { data } = await axiosClient.post(endpoints.jobs.refreshChannel, { channelId })
+    const { data } = await axiosClient.get(endpoints.analytics.timeseriesById, {
+      params: { channelDbId, metric },
+    })
+    return TimeSeriesResponseSchema.parse(data)
+  } catch (error) {
+    throw normalizeHttpError(error)
+  }
+}
+
+// ==============================================
+// Refresh — POST /api/v1/jobs/refresh/channel?channelDbId={id}
+// Single entry point; always sends exactly the `channelDbId` query param.
+// ==============================================
+
+export async function refreshChannelById(channelDbId: number): Promise<{ status?: string }> {
+  try {
+    const { data } = await axiosClient.post(
+      endpoints.jobs.refreshChannel,
+      null,                         // no request body
+      { params: { channelDbId } }  // MUST be `channelDbId` — backend @RequestParam
+    )
     return data as { status?: string }
   } catch (error) {
     throw normalizeHttpError(error)

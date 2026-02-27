@@ -43,14 +43,15 @@ public class ChannelVideosServiceImpl implements ChannelVideosService {
         }
 
         int clampedSize = Math.max(1, Math.min(100, size));
-        // Secondary sort by id desc for stable pagination when primary values tie.
-        Sort springSort = Sort.by(dir, sort.entityField).and(Sort.by(Sort.Direction.DESC, "id"));
+        // Nulls always sort last regardless of direction; secondary sort by id desc for stable pagination.
+        Sort.Order primary = new Sort.Order(dir, sort.entityField, Sort.NullHandling.NULLS_LAST);
+        Sort springSort = Sort.by(primary).and(Sort.by(Sort.Direction.DESC, "id"));
         Pageable pageable = PageRequest.of(page, clampedSize, springSort);
 
         String trimmedQ = (q == null || q.isBlank()) ? null : q.strip();
         Page<YouTubeVideo> result = (trimmedQ == null)
                 ? youTubeVideoRepository.findByChannel_Id(channelDbId, pageable)
-                : youTubeVideoRepository.findByChannel_IdAndTitleContainingIgnoreCase(channelDbId, trimmedQ, pageable);
+                : youTubeVideoRepository.searchByChannelAndTitleOrVideoId(channelDbId, trimmedQ, pageable);
 
         List<VideoRowDto> items = result.getContent().stream()
                 .map(this::toVideoRowDto)

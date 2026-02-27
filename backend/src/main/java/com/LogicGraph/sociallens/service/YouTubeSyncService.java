@@ -1,9 +1,10 @@
-// Changelog: Populate snapshots with metrics, rely on insert-once semantics, and sync channel metrics.
+// Changelog: Populate snapshots with metrics, rely on insert-once semantics, sync channel metrics, and enrich video metadata.
 package com.LogicGraph.sociallens.service;
 
 import com.LogicGraph.sociallens.dto.youtube.ChannelSummaryDto;
 import com.LogicGraph.sociallens.dto.youtube.YouTubePlaylistItemsResponse;
 import com.LogicGraph.sociallens.dto.youtube.YouTubeSyncResponseDto;
+import com.LogicGraph.sociallens.dto.youtube.YouTubeVideosResponse;
 import com.LogicGraph.sociallens.entity.ChannelMetricsSnapshot;
 import com.LogicGraph.sociallens.entity.VideoMetricsSnapshot;
 import com.LogicGraph.sociallens.entity.YouTubeChannel;
@@ -15,8 +16,12 @@ import com.LogicGraph.sociallens.repository.YouTubeChannelRepository;
 import com.LogicGraph.sociallens.repository.YouTubeVideoRepository;
 import com.LogicGraph.sociallens.service.channel.ChannelResolver;
 import com.LogicGraph.sociallens.service.channel.ResolvedChannelIdentifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -24,9 +29,13 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class YouTubeSyncService {
+
+    private static final Logger log = LoggerFactory.getLogger(YouTubeSyncService.class);
 
     private final YouTubeService youTubeService;
     private final YouTubeChannelRepository channelRepository;
@@ -193,11 +202,18 @@ public class YouTubeSyncService {
     }
 
     /**
-     * Idempotent per-day channel snapshot using capturedAt window [start,end) in
-     * UTC.
+     * Idempotent per-day channel snapshot.
+     * Runs in its own transaction (REQUIRES_NEW) so a duplicate-key hit never
+     * poisons the caller's transaction. Check-before-insert prevents the constraint
+     * violation on normal repeated runs; the catch handles the race-condition case.
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void writeChannelSnapshotIfNeeded(Long channelDbId, LocalDate dayUtc) {
+        // Fast path: already have a snapshot for today — nothing to do.
+        if (channelSnapshotRepository.existsByChannel_IdAndCapturedDayUtc(channelDbId, dayUtc)) {
+            return;
+        }
+
         YouTubeChannel ch = channelRepository.findById(channelDbId)
                 .orElseThrow(() -> new IllegalArgumentException("Channel not found id=" + channelDbId));
 
@@ -212,23 +228,29 @@ public class YouTubeSyncService {
         try {
             channelSnapshotRepository.saveAndFlush(snap);
         } catch (DataIntegrityViolationException ignore) {
-            // concurrent create expected when UNIQUE(channel_id, captured_day_utc) holds
+            // Race condition: another thread inserted between our check and insert — fine.
         }
     }
 
 
     /**
-     * Idempotent per-day video snapshot using capturedAt window [start,end) in UTC.
+     * Idempotent per-day video snapshot.
+     * Same REQUIRES_NEW + check-before-insert pattern as the channel snapshot.
      */
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void writeVideoSnapshotIfNeeded(Long videoDbId, LocalDate dayUtc) {
+        // Fast path: already have a snapshot for today — nothing to do.
+        if (videoSnapRepo.existsByVideo_IdAndCapturedDayUtc(videoDbId, dayUtc)) {
+            return;
+        }
+
         YouTubeVideo v = videoRepository.findById(videoDbId)
                 .orElseThrow(() -> new IllegalArgumentException("Video not found id=" + videoDbId));
 
         VideoMetricsSnapshot snap = new VideoMetricsSnapshot();
         snap.setVideo(v);
         snap.setCapturedAt(Instant.now());
-        snap.setCapturedDayUtc(dayUtc); // YOU NEED THIS FIELD
+        snap.setCapturedDayUtc(dayUtc);
         snap.setViewCount(v.getViewCount());
         snap.setLikeCount(v.getLikeCount());
         snap.setCommentCount(v.getCommentCount());
@@ -236,7 +258,90 @@ public class YouTubeSyncService {
         try {
             videoSnapRepo.saveAndFlush(snap);
         } catch (DataIntegrityViolationException ignore) {
-            // concurrent creation, expected
+            // Race condition: another thread inserted between our check and insert — fine.
+        }
+    }
+
+    // =========================
+    // Video enrichment
+    // =========================
+
+    /**
+     * Loads up to 50 stored videoIds for the given channel, calls videos.list
+     * (snippet, contentDetails, statistics) in batches, and upserts the metadata
+     * back into the existing YOUTUBE_VIDEO rows in a single saveAll transaction.
+     *
+     * @return number of rows actually updated
+     */
+    @Transactional
+    public int enrichVideoMetadata(Long channelDbId) {
+        List<String> videoIds = videoRepository.findVideoIdsByChannelDbId(
+                channelDbId, PageRequest.of(0, 50));
+        log.info("enrichVideoMetadata: loaded {} videoIds for channelDbId={}", videoIds.size(), channelDbId);
+
+        if (videoIds.isEmpty()) return 0;
+
+        List<YouTubeVideosResponse.Item> items = youTubeService.fetchVideoDetails(videoIds);
+
+        Map<String, YouTubeVideosResponse.Item> detailMap = items.stream()
+                .filter(i -> i.id != null)
+                .collect(Collectors.toMap(i -> i.id, i -> i, (a, b) -> a));
+
+        List<YouTubeVideo> videos = videoRepository.findAllByVideoIdIn(videoIds);
+        List<YouTubeVideo> toSave = new ArrayList<>();
+
+        for (YouTubeVideo video : videos) {
+            YouTubeVideosResponse.Item detail = detailMap.get(video.getVideoId());
+            if (detail == null) continue;
+            applyVideoDetails(video, detail);
+            toSave.add(video);
+        }
+
+        videoRepository.saveAll(toSave);
+        log.info("enrichVideoMetadata: persisted {} updated video rows for channelDbId={}", toSave.size(), channelDbId);
+        return toSave.size();
+    }
+
+    private void applyVideoDetails(YouTubeVideo video, YouTubeVideosResponse.Item item) {
+        if (item.snippet != null) {
+            video.setTitle(item.snippet.title);
+            video.setDescription(item.snippet.description);
+            if (item.snippet.publishedAt != null) {
+                try {
+                    video.setPublishedAt(Instant.parse(item.snippet.publishedAt));
+                } catch (Exception ignored) {
+                    // malformed date — leave publishedAt unchanged
+                }
+            }
+            video.setCategoryId(item.snippet.categoryId);
+            if (item.snippet.thumbnails != null) {
+                String thumbUrl = null;
+                if (item.snippet.thumbnails.high != null && item.snippet.thumbnails.high.url != null) {
+                    thumbUrl = item.snippet.thumbnails.high.url;
+                } else if (item.snippet.thumbnails.medium != null && item.snippet.thumbnails.medium.url != null) {
+                    thumbUrl = item.snippet.thumbnails.medium.url;
+                } else if (item.snippet.thumbnails.defaultThumb != null) {
+                    thumbUrl = item.snippet.thumbnails.defaultThumb.url;
+                }
+                video.setThumbnailUrl(thumbUrl);
+            }
+        }
+        if (item.contentDetails != null) {
+            video.setDuration(item.contentDetails.duration);
+        }
+        if (item.statistics != null) {
+            video.setViewCount(parseLongSafe(item.statistics.viewCount));
+            video.setLikeCount(parseLongSafe(item.statistics.likeCount));
+            video.setCommentCount(parseLongSafe(item.statistics.commentCount));
+        }
+    }
+
+    private static Long parseLongSafe(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 

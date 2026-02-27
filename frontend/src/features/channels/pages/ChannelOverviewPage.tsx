@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 
 import { isAppError } from '@/api/httpError'
@@ -11,31 +10,41 @@ import { Separator } from '@/components/ui/separator'
 import { ChannelHeader } from '../components/ChannelHeader'
 import { ChannelStats } from '../components/ChannelStats'
 import { ChannelChart } from '../components/ChannelChart'
-import { useChannelAnalyticsByIdQuery } from '../queries'
+import { useChannelAnalyticsByIdQuery, useChannelQuery } from '../queries'
 
 export default function ChannelOverviewPage() {
   // Support both /channels/:channelDbId (path param) and /channel?channelDbId= (legacy)
   const { channelDbId: channelDbIdParam } = useParams<{ channelDbId?: string }>()
   const [searchParams] = useSearchParams()
-  const channelDbId = channelDbIdParam ?? searchParams.get('channelDbId')
-  const channelId = searchParams.get('channelId') ?? ''
+  const channelDbIdStr = channelDbIdParam ?? searchParams.get('channelDbId')
+  const channelDbId = channelDbIdStr ? Number(channelDbIdStr) : undefined
 
-  const { data, isLoading, isFetching, isError, error, refetch } = useChannelAnalyticsByIdQuery(
-    channelDbId ? Number(channelDbId) : undefined
-  )
+  // Analytics data (chart, stats, video list details)
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isError,
+    error,
+    refetch,
+  } = useChannelAnalyticsByIdQuery(channelDbId)
 
-  const lastRefreshedAt = useMemo(
-    () => data?.lastRefreshedAt || data?.lastUpdatedAt || data?.refreshedAt,
-    [data?.lastRefreshedAt, data?.lastUpdatedAt, data?.refreshedAt]
-  )
+  // Channel detail from /channels/:id — provides authoritative freshness timestamps
+  const { data: channelDetail } = useChannelQuery(channelDbId)
+
+  const legacyChannelId = searchParams.get('channelId') ?? ''
 
   const detailsRows =
     data && channelDbId
       ? [
-          { label: 'Database ID', value: channelDbId },
-          { label: 'Channel ID', value: data.channelId ?? channelId ?? '—' },
+          { label: 'Database ID', value: String(channelDbId) },
+          { label: 'Channel ID', value: data.channelId ?? legacyChannelId ?? '—' },
           { label: 'Title', value: data.title ?? '—' },
           { label: 'Videos', value: data.videoCount ?? '—' },
+          {
+            label: 'Status',
+            value: channelDetail?.lastRefreshStatus ?? '—',
+          },
         ]
       : []
 
@@ -84,13 +93,19 @@ export default function ChannelOverviewPage() {
             Channels
           </Link>
           <span>/</span>
-          <span className="text-foreground font-medium truncate">{data?.title ?? channelDbId}</span>
+          <span className="text-foreground font-medium truncate">
+            {data?.title ?? channelDetail?.title ?? channelDbIdStr}
+          </span>
         </div>
       )}
+
+      {/* ChannelHeader now reads freshness from /channels/:id, not analytics */}
       <ChannelHeader
-        title={data?.title || 'Channel overview'}
-        channelId={data?.channelId ?? channelId}
-        lastRefreshedAt={lastRefreshedAt}
+        title={data?.title ?? channelDetail?.title ?? 'Channel overview'}
+        channelId={data?.channelId ?? channelDetail?.channelId ?? legacyChannelId}
+        lastSuccessfulRefreshAt={channelDetail?.lastSuccessfulRefreshAt}
+        lastSnapshotAt={channelDetail?.lastSnapshotAt}
+        lastRefreshStatus={channelDetail?.lastRefreshStatus}
       />
 
       <ChannelStats data={data} loading={isLoading || isFetching} />
@@ -116,7 +131,7 @@ export default function ChannelOverviewPage() {
           </div>
           <Separator />
           {isLoading ? (
-            <SkeletonBlock lines={4} />
+            <SkeletonBlock lines={5} />
           ) : (
             <DataTable
               columns={[
