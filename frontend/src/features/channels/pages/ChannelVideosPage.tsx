@@ -333,17 +333,14 @@ export default function ChannelVideosPage() {
   // -----------------------------------------------------------------------
 
   if (isError) {
-    const errStatus = error?.status
-    const errCode = error?.code
-    const errMsg = error?.message ?? 'An unexpected error occurred.'
     return (
       <div className="space-y-6">
         <VideosPageHeader channel={channel} channelDbId={channelDbId} />
         <ErrorState
           title="Failed to load videos"
-          description={errMsg}
-          status={errStatus}
-          code={errCode}
+          description={error.message}
+          status={error.status}
+          code={error.code}
           onAction={() => refetch()}
         />
       </div>

@@ -1,6 +1,5 @@
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 
-import { isAppError } from '@/api/httpError'
 import { DataTable } from '@/components/common/DataTable'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
@@ -58,29 +57,19 @@ export default function ChannelOverviewPage() {
   }
 
   if (isError) {
-    const isApiError = isAppError(error)
-    const status = isApiError ? error.status : undefined
-    const code = isApiError ? error.code : undefined
-    const message = isApiError
-      ? error.message
-      : error instanceof Error
-        ? error.message
-        : 'Unknown error'
-
-    const requiresAuth = status === 401 || status === 403
-
+    const requiresAuth = error.status === 401 || error.status === 403
     return (
       <ErrorState
         title={requiresAuth ? 'Connect account' : 'Unable to load channel analytics'}
         description={
           requiresAuth
             ? 'Authentication required. Connect your YouTube account, then retry.'
-            : message
+            : error.message
         }
         actionLabel={requiresAuth ? 'Connect YouTube account' : 'Retry'}
         onAction={() => refetch()}
-        status={status}
-        code={code}
+        status={error.status}
+        code={error.code}
       />
     )
   }

@@ -52,6 +52,6 @@ export function normalizeHttpError(error: unknown): AppError {
   }
 
   return {
-    message: 'Unknown error occurred',
+    message: 'Request failed',
   }
 }

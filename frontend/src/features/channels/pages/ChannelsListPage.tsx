@@ -5,9 +5,9 @@ import { Link } from 'react-router-dom'
 import type { ChannelItem } from '@/api/types'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
+import { SkeletonBlock } from '@/components/common/SkeletonBlock'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
 import { useChannelsQuery } from '../queries'
 
 // ---------------------------------------------------------------------------
@@ -31,10 +31,8 @@ function fmt(n?: number | null) {
 
 function ChannelCardSkeleton() {
   return (
-    <Card className="flex flex-col gap-3 p-5">
-      <Skeleton className="h-5 w-2/3" />
-      <Skeleton className="h-4 w-1/3" />
-      <Skeleton className="h-3 w-1/2" />
+    <Card className="p-5">
+      <SkeletonBlock lines={3} />
     </Card>
   )
 }
@@ -116,17 +114,14 @@ export default function ChannelsListPage() {
   }
 
   if (isError) {
-    const errStatus = error?.status
-    const errCode = error?.code
-    const errMsg = error?.message ?? 'An unexpected error occurred.'
     return (
       <div className="space-y-6">
         <PageHeader />
         <ErrorState
           title="Failed to load channels"
-          description={errMsg}
-          status={errStatus}
-          code={errCode}
+          description={error.message}
+          status={error.status}
+          code={error.code}
           onAction={() => refetch()}
         />
       </div>

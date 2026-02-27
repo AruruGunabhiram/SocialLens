@@ -197,11 +197,11 @@ export default function TrendsPage() {
       <div className="p-4">
         <ErrorState
           title="Failed to load trends"
-          description={error?.message ?? 'An error occurred loading timeseries data.'}
+          description={error.message}
           actionLabel="Retry"
           onAction={() => void refetch()}
-          status={error?.status}
-          code={error?.code}
+          status={error.status}
+          code={error.code}
         />
       </div>
     )
