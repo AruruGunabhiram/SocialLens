@@ -14,6 +14,7 @@ import {
 import { BarChart2, Calendar, ChevronRight, Minus, TrendingDown, TrendingUp } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { toastError } from '@/lib/toast'
 import { ChartCard } from '@/components/common/ChartCard'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
@@ -261,7 +262,10 @@ export default function TrendsPage() {
           title="Failed to load trends"
           description={normalizeErrorMessage(error)}
           actionLabel="Retry"
-          onAction={() => void refetch()}
+          onAction={async () => {
+            const result = await refetch()
+            if (result.isError) toastError(result.error, 'Failed to reload trends')
+          }}
           status={error.status}
           code={error.code}
         />

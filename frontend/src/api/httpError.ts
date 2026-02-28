@@ -1,4 +1,5 @@
 import axios, { AxiosError } from 'axios'
+import { ZodError } from 'zod'
 
 export type AppError = {
   status?: number
@@ -36,6 +37,16 @@ const extractAxiosError = (error: AxiosError): AppError => {
 }
 
 export function normalizeHttpError(error: unknown): AppError {
+  // Must be checked before isAppError: ZodError has a `message` property and
+  // would otherwise pass the isAppError guard, leaking a raw ZodError object.
+  if (error instanceof ZodError) {
+    return {
+      message: 'Unsupported response format',
+      code: 'PARSE_ERROR',
+      details: error.issues[0]?.message ?? 'unexpected shape',
+    }
+  }
+
   if (axios.isAxiosError(error)) {
     return extractAxiosError(error)
   }

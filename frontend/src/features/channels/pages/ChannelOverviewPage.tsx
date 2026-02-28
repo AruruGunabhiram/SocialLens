@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator'
 import { ChannelHeader } from '../components/ChannelHeader'
 import { ChannelStats } from '../components/ChannelStats'
 import { ChannelChart } from '../components/ChannelChart'
+import { toastError } from '@/lib/toast'
 import { useChannelAnalyticsByIdQuery, useChannelQuery } from '../queries'
 
 export default function ChannelOverviewPage() {
@@ -67,7 +68,10 @@ export default function ChannelOverviewPage() {
             : error.message
         }
         actionLabel={requiresAuth ? 'Connect YouTube account' : 'Retry'}
-        onAction={() => refetch()}
+        onAction={async () => {
+          const result = await refetch()
+          if (result.isError) toastError(result.error, 'Failed to reload analytics')
+        }}
         status={error.status}
         code={error.code}
       />
