@@ -20,6 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent } from '@/components/ui/card'
 import { useChannelQuery } from '@/features/channels/queries'
 import { useTimeSeries } from '../queries'
+import { normalizeTimeseriesPoints, hasSufficientData, computeInsights, type Insights } from '../utils'
 import type { TrendMetric } from '../api'
 import type { TimeSeriesPoint } from '@/api/types'
 
@@ -30,10 +31,10 @@ import type { TimeSeriesPoint } from '@/api/types'
 type Range = 7 | 30 | 90
 const RANGES: Range[] = [7, 30, 90]
 
-const METRIC_CONFIG: Record<TrendMetric, { label: string; field: string; color: string }> = {
-  VIEWS:       { label: 'Views',       field: 'views',       color: '#2563eb' },
-  SUBSCRIBERS: { label: 'Subscribers', field: 'subscribers', color: '#f97316' },
-  UPLOADS:     { label: 'Uploads',     field: 'uploads',     color: '#16a34a' },
+const METRIC_CONFIG: Record<TrendMetric, { label: string; color: string }> = {
+  VIEWS:       { label: 'Views',       color: '#2563eb' },
+  SUBSCRIBERS: { label: 'Subscribers', color: '#f97316' },
+  UPLOADS:     { label: 'Uploads',     color: '#16a34a' },
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -54,24 +55,17 @@ function xFmt(date: string): string {
   }
 }
 
-interface Insights {
-  avg: number
-  peakValue: number
-  peakDate: string
-  slope: number
-  trendLabel: 'Up' | 'Down' | 'Flat'
-}
-
-function computeInsights(pts: TimeSeriesPoint[], field: string): Insights {
-  const values = pts.map(p => Number((p as Record<string, unknown>)[field] ?? 0))
-  const avg = values.reduce((a, b) => a + b, 0) / values.length
-  const peakIdx = values.indexOf(Math.max(...values))
-  const peakValue = values[peakIdx] ?? 0
-  const peakDate = pts[peakIdx]?.date ?? ''
-  const n = values.length
-  const slope = n >= 2 ? (values[n - 1] - values[0]) / (n - 1) : 0
-  const trendLabel: 'Up' | 'Down' | 'Flat' = slope > 1 ? 'Up' : slope < -1 ? 'Down' : 'Flat'
-  return { avg, peakValue, peakDate, slope, trendLabel }
+/** Normalize any error-like value to a short, human-readable string. */
+function normalizeErrorMessage(error: unknown): string {
+  if (!error || typeof error !== 'object') return 'Unknown error'
+  const e = error as Record<string, unknown>
+  if (typeof e.message === 'string' && e.message) {
+    if (e.status && typeof e.status === 'number') {
+      return `${e.message} (${e.status})`
+    }
+    return e.message
+  }
+  return 'Unknown error'
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -169,12 +163,19 @@ export default function TrendsPage() {
   const channelQuery = useChannelQuery(channelDbId)
   const { data, isLoading, isError, error, refetch } = useTimeSeries(channelDbId, metric, range)
 
-  const points: TimeSeriesPoint[] = data?.points ?? []
+  const rawPoints: TimeSeriesPoint[] = data?.points ?? []
+
+  const normalizedPoints = useMemo(
+    () => normalizeTimeseriesPoints(rawPoints),
+    [rawPoints],
+  )
+
+  const sufficient = hasSufficientData(normalizedPoints)
 
   const insights = useMemo<Insights | null>(() => {
-    if (points.length < 2) return null
-    return computeInsights(points, METRIC_CONFIG[metric].field)
-  }, [points, metric])
+    if (!sufficient) return null
+    return computeInsights(normalizedPoints)
+  }, [normalizedPoints, sufficient])
 
   // ── No channel selected ──────────────────────────────────────────────────
   if (!channelDbId) {
@@ -197,7 +198,7 @@ export default function TrendsPage() {
       <div className="p-4">
         <ErrorState
           title="Failed to load trends"
-          description={error.message}
+          description={normalizeErrorMessage(error)}
           actionLabel="Retry"
           onAction={() => void refetch()}
           status={error.status}
@@ -250,9 +251,9 @@ export default function TrendsPage() {
         title={`${config.label} — Last ${range} Days`}
         description={`Daily ${config.label.toLowerCase()} snapshots`}
       >
-        {points.length >= 2 ? (
+        {sufficient ? (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={points} margin={{ left: 8, right: 16, top: 12, bottom: 12 }}>
+            <LineChart data={normalizedPoints} margin={{ left: 8, right: 16, top: 12, bottom: 12 }}>
               <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#e5e7eb" />
               <XAxis
                 dataKey="date"
@@ -282,7 +283,7 @@ export default function TrendsPage() {
               />
               <Line
                 type="monotone"
-                dataKey={config.field}
+                dataKey="value"
                 stroke={config.color}
                 strokeWidth={2}
                 dot={false}
@@ -292,9 +293,9 @@ export default function TrendsPage() {
           </ResponsiveContainer>
         ) : (
           <EmptyState
-            title="Not enough data"
-            description="Need at least 2 snapshots. Click Refresh."
-            actionLabel="Refresh"
+            title="Not enough daily data yet"
+            description="We need at least 2 days of snapshots to show a trend. Run refresh on two different days."
+            actionLabel="Refresh now"
             onAction={() => void refetch()}
             className="h-full border-0 shadow-none bg-transparent"
           />
@@ -306,8 +307,8 @@ export default function TrendsPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <InsightCard
             icon={<BarChart2 className="h-4 w-4" />}
-            label="Avg / Day"
-            value={fmtNum(Math.round(insights.avg))}
+            label="Growth / Day"
+            value={insights.slopeUnavailable ? '—' : `${insights.avgPerDay >= 0 ? '+' : ''}${fmtNum(Math.round(insights.avgPerDay))}`}
             sub={`over last ${range} days`}
           />
           <InsightCard
@@ -327,8 +328,12 @@ export default function TrendsPage() {
               )
             }
             label="Trend"
-            value={insights.trendLabel}
-            sub={`${insights.slope >= 0 ? '+' : ''}${fmtNum(Math.round(Math.abs(insights.slope)))} / day`}
+            value={insights.trendLabel === 'N/A' ? '—' : insights.trendLabel}
+            sub={
+              insights.slopeUnavailable
+                ? 'Not enough date range'
+                : `${insights.slope >= 0 ? '+' : ''}${fmtNum(Math.round(Math.abs(insights.slope)))} / day`
+            }
             valueClassName={
               insights.trendLabel === 'Up'
                 ? 'text-green-600'

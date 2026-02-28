@@ -2,6 +2,8 @@ package com.LogicGraph.sociallens.repository;
 
 import com.LogicGraph.sociallens.entity.ChannelMetricsSnapshot;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.time.Instant;
@@ -35,10 +37,21 @@ public interface ChannelMetricsSnapshotRepository
         Optional<ChannelMetricsSnapshot> findTopByChannel_IdOrderByCapturedAtDesc(Long channelDbId);
 
         /**
-         * Used for time series / trends - by database ID
-         * Example: /analytics/timeseries/by-id
+         * Used for time series / trends - by database ID (all-time, unfiltered)
          */
         List<ChannelMetricsSnapshot> findByChannel_IdOrderByCapturedAtAsc(Long channelDbId);
+
+        /**
+         * Used for date-ranged time series / trends - by database ID.
+         * Returns one row per day (unique constraint guarantees this), ordered ascending.
+         * Example: /analytics/timeseries/by-id?rangeDays=30
+         */
+        @Query("SELECT s FROM ChannelMetricsSnapshot s " +
+               "WHERE s.channel.id = :channelDbId AND s.capturedDayUtc >= :cutoff " +
+               "ORDER BY s.capturedDayUtc ASC")
+        List<ChannelMetricsSnapshot> findByChannelIdSince(
+                @Param("channelDbId") Long channelDbId,
+                @Param("cutoff") LocalDate cutoff);
 
         Optional<ChannelMetricsSnapshot> findFirstByChannel_IdAndCapturedAtBetweenOrderByCapturedAtDesc(
                         Long channelId, Instant startInclusive, Instant endExclusive);

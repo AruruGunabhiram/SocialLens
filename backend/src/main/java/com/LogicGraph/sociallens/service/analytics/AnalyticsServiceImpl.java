@@ -11,12 +11,13 @@ import com.LogicGraph.sociallens.repository.YouTubeVideoRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import com.LogicGraph.sociallens.dto.analytics.TimeSeriesPointDto;
-import com.LogicGraph.sociallens.dto.analytics.TimeSeriesResponseDto;
 import com.LogicGraph.sociallens.entity.ChannelMetricsSnapshot;
-import java.util.List;
-
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class AnalyticsServiceImpl implements AnalyticsService {
@@ -105,26 +106,13 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     @Override
     public TimeSeriesResponseDto getChannelTimeSeries(String identifier, String metric) {
-
-        // Reuse the SAME resolver you already use in other endpoints
         YouTubeChannel channel = resolveChannel(identifier);
         String channelId = channel.getChannelId();
 
-        List<ChannelMetricsSnapshot> snaps = channelSnapshotRepository
+        List<ChannelMetricsSnapshot> rawSnaps = channelSnapshotRepository
                 .findByChannel_ChannelIdOrderByCapturedAtAsc(channelId);
 
-        List<TimeSeriesPointDto> points = snaps.stream()
-                .map(s -> {
-                    TimeSeriesPointDto dto = new TimeSeriesPointDto();
-                    dto.date = s.getCapturedAt() != null ? s.getCapturedAt().toString() : "";
-                    dto.views = s.getViewCount();
-                    dto.subscribers = s.getSubscriberCount();
-                    // likes and comments not set (will be omitted from JSON via NON_NULL)
-                    dto.uploads = s.getVideoCount();
-                    return dto;
-                })
-                .toList();
-
+        List<DailyMetricPointDto> points = groupAndMapToDaily(rawSnaps, metric);
         return new TimeSeriesResponseDto(channelId, metric, points);
     }
 
@@ -202,26 +190,17 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     }
 
     @Override
-    public TimeSeriesResponseDto getChannelTimeSeriesById(Long channelDbId, String metric) {
+    public TimeSeriesResponseDto getChannelTimeSeriesById(Long channelDbId, String metric, int rangeDays) {
         YouTubeChannel channel = channelRepository.findById(channelDbId)
                 .orElseThrow(() -> new NotFoundException("Channel not found with id: " + channelDbId));
 
-        List<ChannelMetricsSnapshot> snaps = channelSnapshotRepository
-                .findByChannel_IdOrderByCapturedAtAsc(channelDbId);
+        // Include exactly `rangeDays` calendar days: [today - rangeDays + 1, today]
+        LocalDate cutoff = LocalDate.now(ZoneOffset.UTC).minusDays(rangeDays - 1);
+        List<ChannelMetricsSnapshot> rawSnaps = channelSnapshotRepository
+                .findByChannelIdSince(channelDbId, cutoff);
 
-        List<TimeSeriesPointDto> points = snaps.stream()
-                .map(s -> {
-                    TimeSeriesPointDto dto = new TimeSeriesPointDto();
-                    dto.date = s.getCapturedAt() != null ? s.getCapturedAt().toString() : "";
-                    dto.views = s.getViewCount();
-                    dto.subscribers = s.getSubscriberCount();
-                    // likes and comments not set (will be omitted from JSON via NON_NULL)
-                    dto.uploads = s.getVideoCount();
-                    return dto;
-                })
-                .toList();
-
-        return new TimeSeriesResponseDto(channel.getChannelId(), metric, points);
+        List<DailyMetricPointDto> points = groupAndMapToDaily(rawSnaps, metric);
+        return new TimeSeriesResponseDto(channelDbId, channel.getChannelId(), metric, rangeDays, points);
     }
 
     // ============================================
@@ -231,5 +210,39 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     private YouTubeChannel resolveChannel(String identifier) {
         return channelRepository.findByChannelId(identifier)
                 .orElseThrow(() -> new NotFoundException("Channel not found: " + identifier));
+    }
+
+    /**
+     * Groups snapshots by calendar day (picking the latest capturedAt per day),
+     * then maps each day to a DailyMetricPointDto with a single value field.
+     * The unique constraint on (channel_id, captured_day_utc) means at most one
+     * snapshot per day in practice, but this is robust against duplicates.
+     */
+    // package-private for unit testing
+    List<DailyMetricPointDto> groupAndMapToDaily(
+            List<ChannelMetricsSnapshot> rawSnaps, String metric) {
+
+        Map<LocalDate, ChannelMetricsSnapshot> byDay = new LinkedHashMap<>();
+        for (ChannelMetricsSnapshot snap : rawSnaps) {
+            byDay.merge(snap.getCapturedDayUtc(), snap,
+                    (existing, incoming) ->
+                            incoming.getCapturedAt().isAfter(existing.getCapturedAt())
+                                    ? incoming : existing);
+        }
+
+        return byDay.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(e -> new DailyMetricPointDto(
+                        e.getKey().toString(),
+                        extractMetricValue(e.getValue(), metric)))
+                .toList();
+    }
+
+    private Long extractMetricValue(ChannelMetricsSnapshot snap, String metric) {
+        return switch (metric.toUpperCase()) {
+            case "SUBSCRIBERS" -> snap.getSubscriberCount() != null ? snap.getSubscriberCount() : 0L;
+            case "UPLOADS"     -> snap.getVideoCount()       != null ? snap.getVideoCount()       : 0L;
+            default            -> snap.getViewCount()        != null ? snap.getViewCount()        : 0L;
+        };
     }
 }

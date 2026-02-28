@@ -23,5 +23,5 @@ public interface AnalyticsService {
 
     UploadFrequencyDto getUploadFrequencyById(Long channelDbId, int weeks);
 
-    TimeSeriesResponseDto getChannelTimeSeriesById(Long channelDbId, String metric);
+    TimeSeriesResponseDto getChannelTimeSeriesById(Long channelDbId, String metric, int rangeDays);
 }

@@ -1,7 +1,7 @@
 package com.LogicGraph.sociallens.controller;
 
 import com.LogicGraph.sociallens.dto.analytics.ChannelAnalyticsDto;
-import com.LogicGraph.sociallens.dto.analytics.TimeSeriesPointDto;
+import com.LogicGraph.sociallens.dto.analytics.DailyMetricPointDto;
 import com.LogicGraph.sociallens.dto.analytics.TimeSeriesResponseDto;
 import com.LogicGraph.sociallens.dto.analytics.TopVideosDto;
 import com.LogicGraph.sociallens.dto.analytics.UploadFrequencyDto;
@@ -45,7 +45,8 @@ class AnalyticsControllerTest {
                 100000L,
                 5000000L,
                 150L,
-                Collections.emptyList(),
+                null,
+                null,
                 Collections.emptyList()
         );
 
@@ -58,9 +59,9 @@ class AnalyticsControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.channelId").value("UC_test123"))
                 .andExpect(jsonPath("$.title").value("Test Channel"))
-                .andExpect(jsonPath("$.subscribers").value(100000))
+                .andExpect(jsonPath("$.subscriberCount").value(100000))
                 .andExpect(jsonPath("$.totalViews").value(5000000))
-                .andExpect(jsonPath("$.totalVideos").value(150));
+                .andExpect(jsonPath("$.videoCount").value(150));
     }
 
     @Test
@@ -148,31 +149,37 @@ class AnalyticsControllerTest {
 
     @Test
     void timeSeriesByIdShouldReturnTimeSeries() throws Exception {
-        // Given: a mock time series response
-        List<TimeSeriesPointDto> points = List.of(
-                new TimeSeriesPointDto(null, 1000L),
-                new TimeSeriesPointDto(null, 2000L)
+        // Given: a mock time series response with normalized daily points
+        List<DailyMetricPointDto> points = List.of(
+                new DailyMetricPointDto("2026-02-01", 1000L),
+                new DailyMetricPointDto("2026-02-02", 2000L)
         );
         TimeSeriesResponseDto mockDto = new TimeSeriesResponseDto("UC_test123", "VIEWS", points);
 
-        when(analyticsService.getChannelTimeSeriesById(123L, "VIEWS")).thenReturn(mockDto);
+        when(analyticsService.getChannelTimeSeriesById(eq(123L), eq("VIEWS"), anyInt()))
+                .thenReturn(mockDto);
 
-        // When: GET /analytics/timeseries/by-id?channelDbId=123&metric=VIEWS
+        // When: GET /analytics/timeseries/by-id?channelDbId=123&metric=VIEWS&rangeDays=30
         mockMvc.perform(get("/analytics/timeseries/by-id")
                         .param("channelDbId", "123")
-                        .param("metric", "VIEWS"))
-                // Then: should return 200 with time series data
+                        .param("metric", "VIEWS")
+                        .param("rangeDays", "30"))
+                // Then: should return 200 with normalized daily points
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.channelId").value("UC_test123"))
                 .andExpect(jsonPath("$.metric").value("VIEWS"))
                 .andExpect(jsonPath("$.points").isArray())
-                .andExpect(jsonPath("$.points.length()").value(2));
+                .andExpect(jsonPath("$.points.length()").value(2))
+                .andExpect(jsonPath("$.points[0].date").value("2026-02-01"))
+                .andExpect(jsonPath("$.points[0].value").value(1000))
+                .andExpect(jsonPath("$.points[1].date").value("2026-02-02"))
+                .andExpect(jsonPath("$.points[1].value").value(2000));
     }
 
     @Test
     void timeSeriesByIdShouldReturn404WhenNotFound() throws Exception {
         // Given: service throws NotFoundException
-        when(analyticsService.getChannelTimeSeriesById(999L, "VIEWS"))
+        when(analyticsService.getChannelTimeSeriesById(eq(999L), eq("VIEWS"), anyInt()))
                 .thenThrow(new NotFoundException("Channel not found with id: 999"));
 
         // When: GET /analytics/timeseries/by-id?channelDbId=999&metric=VIEWS
@@ -197,7 +204,8 @@ class AnalyticsControllerTest {
                 100000L,
                 5000000L,
                 150L,
-                Collections.emptyList(),
+                null,
+                null,
                 Collections.emptyList()
         );
 

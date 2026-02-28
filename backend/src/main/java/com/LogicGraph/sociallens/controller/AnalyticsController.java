@@ -73,7 +73,8 @@ public class AnalyticsController {
     @GetMapping("/timeseries/by-id")
     public TimeSeriesResponseDto timeSeriesById(
             @RequestParam Long channelDbId,
-            @RequestParam String metric) {
-        return analyticsService.getChannelTimeSeriesById(channelDbId, metric);
+            @RequestParam String metric,
+            @RequestParam(defaultValue = "30") int rangeDays) {
+        return analyticsService.getChannelTimeSeriesById(channelDbId, metric, rangeDays);
     }
 }

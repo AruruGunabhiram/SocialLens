@@ -106,25 +106,26 @@ export const ChannelAnalyticsSchema = z
 
 // -----------------------------------------------------------------------
 // Timeseries API — GET /analytics/timeseries/by-id
-// Matches TimeSeriesPointDto (@JsonInclude(NON_NULL) — only the active
-// metric field is populated per point) and TimeSeriesResponseDto.
+//
+// Stable backend contract:
+//   { channelDbId, channelId, metric, rangeDays, points: [{date, value}] }
+//
+// If the backend returns any other shape, Zod will throw.  The caller is
+// responsible for catching that and surfacing "Unsupported response format"
+// rather than raw Zod errors.
 // -----------------------------------------------------------------------
 
-export const TimeSeriesPointSchema = z
-  .object({
-    date: z.string(),
-    views: z.number().nullish(),
-    subscribers: z.number().nullish(),
-    likes: z.number().nullish(),
-    comments: z.number().nullish(),
-    uploads: z.number().nullish(),
-  })
-  .passthrough()
+export const TimeSeriesPointSchema = z.object({
+  date: z.string(),   // YYYY-MM-DD
+  value: z.number(),
+})
 
 export const TimeSeriesResponseSchema = z
   .object({
+    channelDbId: z.number().nullish(),
     channelId: z.string().nullish(),
     metric: z.string().nullish(),
+    rangeDays: z.number().nullish(),
     points: z.array(TimeSeriesPointSchema),
   })
   .passthrough()
