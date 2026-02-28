@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Loader2, RefreshCw } from 'lucide-react'
+import { Loader2, RefreshCw, Zap, ZapOff } from 'lucide-react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
@@ -12,6 +12,7 @@ import {
   useIsChannelFetchingById,
 } from '@/features/channels/queries'
 import { cn } from '@/lib/utils'
+import { useReduceMotion } from '@/lib/ReduceMotionContext'
 
 /**
  * Returns the effective channelDbId for the current page.
@@ -77,6 +78,7 @@ export function Topbar() {
   }
 
   const isActive = isSyncing || isRefreshing || isFetchingChannel
+  const { reduceMotion, toggle: toggleMotion } = useReduceMotion()
 
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b bg-card/80 px-4 backdrop-blur">
@@ -104,14 +106,29 @@ export function Topbar() {
           Refresh
         </Button>
       </form>
-      <div
-        className={cn(
-          'max-w-[220px] truncate text-sm font-medium',
-          isActive ? 'text-primary' : 'text-muted-foreground'
-        )}
-        title={statusText}
-      >
-        {statusText}
+      <div className="flex shrink-0 items-center gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={toggleMotion}
+          aria-label={reduceMotion ? 'Enable animations' : 'Reduce motion'}
+          aria-pressed={reduceMotion}
+          title={reduceMotion ? 'Enable animations' : 'Reduce motion'}
+          className="text-muted-foreground"
+        >
+          {reduceMotion ? <ZapOff className="h-4 w-4" /> : <Zap className="h-4 w-4" />}
+        </Button>
+        <Separator orientation="vertical" className="h-6" />
+        <div
+          className={cn(
+            'max-w-[220px] truncate text-sm font-medium',
+            isActive ? 'text-primary' : 'text-muted-foreground'
+          )}
+          title={statusText}
+        >
+          {statusText}
+        </div>
       </div>
     </header>
   )

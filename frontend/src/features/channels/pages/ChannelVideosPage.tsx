@@ -20,6 +20,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
+import { toastError } from '@/lib/toast'
 import { type VideoQueryParams } from '../api'
 import { useChannelQuery, useVideosQuery } from '../queries'
 
@@ -341,7 +342,10 @@ export default function ChannelVideosPage() {
           description={error.message}
           status={error.status}
           code={error.code}
-          onAction={() => refetch()}
+          onAction={async () => {
+            const result = await refetch()
+            if (result.isError) toastError(result.error, 'Failed to reload videos')
+          }}
         />
       </div>
     )

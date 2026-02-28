@@ -1,10 +1,7 @@
-import { ZodError } from 'zod'
-
 import { axiosClient } from '@/api/axiosClient'
 import { endpoints } from '@/api/endpoints'
 import { normalizeHttpError } from '@/api/httpError'
 import { TimeSeriesResponseSchema } from '@/api/schemas'
-import type { AppError } from '@/api/httpError'
 import type { TimeSeriesResponse } from '@/api/types'
 
 export type TrendMetric = 'VIEWS' | 'SUBSCRIBERS' | 'UPLOADS'
@@ -39,13 +36,6 @@ export async function fetchTimeSeries(
 
     return { ...parsed, points }
   } catch (error) {
-    if (error instanceof ZodError) {
-      throw {
-        message: 'Unsupported response format',
-        code: 'PARSE_ERROR',
-        details: error.issues[0]?.message ?? 'unexpected shape',
-      } satisfies AppError
-    }
     throw normalizeHttpError(error)
   }
 }

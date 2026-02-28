@@ -4,6 +4,7 @@ import { ErrorBoundary } from 'react-error-boundary'
 
 import { ErrorState } from '@/components/common/ErrorState'
 import { Toaster } from '@/components/ui/sonner'
+import { ReduceMotionProvider } from '@/lib/ReduceMotionContext'
 
 import { queryClient } from './queryClient'
 
@@ -26,9 +27,11 @@ function GlobalErrorFallback({ error, resetErrorBoundary }: { error: Error; rese
 
 export function Providers({ children }: ProvidersProps) {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ErrorBoundary FallbackComponent={GlobalErrorFallback}>{children}</ErrorBoundary>
-      <Toaster />
-    </QueryClientProvider>
+    <ReduceMotionProvider>
+      <QueryClientProvider client={queryClient}>
+        <ErrorBoundary FallbackComponent={GlobalErrorFallback}>{children}</ErrorBoundary>
+        <Toaster />
+      </QueryClientProvider>
+    </ReduceMotionProvider>
   )
 }

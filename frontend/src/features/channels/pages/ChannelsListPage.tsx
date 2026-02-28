@@ -8,6 +8,7 @@ import { ErrorState } from '@/components/common/ErrorState'
 import { SkeletonBlock } from '@/components/common/SkeletonBlock'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { toastError } from '@/lib/toast'
 import { useChannelsQuery } from '../queries'
 
 // ---------------------------------------------------------------------------
@@ -122,7 +123,10 @@ export default function ChannelsListPage() {
           description={error.message}
           status={error.status}
           code={error.code}
-          onAction={() => refetch()}
+          onAction={async () => {
+            const result = await refetch()
+            if (result.isError) toastError(result.error, 'Failed to reload channels')
+          }}
         />
       </div>
     )
