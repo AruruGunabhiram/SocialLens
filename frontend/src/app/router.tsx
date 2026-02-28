@@ -21,6 +21,7 @@ export function AppRouter() {
         <Route path="/channels" element={<ChannelsListPage />} />
         <Route path="/channels/:channelDbId" element={<ChannelOverviewPage />} />
         <Route path="/channels/:channelDbId/videos" element={<ChannelVideosPage />} />
+        <Route path="/channels/:channelDbId/insights" element={<InsightsPage />} />
         <Route path="/channels/:channelDbId/trends" element={<TrendsPage />} />
 
         {/* Legacy route — kept for backward-compat with search-param based links */}

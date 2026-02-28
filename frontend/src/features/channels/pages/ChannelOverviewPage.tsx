@@ -110,12 +110,20 @@ export default function ChannelOverviewPage() {
               </p>
             </div>
             {channelDbIdParam && (
-              <Link
-                to={`/channels/${channelDbId}/videos`}
-                className="shrink-0 rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              >
-                View videos →
-              </Link>
+              <div className="flex shrink-0 gap-2">
+                <Link
+                  to={`/channels/${channelDbId}/trends`}
+                  className="rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                >
+                  View trends →
+                </Link>
+                <Link
+                  to={`/channels/${channelDbId}/videos`}
+                  className="rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                >
+                  View videos →
+                </Link>
+              </div>
             )}
           </div>
           <Separator />

@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { format, parseISO } from 'date-fns'
 import {
   CartesianGrid,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -20,7 +21,14 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent } from '@/components/ui/card'
 import { useChannelQuery } from '@/features/channels/queries'
 import { useTimeSeries } from '../queries'
-import { normalizeTimeseriesPoints, hasSufficientData, computeInsights, type Insights } from '../utils'
+import {
+  normalizeTimeseriesPoints,
+  computeDailyDeltas,
+  hasSufficientDataForMode,
+  computeInsights,
+  type Insights,
+  type SeriesMode,
+} from '../utils'
 import type { TrendMetric } from '../api'
 import type { TimeSeriesPoint } from '@/api/types'
 
@@ -30,11 +38,17 @@ import type { TimeSeriesPoint } from '@/api/types'
 
 type Range = 7 | 30 | 90
 const RANGES: Range[] = [7, 30, 90]
+const SERIES_MODES: SeriesMode[] = ['total', 'delta']
 
 const METRIC_CONFIG: Record<TrendMetric, { label: string; color: string }> = {
   VIEWS:       { label: 'Views',       color: '#2563eb' },
   SUBSCRIBERS: { label: 'Subscribers', color: '#f97316' },
   UPLOADS:     { label: 'Uploads',     color: '#16a34a' },
+}
+
+const SERIES_MODE_LABELS: Record<SeriesMode, string> = {
+  total: 'Total',
+  delta: 'Daily Change',
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -47,6 +61,18 @@ function fmtNum(n: number): string {
   return n.toLocaleString()
 }
 
+/** Format a signed delta value, e.g. +1.2K or −500. */
+function fmtDelta(n: number): string {
+  const abs = Math.abs(n)
+  const formatted =
+    abs >= 1_000_000
+      ? `${(abs / 1_000_000).toFixed(1)}M`
+      : abs >= 1_000
+        ? `${(abs / 1_000).toFixed(0)}K`
+        : abs.toLocaleString()
+  return `${n >= 0 ? '+' : '−'}${formatted}`
+}
+
 function xFmt(date: string): string {
   try {
     return format(parseISO(date), 'MMM d')
@@ -55,14 +81,11 @@ function xFmt(date: string): string {
   }
 }
 
-/** Normalize any error-like value to a short, human-readable string. */
 function normalizeErrorMessage(error: unknown): string {
   if (!error || typeof error !== 'object') return 'Unknown error'
   const e = error as Record<string, unknown>
   if (typeof e.message === 'string' && e.message) {
-    if (e.status && typeof e.status === 'number') {
-      return `${e.message} (${e.status})`
-    }
+    if (e.status && typeof e.status === 'number') return `${e.message} (${e.status})`
     return e.message
   }
   return 'Unknown error'
@@ -159,23 +182,61 @@ export default function TrendsPage() {
 
   const [metric, setMetric] = useState<TrendMetric>('VIEWS')
   const [range, setRange] = useState<Range>(30)
+  const [seriesMode, setSeriesMode] = useState<SeriesMode>('total')
 
   const channelQuery = useChannelQuery(channelDbId)
   const { data, isLoading, isError, error, refetch } = useTimeSeries(channelDbId, metric, range)
 
   const rawPoints: TimeSeriesPoint[] = data?.points ?? []
 
+  // Debug guard: warn when switching ranges yields identical data
+  const prevSigRef = useRef<{ rangeDays: number; length: number; first: string; last: string } | null>(null)
+  useEffect(() => {
+    if (!data?.points?.length) return
+    const pts = data.points
+    const curr = {
+      rangeDays: data.rangeDays ?? range,
+      length: pts.length,
+      first: pts[0].date,
+      last: pts[pts.length - 1].date,
+    }
+    const prev = prevSigRef.current
+    if (
+      prev !== null &&
+      prev.rangeDays !== curr.rangeDays &&
+      prev.length === curr.length &&
+      prev.first === curr.first &&
+      prev.last === curr.last
+    ) {
+      console.warn(
+        `[Trends] ⚠️ rangeDays ${prev.rangeDays}d → ${curr.rangeDays}d but response is identical` +
+        ` (${curr.length} pts, ${curr.first} → ${curr.last}). Backend may not be filtering by rangeDays.`,
+      )
+    }
+    prevSigRef.current = curr
+  }, [data]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const normalizedPoints = useMemo(
     () => normalizeTimeseriesPoints(rawPoints),
     [rawPoints],
   )
 
-  const sufficient = hasSufficientData(normalizedPoints)
+  const deltaPoints = useMemo(
+    () => computeDailyDeltas(normalizedPoints),
+    [normalizedPoints],
+  )
+
+  const displayPoints = useMemo(
+    () => (seriesMode === 'delta' ? deltaPoints : normalizedPoints),
+    [seriesMode, deltaPoints, normalizedPoints],
+  )
+
+  const sufficient = hasSufficientDataForMode(normalizedPoints, seriesMode)
 
   const insights = useMemo<Insights | null>(() => {
     if (!sufficient) return null
-    return computeInsights(normalizedPoints)
-  }, [normalizedPoints, sufficient])
+    return computeInsights(displayPoints, seriesMode)
+  }, [displayPoints, sufficient, seriesMode])
 
   // ── No channel selected ──────────────────────────────────────────────────
   if (!channelDbId) {
@@ -211,6 +272,21 @@ export default function TrendsPage() {
   const config = METRIC_CONFIG[metric]
   const channelTitle = channelQuery.data?.title
 
+  const chartTitle =
+    seriesMode === 'delta'
+      ? `Daily Change in ${config.label} — Last ${range} Days`
+      : `${config.label} — Last ${range} Days`
+
+  const chartDescription =
+    seriesMode === 'delta'
+      ? 'Change between consecutive daily snapshots'
+      : `Daily ${config.label.toLowerCase()} snapshots`
+
+  const emptyDescription =
+    seriesMode === 'delta'
+      ? 'Need at least 3 days of snapshots to show daily changes. Run refresh on three different days.'
+      : 'Need at least 2 days of snapshots to show a trend. Run refresh on two different days.'
+
   return (
     <div className="space-y-4 p-4">
       {/* ── Breadcrumb ─────────────────────────────────────────────────── */}
@@ -244,17 +320,23 @@ export default function TrendsPage() {
           onChange={setRange}
           label={r => `${r}d`}
         />
+        <ToggleGroup<SeriesMode>
+          options={SERIES_MODES}
+          value={seriesMode}
+          onChange={setSeriesMode}
+          label={m => SERIES_MODE_LABELS[m]}
+        />
       </div>
 
       {/* ── Chart ──────────────────────────────────────────────────────── */}
-      <ChartCard
-        title={`${config.label} — Last ${range} Days`}
-        description={`Daily ${config.label.toLowerCase()} snapshots`}
-      >
+      <ChartCard title={chartTitle} description={chartDescription}>
         {sufficient ? (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={normalizedPoints} margin={{ left: 8, right: 16, top: 12, bottom: 12 }}>
+            <LineChart data={displayPoints} margin={{ left: 8, right: 16, top: 12, bottom: 12 }}>
               <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#e5e7eb" />
+              {seriesMode === 'delta' && (
+                <ReferenceLine y={0} stroke="#9ca3af" strokeDasharray="3 3" />
+              )}
               <XAxis
                 dataKey="date"
                 tickFormatter={xFmt}
@@ -263,14 +345,18 @@ export default function TrendsPage() {
                 tick={{ fontSize: 12 }}
               />
               <YAxis
-                tickFormatter={fmtNum}
+                tickFormatter={seriesMode === 'delta' ? fmtDelta : fmtNum}
                 tickLine={false}
                 axisLine={false}
                 tick={{ fontSize: 12 }}
                 width={56}
               />
               <Tooltip
-                formatter={(value: number) => [fmtNum(value), config.label]}
+                formatter={(value: number) =>
+                  seriesMode === 'delta'
+                    ? [fmtDelta(value), `Δ ${config.label}`]
+                    : [fmtNum(value), config.label]
+                }
                 labelFormatter={(label: string) => {
                   try {
                     return format(parseISO(label), 'MMM d, yyyy')
@@ -294,7 +380,7 @@ export default function TrendsPage() {
         ) : (
           <EmptyState
             title="Not enough daily data yet"
-            description="We need at least 2 days of snapshots to show a trend. Run refresh on two different days."
+            description={emptyDescription}
             actionLabel="Refresh now"
             onAction={() => void refetch()}
             className="h-full border-0 shadow-none bg-transparent"
@@ -307,14 +393,24 @@ export default function TrendsPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <InsightCard
             icon={<BarChart2 className="h-4 w-4" />}
-            label="Growth / Day"
-            value={insights.slopeUnavailable ? '—' : `${insights.avgPerDay >= 0 ? '+' : ''}${fmtNum(Math.round(insights.avgPerDay))}`}
+            label={seriesMode === 'delta' ? 'Avg Change / Day' : 'Growth / Day'}
+            value={
+              seriesMode === 'delta'
+                ? fmtDelta(Math.round(insights.avgPerDay))
+                : insights.slopeUnavailable
+                  ? '—'
+                  : `${insights.avgPerDay >= 0 ? '+' : ''}${fmtNum(Math.round(insights.avgPerDay))}`
+            }
             sub={`over last ${range} days`}
           />
           <InsightCard
             icon={<Calendar className="h-4 w-4" />}
-            label="Peak Day"
-            value={fmtNum(insights.peakValue)}
+            label={seriesMode === 'delta' ? 'Best Day' : 'Peak Day'}
+            value={
+              seriesMode === 'delta'
+                ? fmtDelta(Math.round(insights.peakValue))
+                : fmtNum(insights.peakValue)
+            }
             sub={insights.peakDate ? xFmt(insights.peakDate) : '—'}
           />
           <InsightCard
@@ -332,7 +428,9 @@ export default function TrendsPage() {
             sub={
               insights.slopeUnavailable
                 ? 'Not enough date range'
-                : `${insights.slope >= 0 ? '+' : ''}${fmtNum(Math.round(Math.abs(insights.slope)))} / day`
+                : seriesMode === 'delta'
+                  ? `${fmtDelta(Math.round(insights.slope))} / day avg`
+                  : `${insights.slope >= 0 ? '+' : ''}${fmtNum(Math.round(Math.abs(insights.slope)))} / day`
             }
             valueClassName={
               insights.trendLabel === 'Up'
