@@ -19,6 +19,8 @@ export const ChannelItemSchema = z.object({
   lastSuccessfulRefreshAt: z.string().nullish(),
   lastRefreshStatus: RefreshStatusSchema.nullish(),
   lastSnapshotAt: z.string().nullish(),
+  /** Error detail from the most recent failed refresh job, if the backend exposes it. */
+  lastRefreshError: z.string().nullish(),
   subscriberCount: z.number().nullish(),
   viewCount: z.number().nullish(),
   videoCount: z.number().nullish(),
