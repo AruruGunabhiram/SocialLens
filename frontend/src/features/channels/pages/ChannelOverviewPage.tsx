@@ -7,6 +7,7 @@ import { SkeletonBlock } from '@/components/common/SkeletonBlock'
 import { Separator } from '@/components/ui/separator'
 
 import { ChannelHeader } from '../components/ChannelHeader'
+import { mapChannelItemToFreshnessProps } from '../components/FreshnessBadge'
 import { ChannelStats } from '../components/ChannelStats'
 import { ChannelChart } from '../components/ChannelChart'
 import { toastError } from '@/lib/toast'
@@ -97,13 +98,11 @@ export default function ChannelOverviewPage() {
         </div>
       )}
 
-      {/* ChannelHeader now reads freshness from /channels/:id, not analytics */}
+      {/* ChannelHeader reads freshness from /channels/:id via the strict mapper */}
       <ChannelHeader
         title={data?.title ?? channelDetail?.title ?? 'Channel overview'}
         channelId={data?.channelId ?? channelDetail?.channelId ?? legacyChannelId}
-        lastSuccessfulRefreshAt={channelDetail?.lastSuccessfulRefreshAt}
-        lastSnapshotAt={channelDetail?.lastSnapshotAt}
-        lastRefreshStatus={channelDetail?.lastRefreshStatus}
+        freshness={mapChannelItemToFreshnessProps(channelDetail)}
       />
 
       <ChannelStats data={data} indexedVideoCount={indexedVideoCount} loading={isLoading || isFetching} />

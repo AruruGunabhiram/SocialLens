@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, subDays } from 'date-fns'
 import {
   CartesianGrid,
   Line,
@@ -21,6 +21,10 @@ import { ErrorState } from '@/components/common/ErrorState'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent } from '@/components/ui/card'
 import { useChannelQuery } from '@/features/channels/queries'
+import {
+  FreshnessBadge,
+  mapChannelItemToFreshnessProps,
+} from '@/features/channels/components/FreshnessBadge'
 import { useTimeSeries } from '../queries'
 import {
   normalizeTimeseriesPoints,
@@ -177,13 +181,50 @@ function TrendsSkeleton() {
 
 export default function TrendsPage() {
   const { channelDbId: pathParam } = useParams<{ channelDbId: string }>()
-  const [searchParams] = useSearchParams()
+  // setSearchParams lets us persist metric/range/mode in the URL, making every
+  // toggle change observable in the address bar and the browser network tab.
+  const [searchParams, setSearchParams] = useSearchParams()
   const rawId = pathParam ?? searchParams.get('channelDbId') ?? undefined
   const channelDbId = rawId ? Number(rawId) : undefined
 
-  const [metric, setMetric] = useState<TrendMetric>('VIEWS')
-  const [range, setRange] = useState<Range>(30)
-  const [seriesMode, setSeriesMode] = useState<SeriesMode>('total')
+  // ── Controls derived from URL search params ──────────────────────────────
+  // Query key = ['timeseries', channelDbId, metric, rangeDays]  (trends/queries.ts)
+  // HTTP params  = { channelDbId, metric, rangeDays }            (trends/api.ts)
+  // Changing range therefore changes BOTH the cache key (preventing stale hits)
+  // AND the outgoing request params, guaranteeing 30d and 90d are always distinct.
+  const metricRaw = searchParams.get('metric') as TrendMetric | null
+  const metric: TrendMetric =
+    metricRaw && (['VIEWS', 'SUBSCRIBERS', 'UPLOADS'] as TrendMetric[]).includes(metricRaw)
+      ? metricRaw
+      : 'VIEWS'
+
+  const rangeRaw = Number(searchParams.get('range'))
+  const range: Range = (RANGES as number[]).includes(rangeRaw) ? (rangeRaw as Range) : 30
+
+  const modeRaw = searchParams.get('mode')
+  const seriesMode: SeriesMode =
+    modeRaw === 'total' || modeRaw === 'delta' ? modeRaw : 'total'
+
+  function setMetric(m: TrendMetric) {
+    setSearchParams(
+      (prev) => { const p = new URLSearchParams(prev); p.set('metric', m); return p },
+      { replace: true }
+    )
+  }
+
+  function setRange(r: Range) {
+    setSearchParams(
+      (prev) => { const p = new URLSearchParams(prev); p.set('range', String(r)); return p },
+      { replace: true }
+    )
+  }
+
+  function setSeriesMode(m: SeriesMode) {
+    setSearchParams(
+      (prev) => { const p = new URLSearchParams(prev); p.set('mode', m); return p },
+      { replace: true }
+    )
+  }
 
   const channelQuery = useChannelQuery(channelDbId)
   const { data, isLoading, isError, error, refetch } = useTimeSeries(channelDbId, metric, range)
@@ -238,6 +279,18 @@ export default function TrendsPage() {
     return computeInsights(displayPoints, seriesMode)
   }, [displayPoints, sufficient, seriesMode])
 
+  // ── Data window: prefer real series bounds; fallback to requested range ──
+  const dataWindowLabel = useMemo(() => {
+    if (normalizedPoints.length >= 1) {
+      const first = normalizedPoints[0].date
+      const last = normalizedPoints[normalizedPoints.length - 1].date
+      return first === last ? first : `${first} → ${last}`
+    }
+    const end = format(new Date(), 'yyyy-MM-dd')
+    const start = format(subDays(new Date(), range - 1), 'yyyy-MM-dd')
+    return `${start} → ${end}`
+  }, [normalizedPoints, range])
+
   // ── No channel selected ──────────────────────────────────────────────────
   if (!channelDbId) {
     return (
@@ -285,10 +338,11 @@ export default function TrendsPage() {
       ? 'Change between consecutive daily snapshots'
       : `Daily ${config.label.toLowerCase()} snapshots`
 
-  const emptyDescription =
+  // Title for the insufficient-data empty state. Delta mode needs one extra point.
+  const insufficientTitle =
     seriesMode === 'delta'
-      ? 'Need at least 3 days of snapshots to show daily changes. Run refresh on three different days.'
-      : 'Need at least 2 days of snapshots to show a trend. Run refresh on two different days.'
+      ? 'Need at least 3 snapshots — run refresh'
+      : 'Need at least 2 snapshots — run refresh'
 
   return (
     <div className="space-y-4 p-4">
@@ -308,6 +362,9 @@ export default function TrendsPage() {
         <ChevronRight className="h-3 w-3" />
         <span className="font-medium text-foreground">Trends</span>
       </nav>
+
+      {/* ── Data freshness ─────────────────────────────────────────────── */}
+      <FreshnessBadge {...mapChannelItemToFreshnessProps(channelQuery.data)} />
 
       {/* ── Controls ───────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-3">
@@ -332,7 +389,16 @@ export default function TrendsPage() {
       </div>
 
       {/* ── Chart ──────────────────────────────────────────────────────── */}
-      <ChartCard title={chartTitle} description={chartDescription}>
+      <ChartCard
+        title={chartTitle}
+        description={chartDescription}
+        action={
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Calendar className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span>Data window: {dataWindowLabel}</span>
+          </div>
+        }
+      >
         {sufficient ? (
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={displayPoints} margin={{ left: 8, right: 16, top: 12, bottom: 12 }}>
@@ -382,8 +448,8 @@ export default function TrendsPage() {
           </ResponsiveContainer>
         ) : (
           <EmptyState
-            title="Not enough daily data yet"
-            description={emptyDescription}
+            title={insufficientTitle}
+            description="Run the refresh job for this channel, then reload."
             actionLabel="Refresh now"
             onAction={() => void refetch()}
             className="h-full border-0 shadow-none bg-transparent"

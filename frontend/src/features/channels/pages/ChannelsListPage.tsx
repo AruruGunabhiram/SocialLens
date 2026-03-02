@@ -1,5 +1,4 @@
-import { formatDistanceToNow, isValid, parseISO } from 'date-fns'
-import { Activity, Database, LayoutGrid, Radio } from 'lucide-react'
+import { Activity, Database, LayoutGrid } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import type { ChannelItem } from '@/api/types'
@@ -10,16 +9,11 @@ import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { toastError } from '@/lib/toast'
 import { useChannelsQuery } from '../queries'
+import { FreshnessBadge, mapChannelItemToFreshnessProps } from '../components/FreshnessBadge'
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function relativeTime(iso?: string | null) {
-  if (!iso) return null
-  const parsed = parseISO(iso)
-  return isValid(parsed) ? formatDistanceToNow(parsed, { addSuffix: true }) : null
-}
 
 function fmt(n?: number | null) {
   if (n == null) return '—'
@@ -43,9 +37,6 @@ function ChannelCardSkeleton() {
 // ---------------------------------------------------------------------------
 
 function ChannelCard({ channel }: { channel: ChannelItem }) {
-  const snapshotAgo = relativeTime(channel.lastSnapshotAt)
-  const refreshAgo = relativeTime(channel.lastSuccessfulRefreshAt)
-
   return (
     <Link to={`/channels/${channel.id}`} className="group outline-none">
       <Card className="flex h-full flex-col gap-2 p-5 transition-shadow group-hover:shadow-md group-focus-visible:ring-2 group-focus-visible:ring-primary">
@@ -79,13 +70,9 @@ function ChannelCard({ channel }: { channel: ChannelItem }) {
           )}
         </div>
 
-        {/* Freshness */}
-        <div className="mt-auto space-y-0.5 pt-2 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Radio className="h-3 w-3 shrink-0" aria-hidden />
-            {snapshotAgo ? `Snapshot ${snapshotAgo}` : 'No snapshots yet'}
-          </div>
-          {refreshAgo && <div className="text-muted-foreground/70">Refreshed {refreshAgo}</div>}
+        {/* Freshness — rendered via shared FreshnessBadge, no ad-hoc logic here */}
+        <div className="mt-auto pt-2">
+          <FreshnessBadge {...mapChannelItemToFreshnessProps(channel)} />
         </div>
       </Card>
     </Link>

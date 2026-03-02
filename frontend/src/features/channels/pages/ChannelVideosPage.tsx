@@ -13,7 +13,7 @@ import {
 import { useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 
-import type { VideoRow } from '@/api/types'
+import type { ChannelItem, VideoRow } from '@/api/types'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { InfoTooltip } from '@/components/common/InfoTooltip'
@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils'
 import { toastError } from '@/lib/toast'
 import { type VideoQueryParams } from '../api'
 import { useChannelQuery, useVideosQuery } from '../queries'
+import { FreshnessBadge, mapChannelItemToFreshnessProps } from '../components/FreshnessBadge'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -519,14 +520,14 @@ function VideosPageHeader({
   channel,
   channelDbId,
 }: {
-  channel?: { title?: string | null; handle?: string | null } | null
+  channel?: ChannelItem | null
   channelDbId: number
 }) {
   const channelName =
     channel?.title ?? (channel?.handle ? `@${channel.handle}` : `Channel ${channelDbId}`)
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-2">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Link to="/channels" className="hover:text-foreground transition-colors">
           Channels
@@ -549,6 +550,7 @@ function VideosPageHeader({
           </Badge>
         </div>
       )}
+      <FreshnessBadge {...mapChannelItemToFreshnessProps(channel)} />
     </div>
   )
 }
