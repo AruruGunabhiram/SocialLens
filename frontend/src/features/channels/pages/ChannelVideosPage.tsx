@@ -5,6 +5,8 @@ import {
   ChevronsUpDown,
   ChevronUp,
   ChevronDown,
+  Database,
+  PlaySquare,
   Search,
   Video,
 } from 'lucide-react'
@@ -14,6 +16,8 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import type { VideoRow } from '@/api/types'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
+import { InfoTooltip } from '@/components/common/InfoTooltip'
+import { StatCard } from '@/components/common/StatCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -262,8 +266,8 @@ export default function ChannelVideosPage() {
   const [searchInput, setSearchInput] = useState(urlQ)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
 
-  // Channel metadata (for breadcrumb / title)
-  const { data: channel } = useChannelQuery(channelDbId)
+  // Channel metadata (for breadcrumb / title + YouTube total video count)
+  const { data: channel, isLoading: isChannelLoading } = useChannelQuery(channelDbId)
 
   const queryParams: VideoQueryParams = { q: urlQ || undefined, sort, dir, page, size }
 
@@ -364,6 +368,25 @@ export default function ChannelVideosPage() {
   return (
     <div className="space-y-4">
       <VideosPageHeader channel={channel} channelDbId={channelDbId} />
+
+      {/* Video count stats */}
+      <div className="grid grid-cols-2 gap-4 max-w-sm">
+        <StatCard
+          label="Total Videos"
+          value={channel?.videoCount?.toLocaleString() ?? '—'}
+          icon={<PlaySquare className="h-4 w-4 text-muted-foreground" />}
+          loading={isChannelLoading}
+        />
+        <StatCard
+          label="Indexed Videos"
+          labelExtra={
+            <InfoTooltip text="Indexed = videos stored in SocialLens DB. Total = YouTube channel lifetime total." />
+          }
+          value={meta?.totalItems?.toLocaleString() ?? '—'}
+          icon={<Database className="h-4 w-4 text-muted-foreground" />}
+          loading={isLoading}
+        />
+      </div>
 
       {/* Missing-title warning banner */}
       {showTitleWarning && (

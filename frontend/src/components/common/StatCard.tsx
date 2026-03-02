@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils'
 
 type StatCardProps = {
   label: string
+  /** Optional node rendered inline after the label text (e.g. an InfoTooltip). */
+  labelExtra?: ReactNode
   value: ReactNode
   description?: string
   icon?: ReactNode
@@ -13,13 +15,14 @@ type StatCardProps = {
   className?: string
 }
 
-export function StatCard({ label, value, description, icon, loading, className }: StatCardProps) {
+export function StatCard({ label, labelExtra, value, description, icon, loading, className }: StatCardProps) {
   return (
     <Card className={cn('h-full', className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardDescription className="flex items-center gap-2">
           {icon}
           <span>{label}</span>
+          {labelExtra}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-1">
