@@ -22,7 +22,7 @@ function fakeAxiosError(
   status: number,
   responseData: Record<string, unknown> = {},
   responseHeaders: Record<string, string> = {},
-  errorCode?: string,
+  errorCode?: string
 ): AxiosError {
   return {
     isAxiosError: true,

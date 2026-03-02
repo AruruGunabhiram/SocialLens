@@ -102,7 +102,11 @@ export function Topbar() {
           disabled={!channelDbId || isRefreshing || isSyncing}
           onClick={handleRefresh}
         >
-          {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          {isRefreshing ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
           Refresh
         </Button>
       </form>

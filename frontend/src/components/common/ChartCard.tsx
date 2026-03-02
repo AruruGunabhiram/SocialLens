@@ -1,12 +1,6 @@
 import { ReactNode } from 'react'
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
 type ChartCardProps = {
@@ -17,13 +11,7 @@ type ChartCardProps = {
   className?: string
 }
 
-export function ChartCard({
-  title,
-  description,
-  action,
-  children,
-  className,
-}: ChartCardProps) {
+export function ChartCard({ title, description, action, children, className }: ChartCardProps) {
   return (
     <Card className={cn('h-full', className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

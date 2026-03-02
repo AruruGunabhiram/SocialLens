@@ -9,7 +9,7 @@ export type TrendMetric = 'VIEWS' | 'SUBSCRIBERS' | 'UPLOADS'
 export async function fetchTimeSeries(
   channelDbId: number,
   metric: TrendMetric,
-  rangeDays: number,
+  rangeDays: number
 ): Promise<TimeSeriesResponse> {
   try {
     const { data } = await axiosClient.get(endpoints.analytics.timeseriesById, {
@@ -20,11 +20,13 @@ export async function fetchTimeSeries(
     // (e.g. { views, subscribers, uploads }) instead of the unified `value`
     // field, extract the right one so Zod validation succeeds.
     const metricFieldMap: Record<TrendMetric, string> = {
-      VIEWS: 'views', SUBSCRIBERS: 'subscribers', UPLOADS: 'uploads',
+      VIEWS: 'views',
+      SUBSCRIBERS: 'subscribers',
+      UPLOADS: 'uploads',
     }
     const fieldName = metricFieldMap[metric]
     const rawPoints = Array.isArray(data?.points) ? (data.points as Record<string, unknown>[]) : []
-    const mappedPoints = rawPoints.map(pt => {
+    const mappedPoints = rawPoints.map((pt) => {
       if (typeof pt.value === 'number') return pt
       const extracted = pt[fieldName]
       return typeof extracted === 'number' ? { ...pt, value: extracted } : pt

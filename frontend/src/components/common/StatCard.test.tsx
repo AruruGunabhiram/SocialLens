@@ -17,9 +17,7 @@ describe('StatCard', () => {
   })
 
   it('renders description when provided', () => {
-    render(
-      <StatCard label="Uploads" value="88" description="+3 this week" />,
-    )
+    render(<StatCard label="Uploads" value="88" description="+3 this week" />)
 
     expect(screen.getByText('+3 this week')).toBeInTheDocument()
   })
@@ -60,13 +58,7 @@ describe('StatCard', () => {
   })
 
   it('renders icon alongside label when provided', () => {
-    render(
-      <StatCard
-        label="Likes"
-        value="500"
-        icon={<svg aria-label="likes-icon" />}
-      />,
-    )
+    render(<StatCard label="Likes" value="500" icon={<svg aria-label="likes-icon" />} />)
 
     expect(screen.getByLabelText('likes-icon')).toBeInTheDocument()
     expect(screen.getByText('Likes')).toBeInTheDocument()

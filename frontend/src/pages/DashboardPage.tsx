@@ -9,9 +9,7 @@ function DashboardPage() {
     <div className="space-y-4">
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          Quick links to primary surfaces.
-        </p>
+        <p className="text-sm text-muted-foreground">Quick links to primary surfaces.</p>
       </div>
 
       <Card>

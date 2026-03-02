@@ -12,17 +12,17 @@ import { DataTable } from './DataTable'
 type Row = { name: string; score: number; category: string }
 
 const columns = [
-  { header: 'Name',     accessor: (r: Row) => r.name },
-  { header: 'Score',    accessor: (r: Row) => r.score },
+  { header: 'Name', accessor: (r: Row) => r.name },
+  { header: 'Score', accessor: (r: Row) => r.score },
   { header: 'Category', accessor: (r: Row) => r.category },
 ]
 
 const DATASET: Row[] = [
-  { name: 'Alpha',   score: 300, category: 'gaming'  },
-  { name: 'Beta',    score: 150, category: 'vlog'    },
-  { name: 'Gamma',   score: 500, category: 'gaming'  },
-  { name: 'Delta',   score: 80,  category: 'cooking' },
-  { name: 'Epsilon', score: 420, category: 'vlog'    },
+  { name: 'Alpha', score: 300, category: 'gaming' },
+  { name: 'Beta', score: 150, category: 'vlog' },
+  { name: 'Gamma', score: 500, category: 'gaming' },
+  { name: 'Delta', score: 80, category: 'cooking' },
+  { name: 'Epsilon', score: 420, category: 'vlog' },
 ]
 
 // Helper: collect textContent of a specific column (0-based) for every data row
@@ -105,9 +105,7 @@ describe('DataTable – search (caller pre-filters data[])', () => {
   })
 
   it('shows empty state when no rows survive the filter', () => {
-    render(
-      <DataTable columns={columns} data={[]} emptyMessage="No results found" />,
-    )
+    render(<DataTable columns={columns} data={[]} emptyMessage="No results found" />)
     expect(screen.getByText('No results found')).toBeInTheDocument()
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
   })

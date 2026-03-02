@@ -61,17 +61,15 @@ function daysBetween(a: string, b: string): number {
  * - delta mode: pts are already daily deltas. Peak = max delta. Avg/slope = mean(deltas).
  */
 export function computeInsights(pts: TimeSeriesPoint[], mode: SeriesMode = 'total'): Insights {
-  const values = pts.map(p => p.value)
+  const values = pts.map((p) => p.value)
   const peakIdx = values.indexOf(Math.max(...values))
   const peakValue = values[peakIdx] ?? 0
   const peakDate = pts[peakIdx]?.date ?? ''
 
   if (mode === 'delta') {
-    const avgPerDay =
-      values.length > 0 ? values.reduce((s, v) => s + v, 0) / values.length : 0
+    const avgPerDay = values.length > 0 ? values.reduce((s, v) => s + v, 0) / values.length : 0
     const slope = avgPerDay
-    const trendLabel: Insights['trendLabel'] =
-      slope > 1 ? 'Up' : slope < -1 ? 'Down' : 'Flat'
+    const trendLabel: Insights['trendLabel'] = slope > 1 ? 'Up' : slope < -1 ? 'Down' : 'Flat'
     return { avgPerDay, peakValue, peakDate, slope, trendLabel, slopeUnavailable: false }
   }
 

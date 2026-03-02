@@ -7,7 +7,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { SkeletonBlock } from '@/components/common/SkeletonBlock'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { toastError } from '@/lib/toast'
 import { useChannelsQuery } from '../queries'
 
@@ -85,9 +85,7 @@ function ChannelCard({ channel }: { channel: ChannelItem }) {
             <Radio className="h-3 w-3 shrink-0" aria-hidden />
             {snapshotAgo ? `Snapshot ${snapshotAgo}` : 'No snapshots yet'}
           </div>
-          {refreshAgo && (
-            <div className="text-muted-foreground/70">Refreshed {refreshAgo}</div>
-          )}
+          {refreshAgo && <div className="text-muted-foreground/70">Refreshed {refreshAgo}</div>}
         </div>
       </Card>
     </Link>
@@ -163,7 +161,9 @@ function PageHeader({ count }: { count?: number }) {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Channels</h1>
         <p className="text-sm text-muted-foreground">
-          {count != null ? `${count} channel${count !== 1 ? 's' : ''} tracked` : 'Your tracked YouTube channels'}
+          {count != null
+            ? `${count} channel${count !== 1 ? 's' : ''} tracked`
+            : 'Your tracked YouTube channels'}
         </p>
       </div>
     </div>

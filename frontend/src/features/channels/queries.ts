@@ -22,7 +22,7 @@ import {
 import type { ChannelAnalytics } from './schemas'
 import { toastError, toastSuccess } from '@/lib/toast'
 import type { AppError } from '@/api/httpError'
-import type { ChannelItem, TimeSeriesResponse, VideosPageResponse, YouTubeSyncResponse } from '@/api/types'
+import type { ChannelItem, TimeSeriesResponse, VideosPageResponse } from '@/api/types'
 
 // -----------------------------------------------------------------------
 // Query keys for new channels + videos endpoints
@@ -30,11 +30,9 @@ import type { ChannelItem, TimeSeriesResponse, VideosPageResponse, YouTubeSyncRe
 
 export const channelListQueryKeys = {
   root: ['channelList'] as const,
-  list: (includeInactive: boolean) =>
-    ['channelList', 'list', includeInactive] as const,
+  list: (includeInactive: boolean) => ['channelList', 'list', includeInactive] as const,
   detail: (id: number) => ['channelList', 'detail', id] as const,
-  videos: (id: number, params: VideoQueryParams) =>
-    ['channelList', 'videos', id, params] as const,
+  videos: (id: number, params: VideoQueryParams) => ['channelList', 'videos', id, params] as const,
 }
 
 // -----------------------------------------------------------------------
@@ -80,7 +78,8 @@ export function useVideosQuery(channelDbId: number, params: VideoQueryParams) {
 export const channelQueryKeys = {
   root: ['channels'] as const,
   analytics: (channelId: string) => [...channelQueryKeys.root, 'analytics', channelId] as const,
-  analyticsById: (channelDbId: number) => [...channelQueryKeys.root, 'analytics-by-id', channelDbId] as const,
+  analyticsById: (channelDbId: number) =>
+    [...channelQueryKeys.root, 'analytics-by-id', channelDbId] as const,
 }
 
 // -----------------------------------------------------------------------
@@ -125,7 +124,12 @@ export function useChannelSyncMutation() {
 export function useChannelAnalyticsQuery(
   channelId?: string,
   options?: Omit<
-    UseQueryOptions<ChannelAnalytics, unknown, ChannelAnalytics, ReturnType<typeof channelQueryKeys.analytics>>,
+    UseQueryOptions<
+      ChannelAnalytics,
+      unknown,
+      ChannelAnalytics,
+      ReturnType<typeof channelQueryKeys.analytics>
+    >,
     'queryKey' | 'queryFn'
   >
 ) {
@@ -149,7 +153,12 @@ export function useChannelAnalyticsQuery(
 export function useChannelAnalyticsByIdQuery(
   channelDbId?: number,
   options?: Omit<
-    UseQueryOptions<ChannelAnalytics, unknown, ChannelAnalytics, ReturnType<typeof channelQueryKeys.analyticsById>>,
+    UseQueryOptions<
+      ChannelAnalytics,
+      unknown,
+      ChannelAnalytics,
+      ReturnType<typeof channelQueryKeys.analyticsById>
+    >,
     'queryKey' | 'queryFn'
   >
 ) {
@@ -175,8 +184,7 @@ export function useChannelRefreshByIdMutation() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ channelDbId }: { channelDbId: number }) =>
-      refreshChannelById(channelDbId),
+    mutationFn: ({ channelDbId }: { channelDbId: number }) => refreshChannelById(channelDbId),
     onSuccess: (_data, { channelDbId }) => {
       toastSuccess('Refresh triggered', 'Channel data is being updated in the background.')
       // ['channels', ...] — analytics and any root-level channel queries

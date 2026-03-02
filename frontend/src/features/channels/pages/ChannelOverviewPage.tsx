@@ -10,6 +10,7 @@ import { ChannelHeader } from '../components/ChannelHeader'
 import { ChannelStats } from '../components/ChannelStats'
 import { ChannelChart } from '../components/ChannelChart'
 import { toastError } from '@/lib/toast'
+import { normalizeHttpError } from '@/api/httpError'
 import { useChannelAnalyticsByIdQuery, useChannelQuery } from '../queries'
 
 export default function ChannelOverviewPage() {
@@ -20,14 +21,8 @@ export default function ChannelOverviewPage() {
   const channelDbId = channelDbIdStr ? Number(channelDbIdStr) : undefined
 
   // Analytics data (chart, stats, video list details)
-  const {
-    data,
-    isLoading,
-    isFetching,
-    isError,
-    error,
-    refetch,
-  } = useChannelAnalyticsByIdQuery(channelDbId)
+  const { data, isLoading, isFetching, isError, error, refetch } =
+    useChannelAnalyticsByIdQuery(channelDbId)
 
   // Channel detail from /channels/:id — provides authoritative freshness timestamps
   const { data: channelDetail } = useChannelQuery(channelDbId)
@@ -58,22 +53,23 @@ export default function ChannelOverviewPage() {
   }
 
   if (isError) {
-    const requiresAuth = error.status === 401 || error.status === 403
+    const err = normalizeHttpError(error)
+    const requiresAuth = err.status === 401 || err.status === 403
     return (
       <ErrorState
         title={requiresAuth ? 'Connect account' : 'Unable to load channel analytics'}
         description={
           requiresAuth
             ? 'Authentication required. Connect your YouTube account, then retry.'
-            : error.message
+            : err.message
         }
         actionLabel={requiresAuth ? 'Connect YouTube account' : 'Retry'}
         onAction={async () => {
           const result = await refetch()
           if (result.isError) toastError(result.error, 'Failed to reload analytics')
         }}
-        status={error.status}
-        code={error.code}
+        status={err.status}
+        code={err.code}
       />
     )
   }
@@ -109,9 +105,7 @@ export default function ChannelOverviewPage() {
           <div className="flex items-start justify-between gap-2">
             <div className="space-y-1">
               <h2 className="text-lg font-semibold">Channel details</h2>
-              <p className="text-sm text-muted-foreground">
-                Basic metadata and freshness state.
-              </p>
+              <p className="text-sm text-muted-foreground">Basic metadata and freshness state.</p>
             </div>
             {channelDbIdParam && (
               <div className="flex shrink-0 gap-2">

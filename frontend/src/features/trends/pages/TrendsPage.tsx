@@ -42,9 +42,9 @@ const RANGES: Range[] = [7, 30, 90]
 const SERIES_MODES: SeriesMode[] = ['total', 'delta']
 
 const METRIC_CONFIG: Record<TrendMetric, { label: string; color: string }> = {
-  VIEWS:       { label: 'Views',       color: '#2563eb' },
+  VIEWS: { label: 'Views', color: '#2563eb' },
   SUBSCRIBERS: { label: 'Subscribers', color: '#f97316' },
-  UPLOADS:     { label: 'Uploads',     color: '#16a34a' },
+  UPLOADS: { label: 'Uploads', color: '#16a34a' },
 }
 
 const SERIES_MODE_LABELS: Record<SeriesMode, string> = {
@@ -109,7 +109,7 @@ function ToggleGroup<T extends string | number>({
 }) {
   return (
     <div className="flex rounded-lg border bg-muted p-0.5">
-      {options.map(opt => (
+      {options.map((opt) => (
         <button
           key={String(opt)}
           onClick={() => onChange(opt)}
@@ -117,7 +117,7 @@ function ToggleGroup<T extends string | number>({
             'rounded-md px-3 py-1 text-sm font-medium transition-colors',
             value === opt
               ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground',
+              : 'text-muted-foreground hover:text-foreground'
           )}
         >
           {label(opt)}
@@ -191,7 +191,12 @@ export default function TrendsPage() {
   const rawPoints: TimeSeriesPoint[] = data?.points ?? []
 
   // Debug guard: warn when switching ranges yields identical data
-  const prevSigRef = useRef<{ rangeDays: number; length: number; first: string; last: string } | null>(null)
+  const prevSigRef = useRef<{
+    rangeDays: number
+    length: number
+    first: string
+    last: string
+  } | null>(null)
   useEffect(() => {
     if (!data?.points?.length) return
     const pts = data.points
@@ -211,25 +216,19 @@ export default function TrendsPage() {
     ) {
       console.warn(
         `[Trends] ⚠️ rangeDays ${prev.rangeDays}d → ${curr.rangeDays}d but response is identical` +
-        ` (${curr.length} pts, ${curr.first} → ${curr.last}). Backend may not be filtering by rangeDays.`,
+          ` (${curr.length} pts, ${curr.first} → ${curr.last}). Backend may not be filtering by rangeDays.`
       )
     }
     prevSigRef.current = curr
   }, [data]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const normalizedPoints = useMemo(
-    () => normalizeTimeseriesPoints(rawPoints),
-    [rawPoints],
-  )
+  const normalizedPoints = useMemo(() => normalizeTimeseriesPoints(rawPoints), [rawPoints])
 
-  const deltaPoints = useMemo(
-    () => computeDailyDeltas(normalizedPoints),
-    [normalizedPoints],
-  )
+  const deltaPoints = useMemo(() => computeDailyDeltas(normalizedPoints), [normalizedPoints])
 
   const displayPoints = useMemo(
     () => (seriesMode === 'delta' ? deltaPoints : normalizedPoints),
-    [seriesMode, deltaPoints, normalizedPoints],
+    [seriesMode, deltaPoints, normalizedPoints]
   )
 
   const sufficient = hasSufficientDataForMode(normalizedPoints, seriesMode)
@@ -316,19 +315,19 @@ export default function TrendsPage() {
           options={['VIEWS', 'SUBSCRIBERS', 'UPLOADS']}
           value={metric}
           onChange={setMetric}
-          label={m => METRIC_CONFIG[m].label}
+          label={(m) => METRIC_CONFIG[m].label}
         />
         <ToggleGroup<Range>
           options={RANGES}
           value={range}
           onChange={setRange}
-          label={r => `${r}d`}
+          label={(r) => `${r}d`}
         />
         <ToggleGroup<SeriesMode>
           options={SERIES_MODES}
           value={seriesMode}
           onChange={setSeriesMode}
-          label={m => SERIES_MODE_LABELS[m]}
+          label={(m) => SERIES_MODE_LABELS[m]}
         />
       </div>
 

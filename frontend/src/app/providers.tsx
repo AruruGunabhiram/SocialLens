@@ -12,7 +12,13 @@ interface ProvidersProps {
   children: ReactNode
 }
 
-function GlobalErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
+function GlobalErrorFallback({
+  error,
+  resetErrorBoundary,
+}: {
+  error: Error
+  resetErrorBoundary: () => void
+}) {
   return (
     <div className="p-4">
       <ErrorState
