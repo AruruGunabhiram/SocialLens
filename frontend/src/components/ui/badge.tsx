@@ -3,14 +3,10 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 
 const badgeVariants = {
-  default:
-    'bg-primary text-primary-foreground shadow hover:bg-primary/90',
-  secondary:
-    'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-  destructive:
-    'bg-destructive text-destructive-foreground shadow hover:bg-destructive/90',
-  outline:
-    'text-foreground border',
+  default: 'bg-primary text-primary-foreground shadow hover:bg-primary/90',
+  secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+  destructive: 'bg-destructive text-destructive-foreground shadow hover:bg-destructive/90',
+  outline: 'text-foreground border',
 }
 
 export type BadgeVariant = keyof typeof badgeVariants

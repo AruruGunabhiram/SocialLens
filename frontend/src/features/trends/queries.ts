@@ -12,7 +12,7 @@ export const timeseriesQueryKeys = {
 export function useTimeSeries(
   channelDbId: number | undefined,
   metric: TrendMetric,
-  rangeDays: number,
+  rangeDays: number
 ) {
   return useQuery<TimeSeriesResponse, AppError>({
     queryKey: timeseriesQueryKeys.timeseries(channelDbId ?? -1, metric, rangeDays),

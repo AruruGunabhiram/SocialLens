@@ -142,8 +142,8 @@ export async function refreshChannelById(channelDbId: number): Promise<{ status?
   try {
     const { data } = await axiosClient.post(
       endpoints.jobs.refreshChannel,
-      null,                         // no request body
-      { params: { channelDbId } }  // MUST be `channelDbId` — backend @RequestParam
+      null, // no request body
+      { params: { channelDbId } } // MUST be `channelDbId` — backend @RequestParam
     )
     return data as { status?: string }
   } catch (error) {

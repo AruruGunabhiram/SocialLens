@@ -116,7 +116,7 @@ export const ChannelAnalyticsSchema = z
 // -----------------------------------------------------------------------
 
 export const TimeSeriesPointSchema = z.object({
-  date: z.string(),   // YYYY-MM-DD
+  date: z.string(), // YYYY-MM-DD
   value: z.number(),
 })
 

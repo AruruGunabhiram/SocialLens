@@ -68,17 +68,11 @@ export function FreshnessBadge({
       </Badge>
 
       {/* Snapshot freshness */}
-      <span>
-        {snapshotDate
-          ? `Snapshot ${relAgo(snapshotDate)}`
-          : 'No snapshots yet'}
-      </span>
+      <span>{snapshotDate ? `Snapshot ${relAgo(snapshotDate)}` : 'No snapshots yet'}</span>
 
       {/* Last successful refresh */}
       <span className="text-xs text-muted-foreground/70">
-        {refreshDate
-          ? `Refreshed ${relAgo(refreshDate)}`
-          : 'Never refreshed'}
+        {refreshDate ? `Refreshed ${relAgo(refreshDate)}` : 'Never refreshed'}
       </span>
     </div>
   )

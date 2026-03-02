@@ -31,7 +31,13 @@ export function ChannelChart({ data }: ChannelChartProps) {
             <YAxis tickLine={false} axisLine={false} />
             <RechartsTooltip />
             <Line type="monotone" dataKey="views" stroke="#2563eb" strokeWidth={2} dot={false} />
-            <Line type="monotone" dataKey="subscribers" stroke="#f97316" strokeWidth={2} dot={false} />
+            <Line
+              type="monotone"
+              dataKey="subscribers"
+              stroke="#f97316"
+              strokeWidth={2}
+              dot={false}
+            />
           </LineChart>
         </ResponsiveContainer>
       )}
