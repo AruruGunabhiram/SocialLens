@@ -7,11 +7,12 @@ import { SkeletonBlock } from '@/components/common/SkeletonBlock'
 import { Separator } from '@/components/ui/separator'
 
 import { ChannelHeader } from '../components/ChannelHeader'
+import { mapChannelItemToFreshnessProps } from '../components/FreshnessBadge'
 import { ChannelStats } from '../components/ChannelStats'
 import { ChannelChart } from '../components/ChannelChart'
 import { toastError } from '@/lib/toast'
 import { normalizeHttpError } from '@/api/httpError'
-import { useChannelAnalyticsByIdQuery, useChannelQuery } from '../queries'
+import { useChannelAnalyticsByIdQuery, useChannelQuery, useVideosQuery } from '../queries'
 
 export default function ChannelOverviewPage() {
   // Support both /channels/:channelDbId (path param) and /channel?channelDbId= (legacy)
@@ -26,6 +27,15 @@ export default function ChannelOverviewPage() {
 
   // Channel detail from /channels/:id — provides authoritative freshness timestamps
   const { data: channelDetail } = useChannelQuery(channelDbId)
+
+  // Fetch page metadata (size=1) to cheaply obtain the SocialLens indexed video count.
+  const { data: videosPage } = useVideosQuery(channelDbId ?? 0, {
+    page: 0,
+    size: 1,
+    sort: 'publishedAt',
+    dir: 'desc',
+  })
+  const indexedVideoCount = videosPage?.page.totalItems
 
   const legacyChannelId = searchParams.get('channelId') ?? ''
 
@@ -88,16 +98,14 @@ export default function ChannelOverviewPage() {
         </div>
       )}
 
-      {/* ChannelHeader now reads freshness from /channels/:id, not analytics */}
+      {/* ChannelHeader reads freshness from /channels/:id via the strict mapper */}
       <ChannelHeader
         title={data?.title ?? channelDetail?.title ?? 'Channel overview'}
         channelId={data?.channelId ?? channelDetail?.channelId ?? legacyChannelId}
-        lastSuccessfulRefreshAt={channelDetail?.lastSuccessfulRefreshAt}
-        lastSnapshotAt={channelDetail?.lastSnapshotAt}
-        lastRefreshStatus={channelDetail?.lastRefreshStatus}
+        freshness={mapChannelItemToFreshnessProps(channelDetail)}
       />
 
-      <ChannelStats data={data} loading={isLoading || isFetching} />
+      <ChannelStats data={data} indexedVideoCount={indexedVideoCount} loading={isLoading || isFetching} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <ChannelChart data={data} />
