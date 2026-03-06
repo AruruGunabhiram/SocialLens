@@ -43,7 +43,7 @@ export function Topbar() {
             letterSpacing: 'var(--tracking-wide)',
           }}
         >
-          CIPHER
+          SOCIALLENS
         </span>
 
         <span

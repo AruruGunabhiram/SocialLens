@@ -103,7 +103,7 @@ export function CopilotPanel() {
             padding: '2px 8px',
           }}
         >
-          claude-3
+          BETA
         </span>
       </header>
 
