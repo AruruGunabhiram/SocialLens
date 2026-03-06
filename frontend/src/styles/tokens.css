@@ -1,0 +1,191 @@
+/* ==========================================================================
+   SOCIALLENS / CIPHER — CSS Design Token System
+   Source of truth for all visual variables.
+   Import this file first; never hardcode values in components.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   GOOGLE FONTS
+   -------------------------------------------------------------------------- */
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap');
+
+/* --------------------------------------------------------------------------
+   ROOT TOKENS
+   -------------------------------------------------------------------------- */
+:root {
+
+  /* === FOUNDATIONS — Surfaces / Backgrounds === */
+  --color-canvas:        #080A0F;
+  --color-surface-0:     #0D0F17;
+  --color-surface-1:     #111420;
+  --color-surface-2:     #171A28;
+  --color-surface-3:     #1E2235;
+
+  /* === BORDERS === */
+  --color-border-subtle: #1C1F2E;
+  --color-border-base:   #252840;
+  --color-border-strong: #353A5C;
+
+  /* === TEXT === */
+  --color-text-primary:   #E4E8F2;
+  --color-text-secondary: #8A90A8;
+  --color-text-muted:     #4A4F6A;
+  --color-text-inverse:   #080A0F;
+
+  /* === EXPLORER ACCENT (Amber/Gold) === */
+  --color-amber-50:    #FFF8E7;
+  --color-amber-100:   #FDEFC3;
+  --color-amber-400:   #F5C542;
+  --color-amber-500:   #F0A500;
+  --color-amber-600:   #CC8A00;
+  --color-amber-glow:  rgba(240, 165, 0, 0.12);
+
+  /* === STUDIO ACCENT (Electric Blue) === */
+  --color-blue-400:   #60A5FA;
+  --color-blue-500:   #3B82F6;
+  --color-blue-600:   #2563EB;
+  --color-blue-glow:  rgba(59, 130, 246, 0.12);
+
+  /* === SEMANTIC DATA COLORS === */
+  --color-up:            #10B981;
+  --color-up-muted:      rgba(16, 185, 129, 0.10);
+  --color-down:          #F43F5E;
+  --color-down-muted:    rgba(244, 63, 94, 0.10);
+  --color-neutral:       #6366F1;
+  --color-neutral-muted: rgba(99, 102, 241, 0.10);
+  --color-warn:          #F59E0B;
+  --color-warn-muted:    rgba(245, 158, 11, 0.10);
+
+  /* === CHART PALETTE (ordered by usage) === */
+  --chart-1: #3B82F6;   /* views */
+  --chart-2: #F0A500;   /* engagement */
+  --chart-3: #10B981;   /* subscribers */
+  --chart-4: #8B5CF6;   /* watch time */
+  --chart-5: #EC4899;   /* revenue (studio only) */
+  --chart-6: #14B8A6;   /* impressions */
+
+  /* === SPECIAL FX === */
+  --gradient-canvas: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(59,130,246,0.07) 0%, transparent 70%);
+  --gradient-card-shimmer: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.02) 50%, transparent 60%);
+  --noise-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+
+  /* === TYPOGRAPHY — Font Families === */
+  --font-display: 'Syne', sans-serif;
+  --font-body:    'Instrument Sans', sans-serif;
+  --font-mono:    'DM Mono', monospace;
+
+  /* === TYPOGRAPHY — Type Scale === */
+  --text-xs:   11px;
+  --text-sm:   12px;
+  --text-base: 14px;
+  --text-md:   15px;
+  --text-lg:   17px;
+  --text-xl:   20px;
+  --text-2xl:  24px;
+  --text-3xl:  30px;
+  --text-4xl:  38px;
+
+  /* Metric numbers — always DM Mono, tabular */
+  --text-metric-sm: 20px;
+  --text-metric-md: 28px;
+  --text-metric-lg: 36px;
+  --text-metric-xl: 48px;
+
+  /* === TYPOGRAPHY — Line Heights === */
+  --leading-tight:   1.2;
+  --leading-snug:    1.35;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.65;
+
+  /* === TYPOGRAPHY — Letter Spacing === */
+  --tracking-tight:   -0.02em;
+  --tracking-normal:   0em;
+  --tracking-wide:     0.04em;
+  --tracking-widest:   0.12em;
+
+  /* === SPACING === */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* === RADII === */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-full: 9999px;
+
+  /* === LAYOUT === */
+  --sidebar-width:       240px;
+  --sidebar-collapsed:   64px;
+  --copilot-panel-width: 360px;
+  --header-height:       56px;
+  --content-max-width:   1400px;
+  --card-padding:        24px;
+  --section-gap:         32px;
+
+  /* === SHADOWS === */
+  --shadow-sm:        0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md:        0 4px 16px rgba(0,0,0,0.5), 0 2px 4px rgba(0,0,0,0.3);
+  --shadow-lg:        0 12px 40px rgba(0,0,0,0.6), 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-glow-amber: 0 0 24px rgba(240, 165, 0, 0.2);
+  --shadow-glow-blue:  0 0 24px rgba(59, 130, 246, 0.2);
+
+  /* === MOTION — Duration === */
+  --duration-fast:   100ms;
+  --duration-base:   200ms;
+  --duration-slow:   300ms;
+  --duration-slower: 500ms;
+
+  /* === MOTION — Easing === */
+  --ease-standard:   cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --ease-accelerate: cubic-bezier(0.4, 0, 1, 1);
+  --ease-spring:     cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* === BREAKPOINTS (reference only — use in @media queries) === */
+  --bp-sm:  640px;
+  --bp-md:  768px;
+  --bp-lg:  1024px;
+  --bp-xl:  1280px;
+  --bp-2xl: 1536px;
+
+  /* === FOCUS RING === */
+  --focus-ring:        2px solid var(--color-blue-500);
+  --focus-ring-offset: 2px;
+
+  /* === MODE ACCENT (default: Explorer) === */
+  --accent:      var(--color-amber-500);
+  --accent-glow: var(--color-amber-glow);
+}
+
+/* --------------------------------------------------------------------------
+   EXPLORER MODE  — amber accent
+   Apply `.mode-explorer` to <body> or root wrapper
+   -------------------------------------------------------------------------- */
+.mode-explorer {
+  --accent:      var(--color-amber-500);
+  --accent-glow: var(--color-amber-glow);
+  --accent-400:  var(--color-amber-400);
+  --accent-600:  var(--color-amber-600);
+  --shadow-glow: var(--shadow-glow-amber);
+}
+
+/* --------------------------------------------------------------------------
+   STUDIO MODE  — electric-blue accent
+   Apply `.mode-studio` to <body> or root wrapper
+   -------------------------------------------------------------------------- */
+.mode-studio {
+  --accent:      var(--color-blue-500);
+  --accent-glow: var(--color-blue-glow);
+  --accent-400:  var(--color-blue-400);
+  --accent-600:  var(--color-blue-600);
+  --shadow-glow: var(--shadow-glow-blue);
+}

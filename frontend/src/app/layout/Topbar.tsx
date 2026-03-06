@@ -1,137 +1,145 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Loader2, RefreshCw, Zap, ZapOff } from 'lucide-react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
-import {
-  useChannelQuery,
-  useChannelSyncMutation,
-  useChannelRefreshByIdMutation,
-  useIsChannelFetchingById,
-} from '@/features/channels/queries'
-import { cn } from '@/lib/utils'
-import { useReduceMotion } from '@/lib/ReduceMotionContext'
-
-/**
- * Returns the effective channelDbId for the current page.
- * Checks path params first (/channels/:channelDbId), then falls back to
- * the legacy ?channelDbId= search param.
- */
-function useEffectiveChannelDbId(): number | undefined {
-  const { channelDbId: fromPath } = useParams<{ channelDbId?: string }>()
-  const [searchParams] = useSearchParams()
-  const fromSearch = searchParams.get('channelDbId')
-  const raw = fromPath ?? fromSearch
-  const id = raw ? Number(raw) : NaN
-  return Number.isFinite(id) && id > 0 ? id : undefined
-}
+import { Search } from 'lucide-react'
 
 export function Topbar() {
-  const navigate = useNavigate()
-  const channelDbId = useEffectiveChannelDbId()
-  const [channelInput, setChannelInput] = useState('')
-
-  const { mutateAsync: syncChannel, isPending: isSyncing } = useChannelSyncMutation()
-  const { mutateAsync: refreshChannel, isPending: isRefreshing } = useChannelRefreshByIdMutation()
-  const isFetchingChannel = useIsChannelFetchingById(channelDbId)
-
-  // Fetch lightweight channel metadata for display (title, channelId for refresh)
-  const { data: channelInfo } = useChannelQuery(channelDbId)
-
-  useEffect(() => {
-    if (!channelDbId) setChannelInput('')
-  }, [channelDbId])
-
-  const statusText = useMemo(() => {
-    if (isSyncing) return 'Syncing channel…'
-    if (isRefreshing) return 'Refreshing…'
-    if (isFetchingChannel) return 'Fetching data…'
-    if (channelDbId && channelInfo?.title) return channelInfo.title
-
-    if (channelDbId) return 'Up to date'
-    return 'No channel loaded'
-  }, [channelDbId, channelInfo?.title, isFetchingChannel, isRefreshing, isSyncing])
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const identifier = channelInput.trim()
-    if (!identifier) return
-
-    try {
-      const syncResult = await syncChannel(identifier)
-      // Navigate to the new channel-detail route
-      navigate(`/channels/${syncResult.channelDbId}`)
-    } catch {
-      // Error toast handled in mutation onError
-    }
-  }
-
-  const handleRefresh = async () => {
-    if (!channelDbId) return
-    try {
-      await refreshChannel({ channelDbId })
-    } catch {
-      // Error toast handled in mutation onError
-    }
-  }
-
-  const isActive = isSyncing || isRefreshing || isFetchingChannel
-  const { reduceMotion, toggle: toggleMotion } = useReduceMotion()
-
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b bg-card/80 px-4 backdrop-blur">
-      <form className="flex flex-1 items-center gap-3" onSubmit={handleSubmit}>
-        <Input
-          value={channelInput}
-          onChange={(event) => setChannelInput(event.target.value)}
-          placeholder="@handle or UC... or channel URL"
-          className="max-w-xs"
-          aria-label="Channel identifier"
-          disabled={isSyncing}
-        />
-        <Button type="submit" variant="secondary" disabled={!channelInput.trim() || isSyncing}>
-          {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Load'}
-        </Button>
-        <Separator orientation="vertical" className="hidden h-6 lg:block" />
-        <Button
-          type="button"
-          variant="ghost"
-          className="gap-2"
-          disabled={!channelDbId || isRefreshing || isSyncing}
-          onClick={handleRefresh}
+    <header
+      className="sticky top-0 z-20 flex shrink-0 items-center justify-between gap-4 px-6"
+      style={{
+        height: 'var(--header-height)',
+        background: 'var(--color-surface-0)',
+        borderBottom: '1px solid var(--color-border-subtle)',
+        backdropFilter: 'blur(12px)',
+      }}
+    >
+      {/* LEFT: Logo mark + product name + version pill */}
+      <div className="flex shrink-0 items-center gap-3">
+        {/* Logo mark: three ascending bars curving into a C */}
+        <svg
+          width="28"
+          height="28"
+          viewBox="0 0 28 28"
+          fill="none"
+          aria-hidden
+          style={{ color: 'var(--color-text-primary)', flexShrink: 0 }}
         >
-          {isRefreshing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCw className="h-4 w-4" />
-          )}
-          Refresh
-        </Button>
-      </form>
-      <div className="flex shrink-0 items-center gap-2">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={toggleMotion}
-          aria-label={reduceMotion ? 'Enable animations' : 'Reduce motion'}
-          aria-pressed={reduceMotion}
-          title={reduceMotion ? 'Enable animations' : 'Reduce motion'}
-          className="text-muted-foreground"
+          <rect x="4" y="18" width="4" height="7" rx="1" fill="currentColor" opacity="0.45" />
+          <rect x="10" y="11" width="4" height="14" rx="1" fill="currentColor" opacity="0.7" />
+          <rect x="16" y="5" width="4" height="20" rx="1" fill="currentColor" />
+          <path
+            d="M20 5 C24 5 24 9 24 12"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            fill="none"
+          />
+        </svg>
+
+        <span
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'var(--text-lg)',
+            fontWeight: 700,
+            color: 'var(--color-text-primary)',
+            letterSpacing: 'var(--tracking-wide)',
+          }}
         >
-          {reduceMotion ? <ZapOff className="h-4 w-4" /> : <Zap className="h-4 w-4" />}
-        </Button>
-        <Separator orientation="vertical" className="h-6" />
+          CIPHER
+        </span>
+
+        <span
+          className="num"
+          style={{
+            background: 'var(--color-surface-2)',
+            border: '1px solid var(--color-border-base)',
+            borderRadius: 'var(--radius-full)',
+            padding: '2px 8px',
+            fontSize: 'var(--text-xs)',
+            color: 'var(--color-text-muted)',
+          }}
+        >
+          BETA
+        </span>
+      </div>
+
+      {/* CENTER: Channel search bar (static shell) */}
+      <div className="flex flex-1 justify-center">
         <div
-          className={cn(
-            'max-w-[220px] truncate text-sm font-medium',
-            isActive ? 'text-primary' : 'text-muted-foreground'
-          )}
-          title={statusText}
+          className="flex items-center gap-2"
+          style={{
+            width: '480px',
+            maxWidth: '100%',
+            height: '36px',
+            background: 'var(--color-surface-1)',
+            border: '1px solid var(--color-border-base)',
+            borderRadius: 'var(--radius-full)',
+            padding: '0 var(--space-4)',
+          }}
+          role="search"
+          aria-label="Channel search"
         >
-          {statusText}
+          <Search
+            size={16}
+            aria-hidden
+            style={{ color: 'var(--color-text-muted)', flexShrink: 0 }}
+          />
+          <span
+            style={{
+              flex: 1,
+              fontSize: 'var(--text-sm)',
+              fontFamily: 'var(--font-body)',
+              color: 'var(--color-text-muted)',
+            }}
+          >
+            Search any YouTube channel...
+          </span>
+          <span
+            className="num"
+            style={{
+              fontSize: 'var(--text-xs)',
+              color: 'var(--color-text-muted)',
+              flexShrink: 0,
+            }}
+          >
+            ⌘K
+          </span>
+        </div>
+      </div>
+
+      {/* RIGHT: Explorer mode badge */}
+      <div className="flex shrink-0 items-center gap-3">
+        <div
+          className="flex items-center gap-2"
+          style={{
+            background: 'var(--color-amber-glow)',
+            border: '1px solid color-mix(in srgb, var(--color-amber-500) 40%, transparent)',
+            borderRadius: 'var(--radius-full)',
+            padding: '4px 10px',
+          }}
+          aria-label="Explorer mode active"
+        >
+          <span
+            className="animate-pulse-dot"
+            aria-hidden
+            style={{
+              display: 'inline-block',
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              background: 'var(--color-amber-500)',
+              flexShrink: 0,
+            }}
+          />
+          <span
+            className="num"
+            style={{
+              fontSize: 'var(--text-xs)',
+              fontWeight: 500,
+              letterSpacing: 'var(--tracking-widest)',
+              color: 'var(--color-amber-500)',
+            }}
+          >
+            EXPLORING
+          </span>
         </div>
       </div>
     </header>

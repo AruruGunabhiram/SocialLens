@@ -1,22 +1,24 @@
-import { Suspense } from 'react'
+import { Suspense, useState } from 'react'
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion'
 import { Outlet, useLocation } from 'react-router-dom'
 
-import { Skeleton } from '@/components/ui/skeleton'
 import { useReduceMotion } from '@/lib/ReduceMotionContext'
 import { Topbar } from './Topbar'
 import { Sidebar } from './Sidebar'
+import { CopilotPanel } from '@/components/layout/CopilotPanel'
+
+type AppMode = 'explorer' | 'studio'
 
 function PageFallback() {
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-4 w-64" />
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-2">
+        <div className="skeleton h-8 w-48" />
+        <div className="skeleton h-4 w-64" />
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-32 rounded-lg" />
+          <div key={i} className="skeleton h-32" style={{ borderRadius: 'var(--radius-lg)' }} />
         ))}
       </div>
     </div>
@@ -26,13 +28,25 @@ function PageFallback() {
 export function AppShell() {
   const location = useLocation()
   const { reduceMotion } = useReduceMotion()
+  const [mode, setMode] = useState<AppMode>('explorer')
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
+    <div
+      className={`mode-${mode} flex min-h-screen`}
+      style={{ background: 'var(--color-canvas)', color: 'var(--color-text-primary)' }}
+    >
       <Sidebar />
-      <div className="flex min-h-screen flex-1 flex-col bg-muted/10">
+
+      <div
+        className="flex min-h-screen flex-1 flex-col"
+        style={{
+          minWidth: 0,
+          paddingRight: mode === 'studio' ? 'var(--copilot-panel-width)' : undefined,
+          transition: 'padding-right var(--duration-slow) var(--ease-spring)',
+        }}
+      >
         <Topbar />
-        <main className="flex-1 p-4 md:p-6">
+        <main className="flex-1" style={{ padding: 'var(--section-gap)' }} id="main-content">
           <MotionConfig reducedMotion={reduceMotion ? 'always' : 'never'}>
             <AnimatePresence mode="wait">
               <motion.div
@@ -41,7 +55,7 @@ export function AppShell() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.2, ease: 'easeOut' }}
-                className="mx-auto max-w-6xl"
+                style={{ maxWidth: 'var(--content-max-width)', margin: '0 auto' }}
               >
                 <Suspense fallback={<PageFallback />}>
                   <Outlet />
@@ -51,6 +65,35 @@ export function AppShell() {
           </MotionConfig>
         </main>
       </div>
+
+      <AnimatePresence>{mode === 'studio' && <CopilotPanel />}</AnimatePresence>
+
+      {/* DEV ONLY — remove before production */}
+      <button
+        type="button"
+        onClick={() => setMode((m) => (m === 'explorer' ? 'studio' : 'explorer'))}
+        aria-label={`Active mode: ${mode}. Click to toggle.`}
+        title="Dev: toggle Explorer / Studio mode"
+        style={{
+          position: 'fixed',
+          bottom: 'var(--space-4)',
+          right: 'var(--space-4)',
+          zIndex: 9999,
+          background: 'var(--color-surface-3)',
+          border: '1px solid var(--color-border-strong)',
+          borderRadius: 'var(--radius-full)',
+          padding: 'var(--space-2) var(--space-3)',
+          fontFamily: 'var(--font-mono)',
+          fontSize: 'var(--text-xs)',
+          fontWeight: 500,
+          letterSpacing: 'var(--tracking-widest)',
+          color: 'var(--accent)',
+          cursor: 'pointer',
+          transition: 'color var(--duration-base) var(--ease-standard)',
+        }}
+      >
+        {mode === 'explorer' ? 'EXPLORER' : 'STUDIO'}
+      </button>
     </div>
   )
 }
