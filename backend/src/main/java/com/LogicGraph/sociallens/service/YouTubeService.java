@@ -145,11 +145,15 @@ public class YouTubeService {
 
         return new ChannelSummaryDto(
                 item.id,
+                null,
                 item.snippet.title,
                 item.snippet.description,
-                views,
+                null,
                 subscribers,
-                videos);
+                views,
+                videos,
+                null,
+                null);
     }
 
     /**
@@ -186,7 +190,7 @@ public class YouTubeService {
 
         // resolved info
         response.resolved = new YouTubeSyncResponseDto.Resolved();
-        response.resolved.channelId = channel.channelId;
+        response.resolved.channelId = channel.channelId();
         response.resolved.resolvedFrom = resolved.getType().name();
         response.resolved.normalizedInput = resolved.getValue();
 

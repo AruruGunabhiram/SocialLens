@@ -15,7 +15,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@RestControllerAdvice
+// Retired — handlers migrated to GlobalExceptionHandler
+// @RestControllerAdvice
 public class ApiExceptionHandler {
 
     // ==============================================

@@ -6,6 +6,8 @@ import java.time.Instant;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 @NoArgsConstructor
 @Entity
@@ -38,6 +40,17 @@ public class YouTubeVideo {
     private String duration;
     private String categoryId;
     private String thumbnailUrl;
+
+    @Column(columnDefinition = "TEXT")
+    private String tags;
+
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @UpdateTimestamp
+    @Column(nullable = false)
+    private Instant updatedAt;
 
     // Latest metrics pulled from the Data API; mirrored into daily snapshots.
     private Long viewCount;

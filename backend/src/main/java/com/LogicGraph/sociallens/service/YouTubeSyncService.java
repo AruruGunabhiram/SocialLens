@@ -94,7 +94,7 @@ public class YouTubeSyncService {
         List<String> warnings = new ArrayList<>();
 
         try {
-            String uploadsPlaylistId = youTubeService.getUploadsPlaylistId(dto.channelId);
+            String uploadsPlaylistId = youTubeService.getUploadsPlaylistId(dto.channelId());
             String pageToken = null;
 
             while (pagesFetched < maxPages) {
@@ -149,7 +149,7 @@ public class YouTubeSyncService {
         res.title = savedChannel.getTitle();
 
         res.resolved = new YouTubeSyncResponseDto.Resolved();
-        res.resolved.channelId = dto.channelId;
+        res.resolved.channelId = dto.channelId();
         res.resolved.resolvedFrom = resolved.getType().name();
         res.resolved.normalizedInput = resolved.getValue();
 
@@ -351,15 +351,15 @@ public class YouTubeSyncService {
 
     private YouTubeChannel upsertChannel(ChannelSummaryDto dto) {
         YouTubeChannel channel = channelRepository
-                .findByChannelId(dto.channelId)
+                .findByChannelId(dto.channelId())
                 .orElseGet(YouTubeChannel::new);
 
-        channel.setChannelId(dto.channelId);
-        channel.setTitle(dto.title);
-        channel.setDescription(dto.description);
-        channel.setViewCount(dto.views);
-        channel.setSubscriberCount(dto.subscribers);
-        channel.setVideoCount(dto.videos);
+        channel.setChannelId(dto.channelId());
+        channel.setTitle(dto.title());
+        channel.setDescription(dto.description());
+        channel.setViewCount(dto.viewCount());
+        channel.setSubscriberCount(dto.subscriberCount());
+        channel.setVideoCount(dto.videoCount());
 
         return channelRepository.save(channel);
     }

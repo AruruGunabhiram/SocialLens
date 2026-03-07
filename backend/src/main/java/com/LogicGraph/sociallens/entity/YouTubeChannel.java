@@ -8,8 +8,9 @@ import java.time.Instant;
 import com.LogicGraph.sociallens.enums.RefreshStatus;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 @NoArgsConstructor
 @Entity
@@ -54,6 +55,14 @@ public class YouTubeChannel {
     private Long subscriberCount;
     private Long viewCount;
     private Long videoCount;
+
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @UpdateTimestamp
+    @Column(nullable = false)
+    private Instant updatedAt;
 
     // default to true
     private boolean active = true;
