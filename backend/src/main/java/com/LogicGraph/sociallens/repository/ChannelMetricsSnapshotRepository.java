@@ -62,4 +62,16 @@ public interface ChannelMetricsSnapshotRepository
         List<ChannelMetricsSnapshot> findByChannelAndCapturedAtBetween(
                         YouTubeChannel channel, Instant start, Instant end);
 
+        /**
+         * Returns the single latest snapshot per channel for a set of channel IDs.
+         * Replaces the per-channel N+1 SELECT in ChannelsServiceImpl.listChannels().
+         * One query regardless of list size.
+         */
+        @Query("SELECT s FROM ChannelMetricsSnapshot s " +
+               "WHERE s.channel.id IN :channelIds " +
+               "  AND s.capturedAt = (" +
+               "      SELECT MAX(s2.capturedAt) FROM ChannelMetricsSnapshot s2 " +
+               "      WHERE s2.channel.id = s.channel.id)")
+        List<ChannelMetricsSnapshot> findLatestPerChannel(@Param("channelIds") List<Long> channelIds);
+
 }

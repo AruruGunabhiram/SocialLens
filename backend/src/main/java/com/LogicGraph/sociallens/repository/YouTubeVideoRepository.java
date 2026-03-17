@@ -67,4 +67,22 @@ public interface YouTubeVideoRepository extends JpaRepository<YouTubeVideo, Long
             @Param("channelDbId") Long channelDbId,
             @Param("q") String q,
             Pageable pageable);
+
+    /** Paginated active-only video list for the /channels/{id}/videos endpoint. */
+    Page<YouTubeVideo> findByChannel_IdAndActiveTrue(Long channelDbId, Pageable pageable);
+
+    /** Active-only search for the /channels/{id}/videos?q= endpoint. */
+    @Query("""
+            SELECT v FROM YouTubeVideo v
+            WHERE v.channel.id = :channelDbId
+              AND v.active = true
+              AND (
+                LOWER(COALESCE(v.title, '')) LIKE LOWER(CONCAT('%', :q, '%'))
+                OR LOWER(v.videoId) LIKE LOWER(CONCAT('%', :q, '%'))
+              )
+            """)
+    Page<YouTubeVideo> searchActiveByChannelAndTitleOrVideoId(
+            @Param("channelDbId") Long channelDbId,
+            @Param("q") String q,
+            Pageable pageable);
 }

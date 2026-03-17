@@ -57,6 +57,13 @@ public class YouTubeVideo {
     private Long likeCount;
     private Long commentCount;
 
+    /**
+     * Set to false when YouTube returns no data for this videoId (deleted / made private).
+     * Rows are never hard-deleted so snapshot history is preserved.
+     */
+    @Column(nullable = false)
+    private boolean active = true;
+
     public Long getId() {
         return id;
     }

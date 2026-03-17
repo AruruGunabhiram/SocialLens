@@ -4,6 +4,7 @@ import com.LogicGraph.sociallens.dto.error.ErrorResponseDto;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +14,10 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -44,22 +48,22 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponseDto(ex.getMessage(), "VIDEO_NOT_FOUND", Instant.now()));
     }
 
-    @ExceptionHandler(RateLimitException.class)
-    public ResponseEntity<ErrorResponseDto> handleRateLimit(RateLimitException ex, HttpServletRequest request) {
-        log.error("RateLimitException: {}", ex.getMessage(), ex);
+    /**
+     * Handles both RateLimitException (no retry info, thrown by YouTubeService)
+     * and RateLimitExceededException (with retryAfterSeconds, used for structured limits).
+     * Consolidated to eliminate duplicate 429 handlers.
+     */
+    @ExceptionHandler({RateLimitException.class, RateLimitExceededException.class})
+    public ResponseEntity<ErrorResponseDto> handleRateLimit(RuntimeException ex, HttpServletRequest request) {
+        log.error("Rate limit exception: {}", ex.getMessage(), ex);
+        HttpHeaders headers = new HttpHeaders();
+        if (ex instanceof RateLimitExceededException rle && rle.getRetryAfterSeconds() > 0) {
+            headers.set("Retry-After", String.valueOf(rle.getRetryAfterSeconds()));
+        }
         Map<String, Object> details = Map.of("path", request.getRequestURI());
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body(new ErrorResponseDto(ex.getMessage(), "RATE_LIMIT_EXCEEDED", Instant.now(), details));
-    }
-
-    @ExceptionHandler(RateLimitExceededException.class)
-    public ResponseEntity<ErrorResponseDto> handleRateLimitExceeded(RateLimitExceededException ex) {
-        log.error("RateLimitExceededException: {}", ex.getMessage(), ex);
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Retry-After", String.valueOf(ex.getRetryAfterSeconds()));
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .headers(headers)
-                .body(new ErrorResponseDto(ex.getMessage(), "RATE_LIMIT_EXCEEDED", Instant.now()));
+                .body(new ErrorResponseDto(ex.getMessage(), "RATE_LIMIT_EXCEEDED", Instant.now(), details));
     }
 
     @ExceptionHandler(OAuthStateInvalidException.class)
@@ -83,10 +87,17 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponseDto(ex.getMessage(), "SYNC_IN_PROGRESS", Instant.now()));
     }
 
+    /**
+     * YouTube Data API quota resets at midnight Pacific Time.
+     * Retry-After is set to the number of seconds until that reset.
+     */
     @ExceptionHandler(InsufficientApiQuotaException.class)
     public ResponseEntity<ErrorResponseDto> handleInsufficientQuota(InsufficientApiQuotaException ex) {
         log.error("InsufficientApiQuotaException: {}", ex.getMessage(), ex);
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Retry-After", String.valueOf(secondsUntilYouTubeQuotaReset()));
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .headers(headers)
                 .body(new ErrorResponseDto(ex.getMessage(), "QUOTA_INSUFFICIENT", Instant.now()));
     }
 
@@ -95,6 +106,20 @@ public class GlobalExceptionHandler {
         log.error("ConnectedAccountNotFoundException: {}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponseDto(ex.getMessage(), "ACCOUNT_NOT_FOUND", Instant.now()));
+    }
+
+    /**
+     * Catches duplicate-key and unique-constraint violations on insert.
+     * Returns 409 instead of 500 so callers can distinguish "already exists" from a real server error.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponseDto> handleDataIntegrity(DataIntegrityViolationException ex) {
+        log.error("DataIntegrityViolationException: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ErrorResponseDto(
+                        "Resource already exists or a unique constraint was violated",
+                        "CONFLICT",
+                        Instant.now()));
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
@@ -134,5 +159,12 @@ public class GlobalExceptionHandler {
         log.error("Unhandled exception: {}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ErrorResponseDto("An unexpected error occurred", "INTERNAL_ERROR", Instant.now()));
+    }
+
+    /** YouTube API quota resets at midnight Pacific Time. */
+    private long secondsUntilYouTubeQuotaReset() {
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.of("America/Los_Angeles"));
+        ZonedDateTime midnight = now.toLocalDate().plusDays(1).atStartOfDay(now.getZone());
+        return Duration.between(now, midnight).getSeconds();
     }
 }

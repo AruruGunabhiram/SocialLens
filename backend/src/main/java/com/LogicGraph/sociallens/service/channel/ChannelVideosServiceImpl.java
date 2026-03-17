@@ -50,8 +50,8 @@ public class ChannelVideosServiceImpl implements ChannelVideosService {
 
         String trimmedQ = (q == null || q.isBlank()) ? null : q.strip();
         Page<YouTubeVideo> result = (trimmedQ == null)
-                ? youTubeVideoRepository.findByChannel_Id(channelDbId, pageable)
-                : youTubeVideoRepository.searchByChannelAndTitleOrVideoId(channelDbId, trimmedQ, pageable);
+                ? youTubeVideoRepository.findByChannel_IdAndActiveTrue(channelDbId, pageable)
+                : youTubeVideoRepository.searchActiveByChannelAndTitleOrVideoId(channelDbId, trimmedQ, pageable);
 
         List<VideoRowDto> items = result.getContent().stream()
                 .map(this::toVideoRowDto)

@@ -6,13 +6,17 @@ import com.LogicGraph.sociallens.dto.channels.VideoSortKey;
 import com.LogicGraph.sociallens.dto.channels.VideosPageResponseDto;
 import com.LogicGraph.sociallens.service.channel.ChannelVideosService;
 import com.LogicGraph.sociallens.service.channel.ChannelsService;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
+@Validated
 @RestController
 @RequestMapping("/channels")
 public class ChannelsController {
@@ -71,8 +75,8 @@ public class ChannelsController {
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "publishedAt") String sort,
             @RequestParam(defaultValue = "desc") String dir,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "25") int size) {
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "25") @Min(1) @Max(100) int size) {
 
         VideoSortKey sortKey = VideoSortKey.fromString(sort);
         if (sortKey == null) {
