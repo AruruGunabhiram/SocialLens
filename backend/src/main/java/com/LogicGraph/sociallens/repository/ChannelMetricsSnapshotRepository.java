@@ -1,6 +1,7 @@
 package com.LogicGraph.sociallens.repository;
 
 import com.LogicGraph.sociallens.entity.ChannelMetricsSnapshot;
+import com.LogicGraph.sociallens.entity.YouTubeChannel;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -55,5 +56,10 @@ public interface ChannelMetricsSnapshotRepository
 
         Optional<ChannelMetricsSnapshot> findFirstByChannel_IdAndCapturedAtBetweenOrderByCapturedAtDesc(
                         Long channelId, Instant startInclusive, Instant endExclusive);
+
+        List<ChannelMetricsSnapshot> findByChannelOrderByCapturedAtDesc(YouTubeChannel channel);
+
+        List<ChannelMetricsSnapshot> findByChannelAndCapturedAtBetween(
+                        YouTubeChannel channel, Instant start, Instant end);
 
 }

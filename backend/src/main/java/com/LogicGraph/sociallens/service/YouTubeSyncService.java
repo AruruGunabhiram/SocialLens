@@ -14,8 +14,8 @@ import com.LogicGraph.sociallens.repository.ChannelMetricsSnapshotRepository;
 import com.LogicGraph.sociallens.repository.VideoMetricsSnapshotRepository;
 import com.LogicGraph.sociallens.repository.YouTubeChannelRepository;
 import com.LogicGraph.sociallens.repository.YouTubeVideoRepository;
-import com.LogicGraph.sociallens.service.channel.ChannelResolver;
-import com.LogicGraph.sociallens.service.channel.ResolvedChannelIdentifier;
+import com.LogicGraph.sociallens.service.resolver.ChannelResolver;
+import com.LogicGraph.sociallens.service.resolver.ResolvedChannelIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -94,7 +94,7 @@ public class YouTubeSyncService {
         List<String> warnings = new ArrayList<>();
 
         try {
-            String uploadsPlaylistId = youTubeService.getUploadsPlaylistId(dto.channelId);
+            String uploadsPlaylistId = youTubeService.getUploadsPlaylistId(dto.channelId());
             String pageToken = null;
 
             while (pagesFetched < maxPages) {
@@ -149,9 +149,9 @@ public class YouTubeSyncService {
         res.title = savedChannel.getTitle();
 
         res.resolved = new YouTubeSyncResponseDto.Resolved();
-        res.resolved.channelId = dto.channelId;
-        res.resolved.resolvedFrom = resolved.getType().name();
-        res.resolved.normalizedInput = resolved.getValue();
+        res.resolved.channelId = dto.channelId();
+        res.resolved.resolvedFrom = resolved.type().name();
+        res.resolved.normalizedInput = resolved.resolvedChannelId();
 
         res.result = new YouTubeSyncResponseDto.Result();
         res.result.pagesFetched = pagesFetched;
@@ -351,15 +351,15 @@ public class YouTubeSyncService {
 
     private YouTubeChannel upsertChannel(ChannelSummaryDto dto) {
         YouTubeChannel channel = channelRepository
-                .findByChannelId(dto.channelId)
+                .findByChannelId(dto.channelId())
                 .orElseGet(YouTubeChannel::new);
 
-        channel.setChannelId(dto.channelId);
-        channel.setTitle(dto.title);
-        channel.setDescription(dto.description);
-        channel.setViewCount(dto.views);
-        channel.setSubscriberCount(dto.subscribers);
-        channel.setVideoCount(dto.videos);
+        channel.setChannelId(dto.channelId());
+        channel.setTitle(dto.title());
+        channel.setDescription(dto.description());
+        channel.setViewCount(dto.viewCount());
+        channel.setSubscriberCount(dto.subscriberCount());
+        channel.setVideoCount(dto.videoCount());
 
         return channelRepository.save(channel);
     }

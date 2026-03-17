@@ -2,22 +2,78 @@ name: SocialLens CI
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [main]
   pull_request:
 
 jobs:
-  build:
+  # ──────────────────────────────────────────────
+  # Frontend: Node / Vite / Vitest
+  # ──────────────────────────────────────────────
+  frontend:
+    name: Frontend (Node / Vite)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Java
+      - name: Set up Node.js 20 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          # Path is relative to the repo root, not working-directory
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+  # ──────────────────────────────────────────────
+  # Backend: Java 17 / Spring Boot / Gradle
+  # ──────────────────────────────────────────────
+  backend:
+    name: Backend (Java 17 / Gradle)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java 17 (Temurin)
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: temurin
+          java-version: "17"
 
-      - name: Build (skip tests for now)
-        run: echo "CI ready – backend build will be added later"
+      - name: Cache Gradle dependencies & wrapper
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          # Re-cache when any build script or the wrapper version changes
+          key: ${{ runner.os }}-gradle-${{ hashFiles('backend/**/*.gradle*', 'backend/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Ensure gradlew is executable
+        run: chmod +x gradlew
+
+      - name: Run tests
+        run: ./gradlew test --no-daemon

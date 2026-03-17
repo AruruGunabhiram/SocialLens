@@ -2,8 +2,8 @@ package com.LogicGraph.sociallens.controller;
 
 import com.LogicGraph.sociallens.dto.youtube.ChannelSummaryDto;
 import com.LogicGraph.sociallens.service.YouTubeService;
-import com.LogicGraph.sociallens.service.channel.ChannelResolver;
-import com.LogicGraph.sociallens.service.channel.ResolvedChannelIdentifier;
+import com.LogicGraph.sociallens.service.resolver.ChannelResolver;
+import com.LogicGraph.sociallens.service.resolver.ResolvedChannelIdentifier;
 import org.springframework.web.bind.annotation.*;
 
 @RestController

@@ -1,5 +1,6 @@
 package com.LogicGraph.sociallens.entity;
 
+import com.LogicGraph.sociallens.enums.DataSource;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -38,4 +39,8 @@ public class ChannelMetricsSnapshot {
 
     @Column(name = "captured_day_utc", nullable = false)
     private LocalDate capturedDayUtc;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private DataSource source;
 }

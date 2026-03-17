@@ -1,6 +1,7 @@
 // Changelog: Added pageable video query for capped job fetching; added title-OR-videoId JPQL search; added findVideoIdsByChannelDbId and findAllByVideoIdIn for video enrichment.
 package com.LogicGraph.sociallens.repository;
 
+import com.LogicGraph.sociallens.entity.YouTubeChannel;
 import com.LogicGraph.sociallens.entity.YouTubeVideo;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -44,6 +45,10 @@ public interface YouTubeVideoRepository extends JpaRepository<YouTubeVideo, Long
 
     /** Batch-load video entities by their YouTube video IDs. */
     List<YouTubeVideo> findAllByVideoIdIn(Collection<String> videoIds);
+
+    List<YouTubeVideo> findByChannel(YouTubeChannel channel);
+
+    List<YouTubeVideo> findByChannelOrderByPublishedAtDesc(YouTubeChannel channel, Pageable pageable);
 
     /**
      * Search by title OR videoId (case-insensitive).

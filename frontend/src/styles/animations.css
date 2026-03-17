@@ -1,0 +1,129 @@
+/* ==========================================================================
+   ANIMATIONS — All @keyframes + animation utility classes
+   Depends on: tokens.css (duration + easing tokens)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   KEYFRAMES
+   -------------------------------------------------------------------------- */
+
+/* Pulsing dot — live/active state indicators */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.85); }
+}
+
+/* Subtle breathing glow — Copilot icon */
+@keyframes copilot-breathe {
+  0%, 100% { box-shadow: 0 0 8px rgba(59, 130, 246, 0.3); }
+  50%       { box-shadow: 0 0 20px rgba(59, 130, 246, 0.6); }
+}
+
+/* Page / section entry */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Tooltip entry */
+@keyframes tooltip-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Skeleton shimmer */
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Number flip — for metric counter enter */
+@keyframes count-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --------------------------------------------------------------------------
+   ANIMATION UTILITY CLASSES
+   -------------------------------------------------------------------------- */
+
+/* Staggered fade-up — apply to each section with increasing delay */
+.animate-fade-up {
+  animation: fade-up var(--duration-slower) var(--ease-decelerate) both;
+}
+
+.animate-fade-up-1 { animation-delay: 0ms; }
+.animate-fade-up-2 { animation-delay: 60ms; }
+.animate-fade-up-3 { animation-delay: 120ms; }
+.animate-fade-up-4 { animation-delay: 180ms; }
+.animate-fade-up-5 { animation-delay: 240ms; }
+.animate-fade-up-6 { animation-delay: 300ms; }
+
+/* Pulsing dot */
+.animate-pulse-dot {
+  animation: pulse-dot 2s var(--ease-standard) infinite;
+}
+
+/* Copilot breathing glow */
+.animate-copilot-breathe {
+  animation: copilot-breathe 3s var(--ease-standard) infinite;
+}
+
+/* Skeleton shimmer */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-1) 25%,
+    var(--color-surface-2) 50%,
+    var(--color-surface-1) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* Tooltip */
+.animate-tooltip-in {
+  animation: tooltip-in var(--duration-base) var(--ease-decelerate) both;
+}
+
+/* Count-in for metric values */
+.animate-count-in {
+  animation: count-in var(--duration-slow) var(--ease-decelerate) both;
+}
+
+/* --------------------------------------------------------------------------
+   TRANSITION HELPERS
+   -------------------------------------------------------------------------- */
+
+/* Standard interactive transition (background + border) */
+.transition-interactive {
+  transition:
+    background-color var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard),
+    color var(--duration-base) var(--ease-standard);
+}
+
+/* Card hover lift */
+.transition-card {
+  transition:
+    transform var(--duration-base) var(--ease-standard),
+    box-shadow var(--duration-base) var(--ease-standard),
+    background-color var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard);
+}
+
+.transition-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Panel slide (Copilot) — use with Framer Motion or CSS class toggle */
+.panel-enter {
+  transform: translateX(100%);
+}
+
+.panel-open {
+  transform: translateX(0);
+  transition: transform var(--duration-slow) var(--ease-spring);
+}

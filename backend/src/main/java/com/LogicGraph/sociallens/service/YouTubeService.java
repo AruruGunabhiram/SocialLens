@@ -7,7 +7,7 @@ import com.LogicGraph.sociallens.dto.youtube.YouTubePlaylistItemsResponse;
 import com.LogicGraph.sociallens.dto.youtube.YouTubeSyncRequestDto;
 import com.LogicGraph.sociallens.dto.youtube.YouTubeSyncResponseDto;
 import com.LogicGraph.sociallens.dto.youtube.YouTubeVideosResponse;
-import com.LogicGraph.sociallens.service.channel.ResolvedChannelIdentifier;
+import com.LogicGraph.sociallens.service.resolver.ResolvedChannelIdentifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -145,11 +145,15 @@ public class YouTubeService {
 
         return new ChannelSummaryDto(
                 item.id,
+                null,
                 item.snippet.title,
                 item.snippet.description,
-                views,
+                null,
                 subscribers,
-                videos);
+                views,
+                videos,
+                null,
+                null);
     }
 
     /**
@@ -186,9 +190,9 @@ public class YouTubeService {
 
         // resolved info
         response.resolved = new YouTubeSyncResponseDto.Resolved();
-        response.resolved.channelId = channel.channelId;
-        response.resolved.resolvedFrom = resolved.getType().name();
-        response.resolved.normalizedInput = resolved.getValue();
+        response.resolved.channelId = channel.channelId();
+        response.resolved.resolvedFrom = resolved.type().name();
+        response.resolved.normalizedInput = resolved.resolvedChannelId();
 
         // result info (stubbed for now)
         response.result = new YouTubeSyncResponseDto.Result();
@@ -222,11 +226,57 @@ public class YouTubeService {
             throw new IllegalArgumentException("resolved cannot be null");
         }
 
-        return switch (resolved.getType()) {
-            case HANDLE -> getChannelSummaryByHandle(resolved.getValue());
-            case CHANNEL_ID -> getChannelSummaryByChannelId(resolved.getValue());
-            default -> throw new IllegalArgumentException("Unsupported identifier type: " + resolved.getType());
+        return switch (resolved.type()) {
+            case HANDLE      -> getChannelSummaryByHandle(resolved.resolvedChannelId());
+            case CHANNEL_ID  -> getChannelSummaryByChannelId(resolved.resolvedChannelId());
+            case CUSTOM_URL  -> getChannelSummaryByUsername(resolved.resolvedChannelId());
+            case VIDEO_URL   -> getChannelSummaryFromVideoId(resolved.resolvedChannelId());
         };
+    }
+
+    /**
+     * Fetch channel summary using a legacy username (youtube.com/user/ or youtube.com/c/).
+     */
+    public ChannelSummaryDto getChannelSummaryByUsername(String username) {
+        validateApiKey();
+
+        String url = UriComponentsBuilder
+                .fromHttpUrl(YouTubeConfig.BASE_URL + "/channels")
+                .queryParam("part", "snippet,statistics,contentDetails")
+                .queryParam("forUsername", username)
+                .queryParam("key", apiKey)
+                .toUriString();
+
+        YouTubeChannelResponse body = ytGet(url, YouTubeChannelResponse.class);
+        return toChannelSummaryDto(body, "No channel found for username: " + username);
+    }
+
+    /**
+     * Resolve a video ID to its owning channel, then return the channel summary.
+     */
+    public ChannelSummaryDto getChannelSummaryFromVideoId(String videoId) {
+        validateApiKey();
+
+        String videoUrl = UriComponentsBuilder
+                .fromHttpUrl(YouTubeConfig.BASE_URL + "/videos")
+                .queryParam("part", "snippet")
+                .queryParam("id", videoId)
+                .queryParam("key", apiKey)
+                .toUriString();
+
+        YouTubeVideosResponse body = ytGet(videoUrl, YouTubeVideosResponse.class);
+        if (body == null || body.items == null || body.items.isEmpty()) {
+            throw new NotFoundException("No video found for videoId: " + videoId);
+        }
+
+        String channelId = body.items.get(0).snippet != null
+                ? body.items.get(0).snippet.channelId
+                : null;
+        if (channelId == null || channelId.isBlank()) {
+            throw new NotFoundException("Video exists but has no channelId: " + videoId);
+        }
+
+        return getChannelSummaryByChannelId(channelId);
     }
 
     /**

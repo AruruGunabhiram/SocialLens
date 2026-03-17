@@ -1,6 +1,9 @@
 package com.LogicGraph.sociallens.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.Instant;
 
 @Entity
 @Table(name = "users")
@@ -12,6 +15,10 @@ public class User {
 
     private String email;
     private String name;
+
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt;
 
     public User() {}
 
@@ -30,5 +37,9 @@ public class User {
 
     public String getName() {
         return name;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
     }
 }

@@ -84,6 +84,8 @@ public class ConnectedAccount {
 
     private Instant lastAnalyticsRefreshAt;
 
+    private Instant lastRefreshedAt;
+
     // ===== getters =====
     public Long getId() {
         return id;
@@ -144,6 +146,14 @@ public class ConnectedAccount {
 
     public void setScopes(String scopes) {
         this.scopes = scopes;
+    }
+
+    public Instant getLastRefreshedAt() {
+        return lastRefreshedAt;
+    }
+
+    public void setLastRefreshedAt(Instant lastRefreshedAt) {
+        this.lastRefreshedAt = lastRefreshedAt;
     }
 
     /**

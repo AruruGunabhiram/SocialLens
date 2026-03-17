@@ -19,6 +19,7 @@ public class YouTubeVideosResponse {
     }
 
     public static class Snippet {
+        public String channelId;
         public String title;
         public String description;
         public String publishedAt;

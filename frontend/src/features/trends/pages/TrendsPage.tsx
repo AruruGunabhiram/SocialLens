@@ -15,7 +15,8 @@ import { BarChart2, Calendar, ChevronRight, Minus, TrendingDown, TrendingUp } fr
 
 import { cn } from '@/lib/utils'
 import { toastError } from '@/lib/toast'
-import { ChartCard } from '@/components/common/ChartCard'
+import { ChartCard, CHART_STYLES } from '@/components/common/ChartCard'
+import { RangePills } from '@/components/charts/RangePills'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -46,10 +47,12 @@ const RANGES: Range[] = [7, 30, 90]
 const SERIES_MODES: SeriesMode[] = ['total', 'delta']
 
 const METRIC_CONFIG: Record<TrendMetric, { label: string; color: string }> = {
-  VIEWS: { label: 'Views', color: '#2563eb' },
-  SUBSCRIBERS: { label: 'Subscribers', color: '#f97316' },
-  UPLOADS: { label: 'Uploads', color: '#16a34a' },
+  VIEWS: { label: 'Views', color: 'var(--chart-1)' },
+  SUBSCRIBERS: { label: 'Subscribers', color: 'var(--chart-3)' },
+  UPLOADS: { label: 'Uploads', color: 'var(--chart-4)' },
 }
+
+const RANGE_PILL_OPTIONS = RANGES.map((r) => ({ label: `${r}D`, value: String(r) }))
 
 const SERIES_MODE_LABELS: Record<SeriesMode, string> = {
   total: 'Total',
@@ -136,13 +139,13 @@ function InsightCard({
   label,
   value,
   sub,
-  valueClassName,
+  valueStyle,
 }: {
   icon: React.ReactNode
   label: string
   value: string
   sub?: string
-  valueClassName?: string
+  valueStyle?: React.CSSProperties
 }) {
   return (
     <Card>
@@ -150,7 +153,9 @@ function InsightCard({
         <span className="mt-0.5 text-muted-foreground">{icon}</span>
         <div>
           <p className="text-xs text-muted-foreground">{label}</p>
-          <p className={cn('text-2xl font-semibold tracking-tight', valueClassName)}>{value}</p>
+          <p className="text-2xl font-semibold tracking-tight" style={valueStyle}>
+            {value}
+          </p>
           {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
         </div>
       </CardContent>
@@ -374,12 +379,6 @@ export default function TrendsPage() {
           onChange={setMetric}
           label={(m) => METRIC_CONFIG[m].label}
         />
-        <ToggleGroup<Range>
-          options={RANGES}
-          value={range}
-          onChange={setRange}
-          label={(r) => `${r}d`}
-        />
         <ToggleGroup<SeriesMode>
           options={SERIES_MODES}
           value={seriesMode}
@@ -391,36 +390,46 @@ export default function TrendsPage() {
       {/* ── Chart ──────────────────────────────────────────────────────── */}
       <ChartCard
         title={chartTitle}
-        description={chartDescription}
-        action={
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Calendar className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            <span>Data window: {dataWindowLabel}</span>
-          </div>
+        subtitle={chartDescription}
+        controls={
+          <RangePills
+            options={RANGE_PILL_OPTIONS}
+            value={String(range)}
+            onChange={(v) => setRange(Number(v) as Range)}
+          />
+        }
+        dataWindow={`Showing data for: ${dataWindowLabel}`}
+        footer={
+          channelQuery.data ? (
+            <FreshnessBadge {...mapChannelItemToFreshnessProps(channelQuery.data)} />
+          ) : undefined
         }
       >
         {sufficient ? (
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={displayPoints} margin={{ left: 8, right: 16, top: 12, bottom: 12 }}>
-              <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#e5e7eb" />
+              <CartesianGrid {...CHART_STYLES.grid} vertical={false} />
               {seriesMode === 'delta' && (
-                <ReferenceLine y={0} stroke="#9ca3af" strokeDasharray="3 3" />
+                <ReferenceLine y={0} stroke="var(--color-border-strong)" strokeDasharray="3 3" />
               )}
               <XAxis
                 dataKey="date"
                 tickFormatter={xFmt}
                 tickLine={false}
                 axisLine={false}
-                tick={{ fontSize: 12 }}
+                tick={CHART_STYLES.axisTick}
               />
               <YAxis
                 tickFormatter={seriesMode === 'delta' ? fmtDelta : fmtNum}
                 tickLine={false}
                 axisLine={false}
-                tick={{ fontSize: 12 }}
+                tick={CHART_STYLES.axisTick}
                 width={56}
               />
               <Tooltip
+                contentStyle={CHART_STYLES.tooltip.contentStyle}
+                labelStyle={CHART_STYLES.tooltip.labelStyle}
+                cursor={CHART_STYLES.tooltip.cursor}
                 formatter={(value: number) =>
                   seriesMode === 'delta'
                     ? [fmtDelta(value), `Δ ${config.label}`]
@@ -433,7 +442,6 @@ export default function TrendsPage() {
                     return label
                   }
                 }}
-                contentStyle={{ borderRadius: '6px', fontSize: '12px', padding: '8px 12px' }}
                 itemStyle={{ padding: 0 }}
               />
               <Line
@@ -485,11 +493,15 @@ export default function TrendsPage() {
           <InsightCard
             icon={
               insights.trendLabel === 'Up' ? (
-                <TrendingUp className="h-4 w-4 text-green-500" />
+                <TrendingUp className="h-4 w-4" style={{ color: 'var(--color-up)' }} aria-hidden />
               ) : insights.trendLabel === 'Down' ? (
-                <TrendingDown className="h-4 w-4 text-red-500" />
+                <TrendingDown
+                  className="h-4 w-4"
+                  style={{ color: 'var(--color-down)' }}
+                  aria-hidden
+                />
               ) : (
-                <Minus className="h-4 w-4 text-muted-foreground" />
+                <Minus className="h-4 w-4 text-muted-foreground" aria-hidden />
               )
             }
             label="Trend"
@@ -501,12 +513,12 @@ export default function TrendsPage() {
                   ? `${fmtDelta(Math.round(insights.slope))} / day avg`
                   : `${insights.slope >= 0 ? '+' : ''}${fmtNum(Math.round(Math.abs(insights.slope)))} / day`
             }
-            valueClassName={
+            valueStyle={
               insights.trendLabel === 'Up'
-                ? 'text-green-600'
+                ? { color: 'var(--color-up)' }
                 : insights.trendLabel === 'Down'
-                  ? 'text-red-600'
-                  : ''
+                  ? { color: 'var(--color-down)' }
+                  : undefined
             }
           />
         </div>

@@ -12,6 +12,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import com.LogicGraph.sociallens.entity.ChannelMetricsSnapshot;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Collections;
@@ -244,5 +246,25 @@ public class AnalyticsServiceImpl implements AnalyticsService {
             case "UPLOADS"     -> snap.getVideoCount()       != null ? snap.getVideoCount()       : 0L;
             default            -> snap.getViewCount()        != null ? snap.getViewCount()        : 0L;
         };
+    }
+
+    @Override
+    public ChannelAnalyticsSummaryDto getChannelSummary(String channelId) {
+        throw new UnsupportedOperationException("getChannelSummary not yet implemented");
+    }
+
+    @Override
+    public TimeSeriesDto getTimeSeries(String channelId, String metric, Instant from, Instant to) {
+        throw new UnsupportedOperationException("getTimeSeries not yet implemented");
+    }
+
+    @Override
+    public TopVideosDto getTopVideos(String channelId, int limit, Instant from, Instant to) {
+        throw new UnsupportedOperationException("getTopVideos(from, to) not yet implemented");
+    }
+
+    @Override
+    public double getChannelGrowthRate(String channelId, Duration period) {
+        throw new UnsupportedOperationException("getChannelGrowthRate not yet implemented");
     }
 }
