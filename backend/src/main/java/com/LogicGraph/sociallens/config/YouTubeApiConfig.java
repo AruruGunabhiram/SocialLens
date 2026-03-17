@@ -29,8 +29,8 @@ public class YouTubeApiConfig {
     }
 
     /** RestTemplate wired for YouTube Analytics API calls. */
-    @Bean("youTubeAnalyticsClient")
-    public RestTemplate youTubeAnalyticsClient() {
+    @Bean("analyticsRestTemplate")
+    public RestTemplate analyticsRestTemplate() {
         return new RestTemplate();
     }
 
