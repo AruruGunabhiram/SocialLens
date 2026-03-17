@@ -249,6 +249,21 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     }
 
     @Override
+    public ChannelAnalyticsSummaryDto getChannelSummary(String channelId) {
+        throw new UnsupportedOperationException("getChannelSummary not yet implemented");
+    }
+
+    @Override
+    public TimeSeriesDto getTimeSeries(String channelId, String metric, Instant from, Instant to) {
+        throw new UnsupportedOperationException("getTimeSeries not yet implemented");
+    }
+
+    @Override
+    public TopVideosDto getTopVideos(String channelId, int limit, Instant from, Instant to) {
+        throw new UnsupportedOperationException("getTopVideos(from, to) not yet implemented");
+    }
+
+    @Override
     public double getChannelGrowthRate(String channelId, Duration period) {
         throw new UnsupportedOperationException("getChannelGrowthRate not yet implemented");
     }
