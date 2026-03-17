@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -163,6 +164,76 @@ class AnalyticsServiceGroupByDayTest {
         assertThat(result.channelDbId).isEqualTo(1L);
         assertThat(result.rangeDays).isEqualTo(30);
         assertThat(result.metric).isEqualTo("VIEWS");
+    }
+
+    // -------------------------------------------------------------------------
+    // Expand: getChannelTimeSeriesById — range cutoff and empty path
+    // -------------------------------------------------------------------------
+
+    /**
+     * Snapshots before the cutoff date must be excluded.
+     * rangeDays=7 means cutoff = today-6; a snapshot 30 days ago must not appear.
+     */
+    @Test
+    void getChannelTimeSeriesById_rangeExcludesBeforeCutoff() {
+        // Repository is mocked to return only in-range snapshots (the real query
+        // enforces the cutoff; here we verify the service passes the cutoff correctly).
+        // We give the mock one point well within range.
+        ChannelMetricsSnapshot inRange = snapshot(
+                LocalDate.now().minusDays(2),
+                Instant.now().minusSeconds(172800).toString(),
+                500L, null, null);
+
+        when(channelRepository.findById(1L)).thenReturn(java.util.Optional.of(stubChannel));
+        when(snapshotRepository.findByChannelIdSince(eq(1L), any(LocalDate.class)))
+                .thenReturn(List.of(inRange));
+
+        var result = service.getChannelTimeSeriesById(1L, "VIEWS", 7);
+
+        assertThat(result.points).hasSize(1);
+        assertThat(result.points.get(0).value).isEqualTo(500L);
+        // Verify cutoff is at most rangeDays-1 days ago (checked by date)
+        // The service calls findByChannelIdSince(channelDbId, LocalDate.now().minusDays(rangeDays-1))
+        // We capture the cutoff argument to assert it's today - 6
+        java.time.LocalDate expectedCutoff = java.time.LocalDate.now(java.time.ZoneOffset.UTC).minusDays(6);
+        org.mockito.ArgumentCaptor<LocalDate> cutoffCaptor =
+                org.mockito.ArgumentCaptor.forClass(LocalDate.class);
+        // Verify findByChannelIdSince was called with the correct cutoff
+        verify(snapshotRepository).findByChannelIdSince(eq(1L), cutoffCaptor.capture());
+        assertThat(cutoffCaptor.getValue()).isEqualTo(expectedCutoff);
+    }
+
+    /**
+     * When there are no snapshots for the requested range, the response must
+     * contain an empty points list (not null).
+     */
+    @Test
+    void getChannelTimeSeriesById_emptySnapshots_returnsEmptyPoints() {
+        when(channelRepository.findById(1L)).thenReturn(java.util.Optional.of(stubChannel));
+        when(snapshotRepository.findByChannelIdSince(eq(1L), any(LocalDate.class)))
+                .thenReturn(List.of());
+
+        var result = service.getChannelTimeSeriesById(1L, "VIEWS", 30);
+
+        assertThat(result.points).isNotNull().isEmpty();
+    }
+
+    /**
+     * CURRENT BEHAVIOR: unknown metric defaults to VIEWS (no exception thrown).
+     * This test documents that behaviour. Once metric validation is added to
+     * extractMetricValue, this test should be updated or replaced with a
+     * 400-response test.
+     */
+    @Test
+    void getChannelTimeSeries_unknownMetric_defaultsToViews() {
+        ChannelMetricsSnapshot s = snapshotFull(LocalDate.of(2026, 3, 1), "2026-03-01T10:00:00Z",
+                9999L, 42L, 7L);
+
+        List<DailyMetricPointDto> result = service.groupAndMapToDaily(List.of(s), "UNKNOWN_METRIC");
+
+        // Falls back to viewCount
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).value).isEqualTo(9999L);
     }
 
     // -------------------------------------------------------------------------

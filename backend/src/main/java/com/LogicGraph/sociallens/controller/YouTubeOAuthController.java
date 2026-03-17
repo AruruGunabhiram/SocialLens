@@ -2,6 +2,7 @@ package com.LogicGraph.sociallens.controller;
 
 import com.LogicGraph.sociallens.dto.oauth.OAuthCallbackResponse;
 import com.LogicGraph.sociallens.dto.oauth.OAuthStartResponse;
+import com.LogicGraph.sociallens.exception.OAuthStateInvalidException;
 import com.LogicGraph.sociallens.service.oauth.YouTubeOAuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -52,6 +53,9 @@ public class YouTubeOAuthController {
         try {
             OAuthCallbackResponse response = youTubeOAuthService.handleCallback(code, state);
             return ResponseEntity.ok(response);
+        } catch (OAuthStateInvalidException e) {
+            // Let GlobalExceptionHandler map this to 400
+            throw e;
         } catch (Exception e) {
             log.error("OAuth callback failed. state={}, codePresent={}", state, true, e);
             return ResponseEntity.status(500).body(

@@ -4,6 +4,7 @@ import com.LogicGraph.sociallens.dto.error.ErrorResponseDto;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -12,7 +13,9 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -120,6 +123,50 @@ public class GlobalExceptionHandler {
                         "Resource already exists or a unique constraint was violated",
                         "CONFLICT",
                         Instant.now()));
+    }
+
+    /**
+     * Handles ResponseStatusException so that 404/400/etc thrown via
+     * {@code ResponseStatusException} pass through with the correct status code
+     * instead of being swallowed by the generic Exception handler.
+     */
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorResponseDto> handleResponseStatus(ResponseStatusException ex) {
+        log.error("ResponseStatusException: status={} reason={}", ex.getStatusCode(), ex.getReason());
+        return ResponseEntity.status(ex.getStatusCode())
+                .body(new ErrorResponseDto(
+                        ex.getReason() != null ? ex.getReason() : ex.getMessage(),
+                        "ERROR",
+                        Instant.now()));
+    }
+
+    /**
+     * Handles @Min/@Max/@NotBlank violations on @RequestParam / @PathVariable
+     * in @Validated controllers (Spring 6.1 / Boot 3.2+ path).
+     */
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<ErrorResponseDto> handleHandlerMethodValidation(HandlerMethodValidationException ex) {
+        log.error("HandlerMethodValidationException: {}", ex.getMessage());
+        String detail = ex.getAllValidationResults().stream()
+                .flatMap(r -> r.getResolvableErrors().stream())
+                .map(e -> e.getDefaultMessage())
+                .collect(Collectors.joining("; "));
+        String message = detail.isBlank() ? "Invalid request parameters" : "Invalid parameter: " + detail;
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponseDto(message, "INVALID_PARAMETER", Instant.now()));
+    }
+
+    /**
+     * Fallback for ConstraintViolationException (Spring 6.0 / older paths).
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponseDto> handleConstraintViolation(ConstraintViolationException ex) {
+        log.error("ConstraintViolationException: {}", ex.getMessage());
+        String detail = ex.getConstraintViolations().stream()
+                .map(v -> v.getPropertyPath() + ": " + v.getMessage())
+                .collect(Collectors.joining("; "));
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponseDto("Invalid parameter: " + detail, "INVALID_PARAMETER", Instant.now()));
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)

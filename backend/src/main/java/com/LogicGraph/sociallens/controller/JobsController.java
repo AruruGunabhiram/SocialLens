@@ -51,6 +51,12 @@ public class JobsController {
                     .status(HttpStatus.CONFLICT)
                     .body(refreshPayload("already_running", channelDbId, ex.getMessage()));
 
+        } catch (IllegalArgumentException ex) {
+            // Channel not found in DailyRefreshWorker.refreshOneChannel
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(refreshPayload("not_found", channelDbId, ex.getMessage()));
+
         } catch (Exception ex) {
             String rootCause = ex.getCause() != null ? ex.getCause().getMessage() : ex.getMessage();
             return ResponseEntity
