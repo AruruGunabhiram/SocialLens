@@ -1,4 +1,4 @@
-import { format, isValid, parseISO } from 'date-fns'
+import { fmtCompact, fmtDate } from '@/lib/format'
 import {
   ChevronLeft,
   ChevronRight,
@@ -11,7 +11,7 @@ import {
   Video,
 } from 'lucide-react'
 import { useRef, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 
 import type { ChannelItem, VideoRow } from '@/api/types'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -70,17 +70,6 @@ function displayTitle(v: VideoRow): string {
   return v.title?.trim() || v.videoId
 }
 
-function fmtCompact(n?: number | null) {
-  if (n == null) return '—'
-  return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(n)
-}
-
-function fmtDate(iso?: string | null) {
-  if (!iso) return '—'
-  const d = parseISO(iso)
-  return isValid(d) ? format(d, 'MMM d, yyyy') : '—'
-}
-
 // ---------------------------------------------------------------------------
 // SortableHeader
 // ---------------------------------------------------------------------------
@@ -115,7 +104,10 @@ function SortableHeader({
   const Icon = isActive ? (currentDir === 'asc' ? ChevronUp : ChevronDown) : ChevronsUpDown
 
   return (
-    <th className={cn('pb-3 pr-4 text-left text-xs font-medium text-muted-foreground', className)}>
+    <th
+      className={cn('pb-3 pr-4 text-left text-xs font-medium text-muted-foreground', className)}
+      aria-sort={isActive ? (currentDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
       <button
         type="button"
         onClick={handleClick}
@@ -123,6 +115,7 @@ function SortableHeader({
           'flex items-center gap-1 rounded transition-colors hover:text-foreground',
           isActive && 'text-foreground'
         )}
+        aria-label={`Sort by ${label}${isActive ? `, currently ${currentDir}ending` : ''}`}
       >
         {label}
         <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -253,7 +246,9 @@ function Pagination({ page, totalPages, totalItems, onPrev, onNext }: Pagination
 
 export default function ChannelVideosPage() {
   const { channelDbId: channelDbIdStr } = useParams<{ channelDbId: string }>()
-  const channelDbId = Number(channelDbIdStr)
+  const channelDbId =
+    channelDbIdStr != null && /^\d+$/.test(channelDbIdStr) ? Number(channelDbIdStr) : NaN
+
   const [searchParams, setSearchParams] = useSearchParams()
 
   // Derived URL state (source of truth for query)
@@ -268,14 +263,19 @@ export default function ChannelVideosPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
 
   // Channel metadata (for breadcrumb / title + YouTube total video count)
-  const { data: channel, isLoading: isChannelLoading } = useChannelQuery(channelDbId)
+  const { data: channel, isLoading: isChannelLoading } = useChannelQuery(
+    Number.isNaN(channelDbId) ? undefined : channelDbId
+  )
 
   const queryParams: VideoQueryParams = { q: urlQ || undefined, sort, dir, page, size }
 
   const { data, isLoading, isFetching, isError, error, refetch } = useVideosQuery(
-    channelDbId,
+    Number.isNaN(channelDbId) ? 0 : channelDbId,
     queryParams
   )
+
+  // Invalid route param — redirect after all hooks have run
+  if (Number.isNaN(channelDbId)) return <Navigate to="/channels" replace />
 
   // -----------------------------------------------------------------------
   // Handlers
@@ -391,7 +391,18 @@ export default function ChannelVideosPage() {
 
       {/* Missing-title warning banner */}
       {showTitleWarning && (
-        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+        <div
+          style={{
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid color-mix(in srgb, var(--color-warn) 35%, transparent)',
+            background: 'var(--color-warn-muted)',
+            padding: 'var(--space-2) var(--space-4)',
+            fontFamily: 'var(--font-body)',
+            fontSize: 'var(--text-sm)',
+            color: 'var(--color-warn)',
+            lineHeight: 'var(--leading-relaxed)',
+          }}
+        >
           Video titles not available yet — sync may be incomplete. Showing video IDs as fallback.
           Search works against the displayed ID.
         </div>

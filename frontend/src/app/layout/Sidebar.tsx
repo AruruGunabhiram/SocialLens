@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { GitBranch, Grid2X2, Search, TrendingUp } from 'lucide-react'
+import { Grid2X2, TrendingUp } from 'lucide-react'
 
 const CHANNEL_RE = /^\/channels\/(\d+)(\/|$)/
 
@@ -8,10 +8,8 @@ function channelPath(channelDbId: string | undefined, leaf: string): string {
 }
 
 const NAV_ITEMS = [
-  { label: 'Overview', to: '/dashboard', icon: Grid2X2 },
-  { label: 'Search Channels', to: '/channels', icon: Search },
+  { label: 'Channels', to: '/channels', icon: Grid2X2 },
   { label: 'Trending', to: '/trends', icon: TrendingUp },
-  { label: 'Compare', to: '/compare', icon: GitBranch },
 ] as const
 
 export function Sidebar() {

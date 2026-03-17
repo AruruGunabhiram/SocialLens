@@ -68,32 +68,33 @@ export function AppShell() {
 
       <AnimatePresence>{mode === 'studio' && <CopilotPanel />}</AnimatePresence>
 
-      {/* DEV ONLY — remove before production */}
-      <button
-        type="button"
-        onClick={() => setMode((m) => (m === 'explorer' ? 'studio' : 'explorer'))}
-        aria-label={`Active mode: ${mode}. Click to toggle.`}
-        title="Dev: toggle Explorer / Studio mode"
-        style={{
-          position: 'fixed',
-          bottom: 'var(--space-4)',
-          right: 'var(--space-4)',
-          zIndex: 9999,
-          background: 'var(--color-surface-3)',
-          border: '1px solid var(--color-border-strong)',
-          borderRadius: 'var(--radius-full)',
-          padding: 'var(--space-2) var(--space-3)',
-          fontFamily: 'var(--font-mono)',
-          fontSize: 'var(--text-xs)',
-          fontWeight: 500,
-          letterSpacing: 'var(--tracking-widest)',
-          color: 'var(--accent)',
-          cursor: 'pointer',
-          transition: 'color var(--duration-base) var(--ease-standard)',
-        }}
-      >
-        {mode === 'explorer' ? 'EXPLORER' : 'STUDIO'}
-      </button>
+      {import.meta.env.DEV && (
+        <button
+          type="button"
+          onClick={() => setMode((m) => (m === 'explorer' ? 'studio' : 'explorer'))}
+          aria-label={`Active mode: ${mode}. Click to toggle.`}
+          title="Dev: toggle Explorer / Studio mode"
+          style={{
+            position: 'fixed',
+            bottom: 'var(--space-4)',
+            right: 'var(--space-4)',
+            zIndex: 9999,
+            background: 'var(--color-surface-3)',
+            border: '1px solid var(--color-border-strong)',
+            borderRadius: 'var(--radius-full)',
+            padding: 'var(--space-2) var(--space-3)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--text-xs)',
+            fontWeight: 500,
+            letterSpacing: 'var(--tracking-widest)',
+            color: 'var(--accent)',
+            cursor: 'pointer',
+            transition: 'color var(--duration-base) var(--ease-standard)',
+          }}
+        >
+          {mode === 'explorer' ? 'EXPLORER' : 'STUDIO'}
+        </button>
+      )}
     </div>
   )
 }

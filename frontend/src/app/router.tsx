@@ -8,8 +8,6 @@ const ChannelsListPage = lazy(() => import('@/features/channels/pages/ChannelsLi
 const ChannelVideosPage = lazy(() => import('@/features/channels/pages/ChannelVideosPage'))
 const InsightsPage = lazy(() => import('@/features/insights/pages/InsightsPage'))
 const TrendsPage = lazy(() => import('@/features/trends/pages/TrendsPage'))
-const VideosPage = lazy(() => import('@/features/videos/pages/VideosPage'))
-const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
 
 export function AppRouter() {
@@ -17,7 +15,9 @@ export function AppRouter() {
     <Routes>
       <Route element={<AppShell />}>
         <Route index element={<Navigate to="/channels" replace />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
+        {/* /dashboard and legacy /channel redirect to the channels list */}
+        <Route path="/dashboard" element={<Navigate to="/channels" replace />} />
+        <Route path="/channel" element={<Navigate to="/channels" replace />} />
 
         {/* Channels feature */}
         <Route path="/channels" element={<ChannelsListPage />} />
@@ -26,12 +26,6 @@ export function AppRouter() {
         <Route path="/channels/:channelDbId/insights" element={<InsightsPage />} />
         <Route path="/channels/:channelDbId/trends" element={<TrendsPage />} />
 
-        {/* Legacy route — kept for backward-compat with search-param based links */}
-        <Route path="/channel" element={<ChannelOverviewPage />} />
-
-        <Route path="/videos" element={<VideosPage />} />
-        <Route path="/trends" element={<TrendsPage />} />
-        <Route path="/insights" element={<InsightsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

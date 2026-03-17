@@ -92,16 +92,6 @@ export function Topbar() {
           >
             Search any YouTube channel...
           </span>
-          <span
-            className="num"
-            style={{
-              fontSize: 'var(--text-xs)',
-              color: 'var(--color-text-muted)',
-              flexShrink: 0,
-            }}
-          >
-            ⌘K
-          </span>
         </div>
       </div>
 
