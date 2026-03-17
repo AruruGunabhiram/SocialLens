@@ -1,22 +1,34 @@
 package com.LogicGraph.sociallens.exception;
 
 import com.LogicGraph.sociallens.dto.error.ErrorResponseDto;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ErrorResponseDto> handleNotFound(NotFoundException ex, HttpServletRequest request) {
+        log.error("NotFoundException: {}", ex.getMessage(), ex);
+        Map<String, Object> details = Map.of("path", request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponseDto(ex.getMessage(), "NOT_FOUND", Instant.now(), details));
+    }
 
     @ExceptionHandler(ChannelNotFoundException.class)
     public ResponseEntity<ErrorResponseDto> handleChannelNotFound(ChannelNotFoundException ex) {
@@ -30,6 +42,14 @@ public class GlobalExceptionHandler {
         log.error("VideoNotFoundException: {}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponseDto(ex.getMessage(), "VIDEO_NOT_FOUND", Instant.now()));
+    }
+
+    @ExceptionHandler(RateLimitException.class)
+    public ResponseEntity<ErrorResponseDto> handleRateLimit(RateLimitException ex, HttpServletRequest request) {
+        log.error("RateLimitException: {}", ex.getMessage(), ex);
+        Map<String, Object> details = Map.of("path", request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(new ErrorResponseDto(ex.getMessage(), "RATE_LIMIT_EXCEEDED", Instant.now(), details));
     }
 
     @ExceptionHandler(RateLimitExceededException.class)
@@ -75,6 +95,27 @@ public class GlobalExceptionHandler {
         log.error("ConnectedAccountNotFoundException: {}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponseDto(ex.getMessage(), "ACCOUNT_NOT_FOUND", Instant.now()));
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponseDto> handleMissingParam(MissingServletRequestParameterException ex) {
+        log.error("MissingServletRequestParameterException: {}", ex.getMessage(), ex);
+        String name = ex.getParameterName();
+        String type = ex.getParameterType();
+        Map<String, Object> details = Map.of("parameter", name, "expectedType", type);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponseDto("Missing required parameter: " + name, "MISSING_PARAMETER", Instant.now(), details));
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponseDto> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        log.error("MethodArgumentTypeMismatchException: {}", ex.getMessage(), ex);
+        String name = ex.getName();
+        String provided = ex.getValue() != null ? ex.getValue().toString() : "null";
+        String expected = ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "unknown";
+        Map<String, Object> details = Map.of("parameter", name, "providedValue", provided, "expectedType", expected);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(new ErrorResponseDto("Invalid parameter type: " + name + " must be a number", "INVALID_PARAMETER_TYPE", Instant.now(), details));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
