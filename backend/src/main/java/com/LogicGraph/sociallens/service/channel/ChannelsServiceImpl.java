@@ -10,8 +10,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,13 +34,21 @@ public class ChannelsServiceImpl implements ChannelsService {
                 ? youTubeChannelRepository.findAllByOrderByTitleAsc()
                 : youTubeChannelRepository.findByActiveTrueOrderByTitleAsc();
 
-        // DB ordering handles most cases; Comparator.nullsLast guards against null titles.
+        // Batch-fetch latest snapshots in a single query (replaces N+1).
+        List<Long> ids = channels.stream().map(YouTubeChannel::getId).toList();
+        Map<Long, Instant> latestSnapshotAt = ids.isEmpty()
+                ? Map.of()
+                : channelMetricsSnapshotRepository.findLatestPerChannel(ids).stream()
+                        .collect(Collectors.toMap(
+                                s -> s.getChannel().getId(),
+                                ChannelMetricsSnapshot::getCapturedAt,
+                                (a, b) -> a)); // keep first on tie (unique constraint means no ties)
+
         return channels.stream()
                 .sorted(Comparator.comparing(
                         YouTubeChannel::getTitle,
                         Comparator.nullsLast(Comparator.naturalOrder())))
-                // TODO: replace N+1 with a single JOIN or batch query for lastSnapshotAt
-                .map(this::toListItemDto)
+                .map(ch -> toListItemDto(ch, latestSnapshotAt.get(ch.getId())))
                 .collect(Collectors.toList());
     }
 
@@ -54,7 +64,7 @@ public class ChannelsServiceImpl implements ChannelsService {
     // Private mappers
     // -------------------------------------------------------------------------
 
-    private ChannelListItemDto toListItemDto(YouTubeChannel ch) {
+    private ChannelListItemDto toListItemDto(YouTubeChannel ch, Instant lastSnapshotAt) {
         ChannelListItemDto dto = new ChannelListItemDto();
         dto.id = ch.getId();
         dto.title = ch.getTitle();
@@ -66,11 +76,7 @@ public class ChannelsServiceImpl implements ChannelsService {
         dto.subscriberCount = ch.getSubscriberCount();
         dto.viewCount = ch.getViewCount();
         dto.videoCount = ch.getVideoCount();
-        // TODO: N+1 — batch-fetch all channel snapshots in one query
-        dto.lastSnapshotAt = channelMetricsSnapshotRepository
-                .findTopByChannel_IdOrderByCapturedAtDesc(ch.getId())
-                .map(ChannelMetricsSnapshot::getCapturedAt)
-                .orElse(null);
+        dto.lastSnapshotAt = lastSnapshotAt;
         return dto;
     }
 
@@ -90,7 +96,7 @@ public class ChannelsServiceImpl implements ChannelsService {
         dto.subscriberCount = ch.getSubscriberCount();
         dto.viewCount = ch.getViewCount();
         dto.videoCount = ch.getVideoCount();
-        // TODO: N+1 — acceptable for single-channel detail; optimize if called in bulk
+        // Single-channel detail: one extra SELECT is acceptable here
         dto.lastSnapshotAt = channelMetricsSnapshotRepository
                 .findTopByChannel_IdOrderByCapturedAtDesc(ch.getId())
                 .map(ChannelMetricsSnapshot::getCapturedAt)

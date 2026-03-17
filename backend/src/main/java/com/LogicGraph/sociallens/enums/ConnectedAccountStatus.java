@@ -4,5 +4,6 @@ public enum ConnectedAccountStatus {
     ACTIVE,
     EXPIRED,
     REVOKED,
+    DISCONNECTED,
     REFRESH_FAILED
 }

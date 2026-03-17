@@ -1,14 +1,14 @@
 import { motion } from 'framer-motion'
+import { BarChart2 } from 'lucide-react'
 
 const PANEL_SPRING: [number, number, number, number] = [0.32, 0.72, 0, 1]
 
-const insightItems = [
-  { text: 'Your last 3 uploads averaged 18% above channel median.', metric: '+18%' },
-  { text: 'Engagement rate peaked on Thursday uploads this quarter.', metric: 'Thu' },
-  { text: 'Watch time is trending up over the past 14 days.', metric: '14d' },
+const actionLabels = [
+  'Summarize last 7 days',
+  'Best upload time',
+  'Suggest video topic',
+  'Audience breakdown',
 ]
-
-const actionLabels = ['Summarize last 7 days', 'Best upload time', 'Suggest video topic', 'Audience breakdown']
 
 function SectionLabel({ children }: { children: string }) {
   return (
@@ -118,53 +118,39 @@ export function CopilotPanel() {
           gap: 'var(--space-6)',
         }}
       >
-        {/* Insights */}
+        {/* Insights — not yet available */}
         <section>
           <SectionLabel>Insights</SectionLabel>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-            {insightItems.map((item) => (
-              <div
-                key={item.metric}
-                style={{
-                  background: 'var(--color-surface-2)',
-                  borderLeft: '3px solid var(--color-amber-500)',
-                  borderRadius: 'var(--radius-md)',
-                  padding: 'var(--space-3) var(--space-4)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 'var(--space-2)',
-                }}
-              >
-                <p
-                  style={{
-                    fontFamily: 'var(--font-body)',
-                    fontSize: 'var(--text-sm)',
-                    color: 'var(--color-text-primary)',
-                    lineHeight: 'var(--leading-relaxed)',
-                    margin: 0,
-                  }}
-                >
-                  {item.text}
-                </p>
-                <span
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 'var(--text-xs)',
-                    fontWeight: 500,
-                    letterSpacing: 'var(--tracking-widest)',
-                    textTransform: 'uppercase',
-                    color: 'var(--color-amber-500)',
-                    background: 'var(--color-amber-glow)',
-                    border: '1px solid rgba(240, 165, 0, 0.3)',
-                    borderRadius: 'var(--radius-full)',
-                    padding: '2px 8px',
-                    alignSelf: 'flex-start',
-                  }}
-                >
-                  {item.metric}
-                </span>
-              </div>
-            ))}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 'var(--space-3)',
+              padding: 'var(--space-6) var(--space-4)',
+              background: 'var(--color-surface-1)',
+              border: '1px solid var(--color-border-base)',
+              borderRadius: 'var(--radius-md)',
+              textAlign: 'center',
+            }}
+          >
+            <BarChart2
+              size={20}
+              aria-hidden
+              style={{ color: 'var(--color-text-muted)', opacity: 0.5 }}
+            />
+            <p
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--text-sm)',
+                color: 'var(--color-text-secondary)',
+                lineHeight: 'var(--leading-relaxed)',
+                margin: 0,
+              }}
+            >
+              Connect your channel to unlock AI-generated insights.
+            </p>
           </div>
         </section>
 

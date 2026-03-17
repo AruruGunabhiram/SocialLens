@@ -27,23 +27,10 @@ public class SecurityConfig {
                 .headers(headers ->
                         headers.frameOptions(frame -> frame.disable()))
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints
-                        .requestMatchers(
-                                "/health",
-                                "/api/oauth/**",
-                                "/api/youtube/**",
-                                "/api/analytics/**",
-                                "/h2-console/**",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**"
-                        ).permitAll()
-                        // Studio endpoints — require auth (full JWT wiring in Prompt 12)
-                        .requestMatchers(
-                                "/api/accounts/**",
-                                "/api/yt-analytics/**",
-                                "/api/intelligence/**"
-                        ).authenticated()
-                        // Everything else: open during development stub
+                        // TODO(auth): Replace with JWT filter chain before first external user.
+                        // All routes are intentionally open until JWT is wired.
+                        // Protected routes will be: /api/v1/yt-analytics/**, /api/v1/connected-accounts/**,
+                        // /creator/**, and any route that touches user-specific OAuth tokens.
                         .anyRequest().permitAll());
 
         return http.build();

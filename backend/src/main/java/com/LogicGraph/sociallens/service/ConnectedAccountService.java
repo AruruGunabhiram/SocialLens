@@ -5,6 +5,7 @@ import com.LogicGraph.sociallens.dto.account.ConnectedAccountResponse;
 import com.LogicGraph.sociallens.entity.ConnectedAccount;
 import com.LogicGraph.sociallens.entity.User;
 import com.LogicGraph.sociallens.enums.Platform;
+import com.LogicGraph.sociallens.exception.ConnectedAccountNotFoundException;
 import com.LogicGraph.sociallens.repository.ConnectedAccountRepository;
 import com.LogicGraph.sociallens.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -114,7 +115,8 @@ public class ConnectedAccountService {
     public String getValidAccessToken(Long userId, Platform platform) {
         ConnectedAccount account = connectedAccountRepository
                 .findByUser_IdAndPlatform(userId, platform)
-                .orElseThrow(() -> new IllegalStateException("No connected account for " + platform));
+                .orElseThrow(() -> new ConnectedAccountNotFoundException(
+                        userId + " (platform=" + platform + ")"));
 
         // If expires in more than 60 seconds, it’s safe
         Instant expiresAt = account.getExpiresAt();

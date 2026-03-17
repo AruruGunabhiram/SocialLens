@@ -7,7 +7,7 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/youtube")
+@RequestMapping("/api/v1/youtube")
 public class YouTubeSyncController {
 
     private final YouTubeSyncService syncService;

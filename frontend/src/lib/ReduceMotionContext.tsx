@@ -1,16 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
-
-const STORAGE_KEY = 'sociallens.reduceMotion'
-
-function readInitialValue(): boolean {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored !== null) return stored === 'true'
-  } catch {
-    // localStorage unavailable (e.g. private browsing restrictions)
-  }
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
-}
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 
 type ReduceMotionContextValue = {
   reduceMotion: boolean
@@ -20,29 +16,24 @@ type ReduceMotionContextValue = {
 const ReduceMotionContext = createContext<ReduceMotionContextValue | null>(null)
 
 export function ReduceMotionProvider({ children }: { children: ReactNode }) {
-  const [reduceMotion, setReduceMotion] = useState<boolean>(readInitialValue)
+  const [reduceMotion, setReduceMotion] = useState<boolean>(
+    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  )
+  // Once the user has explicitly toggled within this session, stop following OS changes.
+  const hasUserOverride = useRef(false)
 
-  // If the user hasn't set an explicit override, follow OS-level preference changes.
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
     function handleChange(e: MediaQueryListEvent) {
-      const hasExplicitOverride = localStorage.getItem(STORAGE_KEY) !== null
-      if (!hasExplicitOverride) setReduceMotion(e.matches)
+      if (!hasUserOverride.current) setReduceMotion(e.matches)
     }
     mq.addEventListener('change', handleChange)
     return () => mq.removeEventListener('change', handleChange)
   }, [])
 
   const toggle = useCallback(() => {
-    setReduceMotion((prev) => {
-      const next = !prev
-      try {
-        localStorage.setItem(STORAGE_KEY, String(next))
-      } catch {
-        // ignore write failures
-      }
-      return next
-    })
+    hasUserOverride.current = true
+    setReduceMotion((prev) => !prev)
   }, [])
 
   return (

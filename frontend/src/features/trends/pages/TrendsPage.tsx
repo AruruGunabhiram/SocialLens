@@ -15,6 +15,7 @@ import { BarChart2, Calendar, ChevronRight, Minus, TrendingDown, TrendingUp } fr
 
 import { cn } from '@/lib/utils'
 import { toastError } from '@/lib/toast'
+import { fmtNum, fmtDelta, fmtDateShort } from '@/lib/format'
 import { ChartCard, CHART_STYLES } from '@/components/common/ChartCard'
 import { RangePills } from '@/components/charts/RangePills'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -62,32 +63,6 @@ const SERIES_MODE_LABELS: Record<SeriesMode, string> = {
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
-
-function fmtNum(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`
-  return n.toLocaleString()
-}
-
-/** Format a signed delta value, e.g. +1.2K or −500. */
-function fmtDelta(n: number): string {
-  const abs = Math.abs(n)
-  const formatted =
-    abs >= 1_000_000
-      ? `${(abs / 1_000_000).toFixed(1)}M`
-      : abs >= 1_000
-        ? `${(abs / 1_000).toFixed(0)}K`
-        : abs.toLocaleString()
-  return `${n >= 0 ? '+' : '−'}${formatted}`
-}
-
-function xFmt(date: string): string {
-  try {
-    return format(parseISO(date), 'MMM d')
-  } catch {
-    return date
-  }
-}
 
 function normalizeErrorMessage(error: unknown): string {
   if (!error || typeof error !== 'object') return 'Unknown error'
@@ -190,7 +165,7 @@ export default function TrendsPage() {
   // toggle change observable in the address bar and the browser network tab.
   const [searchParams, setSearchParams] = useSearchParams()
   const rawId = pathParam ?? searchParams.get('channelDbId') ?? undefined
-  const channelDbId = rawId ? Number(rawId) : undefined
+  const channelDbId = rawId && /^\d+$/.test(rawId) ? Number(rawId) : undefined
 
   // ── Controls derived from URL search params ──────────────────────────────
   // Query key = ['timeseries', channelDbId, metric, rangeDays]  (trends/queries.ts)
@@ -207,26 +182,37 @@ export default function TrendsPage() {
   const range: Range = (RANGES as number[]).includes(rangeRaw) ? (rangeRaw as Range) : 30
 
   const modeRaw = searchParams.get('mode')
-  const seriesMode: SeriesMode =
-    modeRaw === 'total' || modeRaw === 'delta' ? modeRaw : 'total'
+  const seriesMode: SeriesMode = modeRaw === 'total' || modeRaw === 'delta' ? modeRaw : 'total'
 
   function setMetric(m: TrendMetric) {
     setSearchParams(
-      (prev) => { const p = new URLSearchParams(prev); p.set('metric', m); return p },
+      (prev) => {
+        const p = new URLSearchParams(prev)
+        p.set('metric', m)
+        return p
+      },
       { replace: true }
     )
   }
 
   function setRange(r: Range) {
     setSearchParams(
-      (prev) => { const p = new URLSearchParams(prev); p.set('range', String(r)); return p },
+      (prev) => {
+        const p = new URLSearchParams(prev)
+        p.set('range', String(r))
+        return p
+      },
       { replace: true }
     )
   }
 
   function setSeriesMode(m: SeriesMode) {
     setSearchParams(
-      (prev) => { const p = new URLSearchParams(prev); p.set('mode', m); return p },
+      (prev) => {
+        const p = new URLSearchParams(prev)
+        p.set('mode', m)
+        return p
+      },
       { replace: true }
     )
   }
@@ -260,10 +246,12 @@ export default function TrendsPage() {
       prev.first === curr.first &&
       prev.last === curr.last
     ) {
-      console.warn(
-        `[Trends] ⚠️ rangeDays ${prev.rangeDays}d → ${curr.rangeDays}d but response is identical` +
-          ` (${curr.length} pts, ${curr.first} → ${curr.last}). Backend may not be filtering by rangeDays.`
-      )
+      if (import.meta.env.DEV) {
+        console.warn(
+          `[Trends] rangeDays ${prev.rangeDays}d → ${curr.rangeDays}d but response is identical` +
+            ` (${curr.length} pts, ${curr.first} → ${curr.last}). Backend may not be filtering by rangeDays.`
+        )
+      }
     }
     prevSigRef.current = curr
   }, [data]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -414,7 +402,7 @@ export default function TrendsPage() {
               )}
               <XAxis
                 dataKey="date"
-                tickFormatter={xFmt}
+                tickFormatter={fmtDateShort}
                 tickLine={false}
                 axisLine={false}
                 tick={CHART_STYLES.axisTick}
@@ -488,7 +476,7 @@ export default function TrendsPage() {
                 ? fmtDelta(Math.round(insights.peakValue))
                 : fmtNum(insights.peakValue)
             }
-            sub={insights.peakDate ? xFmt(insights.peakDate) : '—'}
+            sub={insights.peakDate ? fmtDateShort(insights.peakDate) : '—'}
           />
           <InsightCard
             icon={

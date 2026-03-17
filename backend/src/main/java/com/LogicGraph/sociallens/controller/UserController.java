@@ -3,6 +3,7 @@ package com.LogicGraph.sociallens.controller;
 import com.LogicGraph.sociallens.dto.user.CreateUserRequest;
 import com.LogicGraph.sociallens.dto.user.UserResponse;
 import com.LogicGraph.sociallens.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -16,7 +17,7 @@ public class UserController {
     }
 
     @PostMapping
-    public UserResponse createUser(@RequestBody CreateUserRequest request) {
+    public UserResponse createUser(@Valid @RequestBody CreateUserRequest request) {
         return userService.createUser(request);
     }
 }

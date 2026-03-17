@@ -31,14 +31,20 @@ dependencies {
 
 
     runtimeOnly 'org.postgresql:postgresql'
-  // keep H2 only if you still want fast tests
-  runtimeOnly 'com.h2database:h2'
+    runtimeOnly 'com.h2database:h2'
+
+    // Flyway for versioned schema migrations (PostgreSQL production)
+    implementation 'org.flywaydb:flyway-core'
+    runtimeOnly 'org.flywaydb:flyway-database-postgresql'
 
     // ✅ Lombok
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
+
+    // Bean Validation (enforces @Min/@Max/@NotBlank on @Validated controllers)
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 

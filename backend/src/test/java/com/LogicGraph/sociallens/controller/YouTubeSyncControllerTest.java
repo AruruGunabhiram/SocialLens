@@ -54,8 +54,8 @@ class YouTubeSyncControllerTest {
 
         when(syncService.syncChannelOnly(anyString())).thenReturn(mockResponse);
 
-        // When: POST /youtube/sync
-        mockMvc.perform(post("/youtube/sync")
+        // When: POST /api/v1/youtube/sync
+        mockMvc.perform(post("/api/v1/youtube/sync")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"identifier\":\"@testchannel\"}"))
                 // Then: response should contain channelDbId, channelId, and title
@@ -88,8 +88,8 @@ class YouTubeSyncControllerTest {
 
         when(syncService.syncChannelOnly(anyString())).thenReturn(mockResponse);
 
-        // When: POST /youtube/sync
-        mockMvc.perform(post("/youtube/sync")
+        // When: POST /api/v1/youtube/sync
+        mockMvc.perform(post("/api/v1/youtube/sync")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"identifier\":\"@anotherchannel\"}"))
                 // Then: channelDbId must be present and non-null

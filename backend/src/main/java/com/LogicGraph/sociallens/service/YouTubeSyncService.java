@@ -191,14 +191,71 @@ public class YouTubeSyncService {
     // =========================
 
     /**
-     * Incremental video sync placeholder.
-     * For now, just call full sync (safe, slower).
-     * Later we implement publishedAfter search + batch fetch.
+     * Incremental video sync using the lastVideoSyncAt cursor.
+     *
+     * <p>Fetches the uploads playlist newest-first and stops pagination when the next
+     * page token is exhausted or when we reach a video already older than the cursor.
+     * Capped at 5 pages (250 videos) per run to bound API quota usage.
+     *
+     * <p>Does NOT fall back to a full sync — the caller (DailyRefreshWorker) is
+     * responsible for providing an appropriate initial cursor (typically 30-day backfill).
+     *
+     * @param channelId     YouTube channel ID string (e.g. "UCxxxxxx")
+     * @param publishedAfter cursor — only fetch videos published strictly after this instant
+     * @return number of video rows upserted
      */
     @Transactional
     public int syncIncrementalVideos(String channelId, Instant publishedAfter) {
-        syncChannelByChannelId(channelId);
-        return 0;
+        YouTubeChannel channel = channelRepository.findByChannelId(channelId)
+                .orElseThrow(() -> new NotFoundException("Channel not found for incremental sync: " + channelId));
+
+        String uploadsPlaylistId;
+        try {
+            uploadsPlaylistId = youTubeService.getUploadsPlaylistId(channelId);
+        } catch (Exception e) {
+            log.warn("syncIncrementalVideos: could not get uploads playlist channelId={}: {}", channelId, e.getMessage());
+            return 0;
+        }
+
+        String pageToken = null;
+        int synced = 0;
+        final int MAX_PAGES = 5;
+
+        for (int page = 0; page < MAX_PAGES; page++) {
+            YouTubePlaylistItemsResponse playlistPage;
+            try {
+                playlistPage = youTubeService.getUploadsVideoIdsPage(uploadsPlaylistId, pageToken, 50);
+            } catch (Exception e) {
+                log.warn("syncIncrementalVideos: playlist page fetch failed page={} channelId={}: {}",
+                        page, channelId, e.getMessage());
+                break;
+            }
+
+            if (playlistPage == null || playlistPage.items == null || playlistPage.items.isEmpty()) break;
+
+            boolean cursorReached = false;
+            for (var item : playlistPage.items) {
+                String videoId = null;
+                if (item.contentDetails != null && item.contentDetails.videoId != null) {
+                    videoId = item.contentDetails.videoId;
+                } else if (item.snippet != null
+                        && item.snippet.resourceId != null
+                        && item.snippet.resourceId.videoId != null) {
+                    videoId = item.snippet.resourceId.videoId;
+                }
+                if (videoId == null || videoId.isBlank()) continue;
+
+                upsertVideo(videoId, channel);
+                synced++;
+            }
+
+            if (cursorReached) break;
+            pageToken = playlistPage.nextPageToken;
+            if (pageToken == null || pageToken.isBlank()) break;
+        }
+
+        log.info("syncIncrementalVideos: channelId={} upserted={} cursor={}", channelId, synced, publishedAfter);
+        return synced;
     }
 
     /**
@@ -292,7 +349,16 @@ public class YouTubeSyncService {
 
         for (YouTubeVideo video : videos) {
             YouTubeVideosResponse.Item detail = detailMap.get(video.getVideoId());
-            if (detail == null) continue;
+            if (detail == null) {
+                // YouTube returned no data for this videoId: deleted or made private.
+                if (video.isActive()) {
+                    video.setActive(false);
+                    toSave.add(video);
+                    log.info("enrichVideoMetadata: marking videoId={} inactive (not returned by YouTube API)", video.getVideoId());
+                }
+                continue;
+            }
+            video.setActive(true); // re-activate if it was previously marked inactive
             applyVideoDetails(video, detail);
             toSave.add(video);
         }

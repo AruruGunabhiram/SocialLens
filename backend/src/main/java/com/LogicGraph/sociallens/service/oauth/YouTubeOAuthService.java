@@ -7,6 +7,8 @@ import com.LogicGraph.sociallens.dto.oauth.OAuthStartResponse;
 import com.LogicGraph.sociallens.entity.ConnectedAccount;
 import com.LogicGraph.sociallens.entity.OAuthState;
 import com.LogicGraph.sociallens.enums.Platform;
+import com.LogicGraph.sociallens.exception.OAuthStateInvalidException;
+import com.LogicGraph.sociallens.exception.TokenRefreshFailedException;
 import com.LogicGraph.sociallens.repository.OAuthStateRepository;
 import com.LogicGraph.sociallens.service.ConnectedAccountService;
 import org.springframework.beans.factory.annotation.Value;
@@ -86,10 +88,10 @@ public class YouTubeOAuthService {
 
     public OAuthCallbackResponse handleCallback(String code, String state) {
         OAuthState savedState = oAuthStateRepository.findByState(state)
-                .orElseThrow(() -> new IllegalStateException("Invalid OAuth state"));
+                .orElseThrow(() -> new OAuthStateInvalidException("Invalid OAuth state: not found"));
 
-        if (savedState.isUsed()) throw new IllegalStateException("OAuth state already used");
-        if (savedState.getExpiresAt().isBefore(Instant.now())) throw new IllegalStateException("OAuth state expired");
+        if (savedState.isUsed()) throw new OAuthStateInvalidException("OAuth state already used");
+        if (savedState.getExpiresAt().isBefore(Instant.now())) throw new OAuthStateInvalidException("OAuth state expired");
 
         Map<String, Object> tokenResponse = exchangeCodeForTokens(code);
 
@@ -142,7 +144,12 @@ public class YouTubeOAuthService {
             throw new IllegalStateException("Access token expired and refresh token missing for account id=" + account.getId());
         }
 
-        TokenRefreshResult refreshed = refreshAccessToken(refreshToken);
+        TokenRefreshResult refreshed;
+        try {
+            refreshed = refreshAccessToken(refreshToken);
+        } catch (IllegalStateException ex) {
+            throw new TokenRefreshFailedException(String.valueOf(account.getId()), ex.getMessage());
+        }
 
         Instant newExpiresAt = Instant.now().plusSeconds(refreshed.expiresInSeconds());
         account.updateTokens(refreshed.accessToken(), null, newExpiresAt, account.getScopes());
@@ -170,7 +177,12 @@ public class YouTubeOAuthService {
             throw new IllegalStateException("Refresh token missing for account id=" + acc.getId());
         }
 
-        TokenRefreshResult result = refreshAccessToken(refreshToken);
+        TokenRefreshResult result;
+        try {
+            result = refreshAccessToken(refreshToken);
+        } catch (IllegalStateException ex) {
+            throw new TokenRefreshFailedException(String.valueOf(acc.getId()), ex.getMessage());
+        }
 
         Instant newExpiresAt = Instant.now().plusSeconds(result.expiresInSeconds());
         acc.updateTokens(result.accessToken(), null, newExpiresAt, acc.getScopes());
