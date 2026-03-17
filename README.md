@@ -1,90 +1,335 @@
 # SocialLens
 
-SocialLens is a social media account data collection + analytics platform.
-MVP focus: **YouTube** (official API, no scraping).
+A YouTube analytics platform that ingests channel and video metrics via the YouTube Data API v3, stores daily snapshots, and presents an interactive dashboard for trend analysis and channel insights.
 
-## MVP Goals
-- Input a YouTube channel URL/handle/channelId
-- Fetch channel + videos + engagement metrics using YouTube Data API
-- Store normalized data
-- Provide basic analytics endpoints + dashboard
+> Built with Spring Boot (backend) + React + TypeScript (frontend).
 
-## Repo Structure
-- `backend/` API + data ingestion
-- `frontend/` dashboard
-- `docs/` architecture + notes
+---
+
+## What It Does
+
+SocialLens lets you:
+
+- **Track channels** — look up any public YouTube channel by ID, handle, or custom URL
+- **Snapshot metrics daily** — subscriber count, view count, and video count are stored once per day per channel via a scheduled job
+- **Explore trends** — visualise timeseries data (7 / 30 / 90-day range) with daily-change or cumulative modes
+- **Browse videos** — paginated table of synced videos with per-video stats (views, likes, comments)
+- **Connect via OAuth** — link a Google/YouTube account to enable analytics-scope data (token refresh handled automatically)
+- **Trigger manual refreshes** — hit the jobs API to refresh a specific channel on demand
+
+---
+
+## Live Demo / Screenshots
+
+> **TODO:** Capture the following screenshots before the interview (see screenshot checklist in `docs/screenshot-checklist.md`).
+
+| Screenshot | Filename |
+|---|---|
+| Channel list page | `docs/screenshots/channels-list.png` |
+| Channel overview (stats + chart) | `docs/screenshots/channel-overview.png` |
+| Trends page — VIEWS 30-day line chart | `docs/screenshots/trends-views-30d.png` |
+| Trends page — daily-change mode | `docs/screenshots/trends-daily-change.png` |
+| Channel videos table | `docs/screenshots/channel-videos.png` |
+| H2 console showing snapshot table | `docs/screenshots/h2-snapshots.png` |
+
+---
+
+## Tech Stack
+
+### Backend
+
+| Layer | Technology |
+|---|---|
+| Framework | Spring Boot 3.3.0, Java 17 |
+| Data | Spring Data JPA / Hibernate, Flyway, H2 (dev) / PostgreSQL (prod) |
+| API integration | YouTube Data API v3 (REST, key-based) |
+| OAuth | Google OAuth 2.0 — authorization code flow |
+| Scheduling | Spring `@Scheduled` with configurable CRON expressions |
+| Build | Gradle |
+| Testing | JUnit 5, Mockito, `@AutoConfigureMockMvc` |
+| Docs | springdoc-openapi (Swagger UI at `/swagger-ui.html`) |
+
+### Frontend
+
+| Layer | Technology |
+|---|---|
+| Framework | React 18 + TypeScript (strict mode), Vite |
+| Server state | TanStack Query v5 |
+| HTTP | Axios |
+| Validation | Zod (schemas → inferred TypeScript types) |
+| Charts | Recharts |
+| UI | shadcn/ui (Radix primitives) + Tailwind CSS + CSS variable token system |
+| Motion | Framer Motion (page/panel transitions only) |
+| Icons | Lucide React |
+| Fonts | Syne (display) + Instrument Sans (body) + DM Mono (all numerics) |
+| Testing | Vitest + @testing-library/react |
+
+---
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         React Frontend                          │
+│   TanStack Query → Axios → Zod validation → Component render   │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │ HTTP (localhost:8081)
+┌──────────────────────────▼──────────────────────────────────────┐
+│                      Spring Boot API                            │
+│  Controllers → Services → Repositories → JPA entities          │
+│  AnalyticsController  ChannelsController  YouTubeOAuthController│
+│  JobsController                                                 │
+└────────────┬──────────────────────────────┬─────────────────────┘
+             │ YouTube Data API v3           │ Google OAuth 2.0
+             │                              │
+┌────────────▼────────────┐    ┌────────────▼─────────────────────┐
+│  H2 / PostgreSQL        │    │  Google APIs (token exchange,     │
+│  Flyway-managed schema  │    │  channels.list, videos.list)      │
+└─────────────────────────┘    └──────────────────────────────────┘
+```
+
+See [docs/architecture.md](docs/architecture.md) for the full design.
+
+---
 
 ## Getting Started
 
-### Backend Development
+### Prerequisites
 
-The backend runs on **port 8081** by default. Use the provided scripts to manage the development server and avoid port conflicts.
+- Java 17+
+- Node.js 18+
+- A [YouTube Data API v3 key](https://console.cloud.google.com/)
+- (Optional, for OAuth) A Google OAuth 2.0 client configured with the redirect URI below
 
-#### Start the Backend
+### 1. Clone
+
 ```bash
+git clone https://github.com/your-username/sociallens.git
+cd sociallens
+```
+
+### 2. Configure environment variables
+
+Create `backend/.env` (or export in your shell):
+
+```env
+YOUTUBE_API_KEY=AIza...
+GOOGLE_OAUTH_CLIENT_ID=...apps.googleusercontent.com
+GOOGLE_OAUTH_CLIENT_SECRET=...
+GOOGLE_OAUTH_REDIRECT_URI=http://localhost:8081/api/v1/oauth/youtube/callback
+
+# Optional overrides
+SERVER_PORT=8081
+```
+
+### 3. Start the backend
+
+```bash
+cd backend
 ./scripts/dev-up.sh
+# or: ./gradlew bootRun
 ```
 
-This script will:
-- Check if port 8081 is available
-- If port is in use, display the conflicting process PID and exit
-- Start the Spring Boot backend using Gradle
-- Write logs to `/tmp/backend.log`
-- Store the process PID in `/tmp/sociallens-backend.pid`
-- Display the server URL when ready
+The API starts on **port 8081**. H2 console is available at `http://localhost:8081/h2-console`.
 
-**Force mode** (auto-kill conflicting process):
-```bash
-./scripts/dev-up.sh --force
-```
-
-#### Stop the Backend
+**Stop the backend:**
 ```bash
 ./scripts/dev-down.sh
 ```
 
-This script will:
-- Gracefully stop the backend process
-- Clean up the PID file
-- Preserve logs at `/tmp/backend.log`
+**Start on an alternate port:**
+```bash
+SERVER_PORT=8082 ./gradlew bootRun
+```
 
-#### View Logs
+**View logs:**
 ```bash
 tail -f /tmp/backend.log
 ```
 
-#### Start on an Alternate Port
-
-Spring Boot reads `SERVER_PORT` (env var) and `--server.port` (CLI arg) to override the default port without touching any config file:
+### 4. Start the frontend
 
 ```bash
-# Env var — start on port 8082
-SERVER_PORT=8082 ./gradlew bootRun
-
-# Gradle --args passthrough
-./gradlew bootRun --args='--server.port=8082'
-
-# Interactive script also honors SERVER_PORT
-SERVER_PORT=8082 ./scripts/dev-backend.sh
+cd frontend
+npm install
+npm run dev
 ```
 
-#### Troubleshooting
+The dev server starts on **port 5173**.
 
-**Port already in use:**
+### 5. Sync a channel
+
 ```bash
-# Option 1: Interactive prompt — shows PID, asks to kill, then starts
-./scripts/dev-backend.sh
-
-# Option 2: Use the provided script to stop the backend
-./scripts/dev-down.sh
-
-# Option 3: Force kill and start (non-interactive)
-./scripts/dev-up.sh --force
-
-# Option 4: Manually find and kill the process on 8081
-lsof -i :8081
-kill <PID>
-
-# Option 5: One-liner kill + restart on a different port
-kill $(lsof -ti :8081) && SERVER_PORT=8082 ./gradlew bootRun
+curl -X POST "http://localhost:8081/youtube/sync" \
+  -H "Content-Type: application/json" \
+  -d '{"identifier": "@mkbhd"}'
 ```
+
+Then open `http://localhost:5173` to see the dashboard.
+
+---
+
+## Key Features
+
+### Daily Snapshot Strategy
+
+A `DailyRefreshJob` (cron: `0 30 2 * * *`, 2:30 AM UTC) fetches public metrics for every active channel and writes a `channel_metrics_snapshot` row per day. A `UNIQUE(channel_id, captured_day_utc)` constraint enforces exactly one snapshot per channel per UTC day — duplicate insertions are caught as `DataIntegrityViolationException` (409) and silently ignored, making the job naturally idempotent.
+
+### Timeseries Analytics
+
+- Query: `GET /analytics/timeseries/by-id?channelDbId={id}&metric=VIEWS&rangeDays=30`
+- Range calculation: `today − (rangeDays − 1)` so a 30-day range always includes today
+- Frontend: TrendsPage with metric / range / mode selectors, Recharts `LineChart`, and insight cards (peak, avg, trend direction)
+
+### OAuth & Token Refresh
+
+Users connect their YouTube account via Google OAuth 2.0 (authorization code flow). The `YouTubeOAuthService` stores the refresh token in `connected_accounts` and auto-refreshes the access token within 60 seconds of expiry. A background `OAuthAnalyticsRefreshJob` (every 6 hours) proactively refreshes tokens for all active accounts.
+
+### API Budget Guard
+
+Each daily refresh run is allotted a configurable quota of YouTube API calls (`max-api-calls-per-run`, default 500). The `ApiCallBudget` object tracks consumption and raises `InsufficientApiQuotaException` if the budget is exhausted, preventing quota overruns. The 429 response includes a `Retry-After` header calculated as seconds until YouTube quota reset at midnight UTC.
+
+### Incremental Video Sync
+
+Videos are fetched via the channel's uploads playlist with a `lastVideoSyncAt` cursor stored on `YouTubeChannel`. Each run only fetches videos published after the cursor, keeping API cost proportional to actual activity rather than total channel history.
+
+---
+
+## API Reference
+
+Base URL: `http://localhost:8081`
+
+Full interactive docs: `http://localhost:8081/swagger-ui.html`
+
+### Channels
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/channels` | List all tracked channels |
+| `GET` | `/channels/{channelDbId}` | Channel detail + metadata |
+| `GET` | `/channels/{channelDbId}/videos?page=0&size=20` | Paginated videos |
+
+### Analytics
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/analytics/channel/by-id?channelDbId=` | Current metrics (subs, views, videos) |
+| `GET` | `/analytics/timeseries/by-id?channelDbId=&metric=VIEWS&rangeDays=30` | Timeseries points (`metric`: `VIEWS` \| `SUBSCRIBERS` \| `UPLOADS`) |
+| `GET` | `/analytics/videos/by-id?channelDbId=&limit=10` | Top videos by view count |
+| `GET` | `/analytics/upload-frequency/by-id?channelDbId=&weeks=12` | Upload frequency breakdown |
+
+> Identifier-based variants (`?identifier=UCxxx` or `?identifier=@handle`) are also supported for all analytics endpoints.
+
+### OAuth
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/v1/oauth/youtube/start?userId=` | Returns Google OAuth consent URL |
+| `GET` | `/api/v1/oauth/youtube/callback?code=&state=` | Exchange code for tokens (Google redirects here) |
+
+### Jobs
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/v1/jobs/refresh/channel?channelDbId=` | Trigger manual channel refresh |
+
+### YouTube (channel add / re-sync)
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/youtube/sync` | Add or re-sync a channel by identifier |
+
+---
+
+## Project Structure
+
+```
+sociallens/
+├── backend/
+│   ├── src/main/java/com/LogicGraph/sociallens/
+│   │   ├── SocialLensApplication.java
+│   │   ├── config/              # SecurityConfig, CorsConfig, YouTubeApiConfig, SchedulerConfig
+│   │   ├── controller/          # AnalyticsController, ChannelsController, YouTubeOAuthController
+│   │   │                        # JobsController, YouTubeController, CreatorIntelligenceController
+│   │   ├── service/
+│   │   │   ├── analytics/       # AnalyticsServiceImpl
+│   │   │   ├── youtube/         # YouTubeServiceImpl, YouTubeSyncServiceImpl
+│   │   │   ├── oauth/           # YouTubeOAuthService, GoogleTokenService
+│   │   │   ├── channel/         # ChannelsServiceImpl, ChannelVideosServiceImpl
+│   │   │   ├── resolver/        # DefaultChannelResolver
+│   │   │   └── creator/         # RetentionDiagnosisService (partial — not production-ready)
+│   │   ├── repository/          # JPA repositories (JpaRepository<Entity, Long>)
+│   │   ├── entity/              # YouTubeChannel, YouTubeVideo, ChannelMetricsSnapshot,
+│   │   │                        # VideoMetricsSnapshot, ConnectedAccount, OAuthState, User
+│   │   ├── dto/                 # Organised by domain: analytics/, channels/, oauth/, error/, ...
+│   │   ├── jobs/                # DailyRefreshJob, DailyRefreshWorker, OAuthAnalyticsRefreshJob,
+│   │   │                        # OAuthStateCleanupJob, ApiCallBudget, JobProperties
+│   │   ├── enums/               # Platform, RefreshStatus, DataSource, ConnectedAccountStatus
+│   │   └── exception/           # Domain exceptions + GlobalExceptionHandler
+│   ├── src/main/resources/
+│   │   ├── application.properties
+│   │   └── db/migration/        # V1__baseline.sql (Flyway)
+│   └── src/test/                # Controller, service, and repository tests
+│
+└── frontend/
+    └── src/
+        ├── api/                 # axiosClient, endpoints, schemas (Zod), types, httpError
+        ├── app/                 # App.tsx, router.tsx, providers.tsx, queryClient.ts
+        │   └── layout/          # AppShell, Sidebar, Topbar
+        ├── components/
+        │   ├── ui/              # shadcn primitives (Radix-based)
+        │   ├── common/          # MetricCard, ChartCard, DataTable, EmptyState, ErrorState
+        │   └── charts/          # Sparkline, RangePills
+        ├── features/
+        │   ├── channels/        # ChannelsListPage, ChannelOverviewPage, ChannelVideosPage
+        │   ├── trends/          # TrendsPage, fetchTimeSeries, computeInsights, hasSufficientData
+        │   ├── insights/        # InsightsPage (partial)
+        │   └── videos/          # VideosPage
+        ├── lib/                 # format.ts, utils.ts, toast.ts
+        ├── pages/               # DashboardPage, NotFoundPage
+        └── styles/              # tokens.css, base.css, animations.css
+```
+
+---
+
+## Known Limitations
+
+These are honest limitations to be aware of before production use:
+
+1. **No authentication on API routes.** All endpoints are currently open (`permitAll`). The `User` entity and `ConnectedAccount` storage exist, but JWT enforcement is not implemented. Anyone who can reach port 8081 can read all data.
+
+2. **Single-user model.** The database supports users, but the UI has no login/signup flow. OAuth linkage requires hitting the start URL with a hardcoded `userId=1`.
+
+3. **H2 file database for development.** The default data source is file-backed H2. Data survives restarts but is not suitable for multi-instance deployments. Switch to PostgreSQL by configuring `spring.datasource.*`.
+
+4. **YouTube public API only (no private analytics).** Unless a channel owner connects via OAuth, only publicly available metrics (subscriber count, view count, video count) are tracked. YouTube Analytics API data (watch time, revenue, traffic sources) requires OAuth with the channel owner's consent — the backend infrastructure exists but the frontend UI to trigger this flow is not built.
+
+5. **No per-video timeseries in the UI.** `video_metrics_snapshot` rows are written daily, but there is no frontend page rendering per-video trend charts.
+
+6. **Instagram is a stub.** `Platform.INSTAGRAM` is defined in the enum; no API integration or OAuth flow exists.
+
+7. **Creator Intelligence is a skeleton.** `CreatorIntelligenceController` and `RetentionDiagnosisService` exist but contain minimal logic and are not connected to anything meaningful.
+
+8. **Jobs are disabled by default.** `sociallens.jobs.enabled=false` by default. Snapshots accumulate only if the cron is enabled or a manual refresh is triggered via the jobs API.
+
+9. **No HTTPS or production hardening.** No TLS config, no secret rotation, and OAuth tokens are stored as plaintext in the database.
+
+---
+
+## Roadmap
+
+- [ ] JWT auth + user login/signup flow
+- [ ] Frontend UI for OAuth connect/disconnect
+- [ ] Per-video trend charts
+- [ ] Export analytics (CSV)
+- [ ] YouTube Analytics API integration (watch time, traffic sources)
+- [ ] Anomaly detection on metric drops
+- [ ] Multi-user / team access
+- [ ] Instagram integration
+- [ ] Dockerized deployment with PostgreSQL
+
+---
+
+## License
+
+MIT
