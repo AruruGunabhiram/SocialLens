@@ -74,8 +74,8 @@ function relAgo(d: Date): string {
 function statusVariant(
   status: RefreshStatus | null,
   isStale: boolean
-): 'secondary' | 'destructive' | 'outline' {
-  if (status === 'FAILED') return 'destructive'
+): 'secondary' | 'danger' | 'outline' {
+  if (status === 'FAILED') return 'danger'
   if (status === 'SUCCESS') return isStale ? 'outline' : 'secondary'
   return 'outline'
 }
