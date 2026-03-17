@@ -1,0 +1,312 @@
+.
+├── LICENSE
+├── PHASE7_EXIT_CRITERIA.md
+├── README.md
+├── architecture.txt
+├── backend
+│   ├── architecture.txt
+│   ├── build.gradle
+│   ├── data
+│   │   ├── sociallens.mv.db
+│   │   └── sociallens.trace.db
+│   ├── gradle
+│   │   └── wrapper
+│   │       ├── gradle-wrapper.jar
+│   │       └── gradle-wrapper.properties
+│   ├── gradlew
+│   ├── gradlew.bat
+│   ├── settings.gradle
+│   └── src
+│       ├── main
+│       │   ├── java
+│       │   │   └── com
+│       │   │       └── LogicGraph
+│       │   │           └── sociallens
+│       │   │               ├── SocialLensApplication.java
+│       │   │               ├── config
+│       │   │               │   ├── CorsConfig.java
+│       │   │               │   ├── OpenApiConfig.java
+│       │   │               │   ├── SchedulerConfig.java
+│       │   │               │   ├── SchedulingConfig.java
+│       │   │               │   ├── SecurityConfig.java
+│       │   │               │   ├── YouTubeApiConfig.java
+│       │   │               │   └── YouTubeConfig.java
+│       │   │               ├── controller
+│       │   │               │   ├── AnalyticsController.java
+│       │   │               │   ├── ChannelsController.java
+│       │   │               │   ├── ConnectedAccountController.java
+│       │   │               │   ├── CreatorIntelligenceController.java
+│       │   │               │   ├── HealthController.java
+│       │   │               │   ├── JobsController.java
+│       │   │               │   ├── UserController.java
+│       │   │               │   ├── YouTubeController.java
+│       │   │               │   ├── YouTubeOAuthController.java
+│       │   │               │   ├── YouTubeSyncController.java
+│       │   │               │   └── YtAnalyticsController.java
+│       │   │               ├── dto
+│       │   │               │   ├── Youtube
+│       │   │               │   │   ├── ChannelSummaryDto.java
+│       │   │               │   │   ├── SyncRequestDto.java
+│       │   │               │   │   ├── SyncResultDto.java
+│       │   │               │   │   ├── VideoDto.java
+│       │   │               │   │   ├── YouTubeChannelResponse.java
+│       │   │               │   │   ├── YouTubePlaylistItemsResponse.java
+│       │   │               │   │   ├── YouTubeSyncRequestDto.java
+│       │   │               │   │   ├── YouTubeSyncResponseDto.java
+│       │   │               │   │   └── YouTubeVideosResponse.java
+│       │   │               │   ├── account
+│       │   │               │   │   ├── ConnectAccountRequest.java
+│       │   │               │   │   ├── ConnectResultDto.java
+│       │   │               │   │   ├── ConnectedAccountDto.java
+│       │   │               │   │   └── ConnectedAccountResponse.java
+│       │   │               │   ├── analytics
+│       │   │               │   │   ├── ChannelAnalyticsDto.java
+│       │   │               │   │   ├── ChannelAnalyticsSummaryDto.java
+│       │   │               │   │   ├── DailyMetricPointDto.java
+│       │   │               │   │   ├── TimeSeriesDto.java
+│       │   │               │   │   ├── TimeSeriesPointDto.java
+│       │   │               │   │   ├── TimeSeriesResponseDto.java
+│       │   │               │   │   ├── TopVideosDto.java
+│       │   │               │   │   ├── UploadFrequencyDto.java
+│       │   │               │   │   └── YtAnalyticsSummaryDto.java
+│       │   │               │   ├── channels
+│       │   │               │   │   ├── ChannelDetailDto.java
+│       │   │               │   │   ├── ChannelListItemDto.java
+│       │   │               │   │   ├── PageMetaDto.java
+│       │   │               │   │   ├── VideoRowDto.java
+│       │   │               │   │   ├── VideoSortKey.java
+│       │   │               │   │   └── VideosPageResponseDto.java
+│       │   │               │   ├── creator
+│       │   │               │   │   ├── CreatorDiagnosisDto.java
+│       │   │               │   │   ├── DropEventDto.java
+│       │   │               │   │   ├── RetentionDiagnosisDto.java
+│       │   │               │   │   ├── RetentionDiagnosisRequest.java
+│       │   │               │   │   ├── RetentionDiagnosisResponse.java
+│       │   │               │   │   ├── RetentionDropEventDto.java
+│       │   │               │   │   ├── RetentionPoint.java
+│       │   │               │   │   └── RetentionPointDto.java
+│       │   │               │   ├── error
+│       │   │               │   │   └── ErrorResponseDto.java
+│       │   │               │   ├── jobs
+│       │   │               │   │   ├── JobRunResultDto.java
+│       │   │               │   │   ├── JobStatusDto.java
+│       │   │               │   │   ├── JobTriggerResultDto.java
+│       │   │               │   │   └── OAuthAnalyticsJobRunResultDto.java
+│       │   │               │   ├── oauth
+│       │   │               │   │   ├── OAuthCallbackDto.java
+│       │   │               │   │   ├── OAuthCallbackResponse.java
+│       │   │               │   │   ├── OAuthStartDto.java
+│       │   │               │   │   └── OAuthStartResponse.java
+│       │   │               │   └── user
+│       │   │               │       ├── CreateUserRequest.java
+│       │   │               │       └── UserResponse.java
+│       │   │               ├── entity
+│       │   │               │   ├── ChannelMetricsSnapshot.java
+│       │   │               │   ├── ConnectedAccount.java
+│       │   │               │   ├── Hashtag.java
+│       │   │               │   ├── OAuthState.java
+│       │   │               │   ├── User.java
+│       │   │               │   ├── VideoHashtag.java
+│       │   │               │   ├── VideoMetricsSnapshot.java
+│       │   │               │   ├── YouTubeChannel.java
+│       │   │               │   └── YouTubeVideo.java
+│       │   │               ├── enums
+│       │   │               │   ├── ConnectedAccountStatus.java
+│       │   │               │   ├── DataSource.java
+│       │   │               │   ├── Platform.java
+│       │   │               │   └── RefreshStatus.java
+│       │   │               ├── exception
+│       │   │               │   ├── ApiExceptionHandler.java
+│       │   │               │   ├── ChannelNotFoundException.java
+│       │   │               │   ├── ConnectedAccountNotFoundException.java
+│       │   │               │   ├── ErrorResponse.java
+│       │   │               │   ├── GlobalExceptionHandler.java
+│       │   │               │   ├── InsufficientApiQuotaException.java
+│       │   │               │   ├── NotFoundException.java
+│       │   │               │   ├── OAuthStateInvalidException.java
+│       │   │               │   ├── RateLimitExceededException.java
+│       │   │               │   ├── RateLimitException.java
+│       │   │               │   ├── RefreshAlreadyRunningException.java
+│       │   │               │   ├── SyncAlreadyInProgressException.java
+│       │   │               │   ├── TokenRefreshFailedException.java
+│       │   │               │   └── VideoNotFoundException.java
+│       │   │               ├── jobs
+│       │   │               │   ├── ApiCallBudget.java
+│       │   │               │   ├── DailyRefreshJob.java
+│       │   │               │   ├── DailyRefreshWorker.java
+│       │   │               │   ├── JobProperties.java
+│       │   │               │   ├── JobStartupProbe.java
+│       │   │               │   └── OAuthAnalyticsRefreshJob.java
+│       │   │               ├── repository
+│       │   │               │   ├── ChannelMetricsSnapshotRepository.java
+│       │   │               │   ├── ConnectedAccountRepository.java
+│       │   │               │   ├── HashtagRepository.java
+│       │   │               │   ├── OAuthStateRepository.java
+│       │   │               │   ├── UserRepository.java
+│       │   │               │   ├── VideoHashtagRepository.java
+│       │   │               │   ├── VideoMetricsSnapshotRepository.java
+│       │   │               │   ├── YouTubeChannelRepository.java
+│       │   │               │   └── YouTubeVideoRepository.java
+│       │   │               └── service
+│       │   │                   ├── ConnectedAccountService.java
+│       │   │                   ├── UserService.java
+│       │   │                   ├── YouTubeService.java
+│       │   │                   ├── YouTubeSyncService.java
+│       │   │                   ├── analytics
+│       │   │                   │   ├── AnalyticsService.java
+│       │   │                   │   ├── AnalyticsServiceImpl.java
+│       │   │                   │   ├── YtAnalyticsService.java
+│       │   │                   │   └── YtAnalyticsServiceImpl.jav
+│       │   │                   ├── channel
+│       │   │                   │   ├── ChannelVideosService.java
+│       │   │                   │   ├── ChannelVideosServiceImpl.java
+│       │   │                   │   ├── ChannelsService.java
+│       │   │                   │   └── ChannelsServiceImpl.java
+│       │   │                   ├── creator
+│       │   │                   │   ├── RetentionDiagnosisService.java
+│       │   │                   │   └── RetentionDiagnosisServiceImpl.java
+│       │   │                   ├── oauth
+│       │   │                   │   ├── GoogleTokenService.java
+│       │   │                   │   └── YouTubeOAuthService.java
+│       │   │                   ├── resolver
+│       │   │                   │   ├── ChannelIdentifierType.java
+│       │   │                   │   ├── ChannelResolver.java
+│       │   │                   │   ├── DefaultChannelResolver.java
+│       │   │                   │   └── ResolvedChannelIdentifier.java
+│       │   │                   └── youtube
+│       │   │                       ├── ChannelDto.java
+│       │   │                       ├── YouTubeAnalyticsClient.java
+│       │   │                       ├── YouTubeService.java
+│       │   │                       ├── YouTubeServiceImpl.java
+│       │   │                       ├── YouTubeSyncService.java
+│       │   │                       └── YouTubeSyncServiceImpl.java
+│       │   └── resources
+│       │       ├── application-local.properties
+│       │       ├── application-local.properties.example
+│       │       └── application.properties
+│       └── test
+│           └── java
+│               └── com
+│                   └── LogicGraph
+│                       └── sociallens
+│                           ├── controller
+│                           │   ├── AnalyticsControllerTest.java
+│                           │   └── YouTubeSyncControllerTest.java
+│                           ├── exception
+│                           │   └── ApiExceptionHandlerTest.java
+│                           └── service
+│                               └── analytics
+│                                   ├── AnalyticsServiceGroupByDayTest.java
+│                                   └── AnalyticsServiceTopVideosTest.java
+├── docker-compose.yml
+├── docs
+│   └── architecture.md
+├── frontend
+│   ├── index.html
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── postcss.config.cjs
+│   ├── src
+│   │   ├── api
+│   │   │   ├── axiosClient.ts
+│   │   │   ├── endpoints.ts
+│   │   │   ├── httpError.test.ts
+│   │   │   ├── httpError.ts
+│   │   │   ├── schemas.ts
+│   │   │   └── types.ts
+│   │   ├── app
+│   │   │   ├── App.tsx
+│   │   │   ├── layout
+│   │   │   │   ├── AppShell.tsx
+│   │   │   │   ├── Sidebar.tsx
+│   │   │   │   └── Topbar.tsx
+│   │   │   ├── providers.tsx
+│   │   │   ├── queryClient.ts
+│   │   │   └── router.tsx
+│   │   ├── components
+│   │   │   ├── cards
+│   │   │   ├── charts
+│   │   │   │   ├── RangePills.tsx
+│   │   │   │   └── Sparkline.tsx
+│   │   │   ├── common
+│   │   │   │   ├── ChartCard.tsx
+│   │   │   │   ├── DataTable.test.tsx
+│   │   │   │   ├── DataTable.tsx
+│   │   │   │   ├── EmptyState.tsx
+│   │   │   │   ├── ErrorState.tsx
+│   │   │   │   ├── InfoTooltip.tsx
+│   │   │   │   ├── MetricCard.tsx
+│   │   │   │   ├── SkeletonBlock.tsx
+│   │   │   │   ├── StatCard.test.tsx
+│   │   │   │   └── StatCard.tsx
+│   │   │   ├── layout
+│   │   │   │   └── CopilotPanel.tsx
+│   │   │   ├── tables
+│   │   │   └── ui
+│   │   │       ├── badge.tsx
+│   │   │       ├── button.tsx
+│   │   │       ├── card.tsx
+│   │   │       ├── input.tsx
+│   │   │       ├── separator.tsx
+│   │   │       ├── skeleton.tsx
+│   │   │       └── sonner.tsx
+│   │   ├── features
+│   │   │   ├── channels
+│   │   │   │   ├── api.ts
+│   │   │   │   ├── components
+│   │   │   │   │   ├── ChannelChart.tsx
+│   │   │   │   │   ├── ChannelHeader.tsx
+│   │   │   │   │   ├── ChannelStats.tsx
+│   │   │   │   │   └── FreshnessBadge.tsx
+│   │   │   │   ├── pages
+│   │   │   │   │   ├── ChannelOverviewPage.tsx
+│   │   │   │   │   ├── ChannelVideosPage.tsx
+│   │   │   │   │   └── ChannelsListPage.tsx
+│   │   │   │   ├── queries.ts
+│   │   │   │   └── schemas.ts
+│   │   │   ├── insights
+│   │   │   │   └── pages
+│   │   │   │       └── InsightsPage.tsx
+│   │   │   ├── trends
+│   │   │   │   ├── api.ts
+│   │   │   │   ├── pages
+│   │   │   │   │   └── TrendsPage.tsx
+│   │   │   │   ├── queries.ts
+│   │   │   │   └── utils.ts
+│   │   │   └── videos
+│   │   │       └── pages
+│   │   │           └── VideosPage.tsx
+│   │   ├── lib
+│   │   │   ├── ReduceMotionContext.tsx
+│   │   │   ├── toast.ts
+│   │   │   ├── utils.test.ts
+│   │   │   └── utils.ts
+│   │   ├── main.tsx
+│   │   ├── pages
+│   │   │   ├── DashboardPage.tsx
+│   │   │   └── NotFoundPage.tsx
+│   │   ├── styles
+│   │   │   ├── animations.css
+│   │   │   ├── base.css
+│   │   │   ├── globals.css
+│   │   │   └── tokens.css
+│   │   ├── test
+│   │   │   └── setup.ts
+│   │   ├── types
+│   │   └── vite-env.d.ts
+│   ├── tailwind.config.ts
+│   ├── tsconfig.app.json
+│   ├── tsconfig.app.tsbuildinfo
+│   ├── tsconfig.json
+│   ├── tsconfig.node.json
+│   ├── tsconfig.node.tsbuildinfo
+│   ├── vite.config.d.ts
+│   ├── vite.config.js
+│   └── vite.config.ts
+└── scripts
+    ├── README.md
+    ├── dev-backend.sh
+    ├── dev-down.sh
+    └── dev-up.sh
+
+74 directories, 236 files

@@ -14,8 +14,8 @@ import com.LogicGraph.sociallens.repository.ChannelMetricsSnapshotRepository;
 import com.LogicGraph.sociallens.repository.VideoMetricsSnapshotRepository;
 import com.LogicGraph.sociallens.repository.YouTubeChannelRepository;
 import com.LogicGraph.sociallens.repository.YouTubeVideoRepository;
-import com.LogicGraph.sociallens.service.channel.ChannelResolver;
-import com.LogicGraph.sociallens.service.channel.ResolvedChannelIdentifier;
+import com.LogicGraph.sociallens.service.resolver.ChannelResolver;
+import com.LogicGraph.sociallens.service.resolver.ResolvedChannelIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -150,8 +150,8 @@ public class YouTubeSyncService {
 
         res.resolved = new YouTubeSyncResponseDto.Resolved();
         res.resolved.channelId = dto.channelId();
-        res.resolved.resolvedFrom = resolved.getType().name();
-        res.resolved.normalizedInput = resolved.getValue();
+        res.resolved.resolvedFrom = resolved.type().name();
+        res.resolved.normalizedInput = resolved.resolvedChannelId();
 
         res.result = new YouTubeSyncResponseDto.Result();
         res.result.pagesFetched = pagesFetched;
