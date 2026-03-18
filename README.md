@@ -19,18 +19,9 @@ SocialLens lets you:
 
 ---
 
-## Live Demo / Screenshots
+## Running the app
 
-> **TODO:** Capture the following screenshots before the interview (see screenshot checklist in `docs/screenshot-checklist.md`).
-
-| Screenshot | Filename |
-|---|---|
-| Channel list page | `docs/screenshots/channels-list.png` |
-| Channel overview (stats + chart) | `docs/screenshots/channel-overview.png` |
-| Trends page — VIEWS 30-day line chart | `docs/screenshots/trends-views-30d.png` |
-| Trends page — daily-change mode | `docs/screenshots/trends-daily-change.png` |
-| Channel videos table | `docs/screenshots/channel-videos.png` |
-| H2 console showing snapshot table | `docs/screenshots/h2-snapshots.png` |
+Start the backend and frontend (see Getting Started below), then open `http://localhost:5173`.
 
 ---
 
@@ -126,16 +117,10 @@ SERVER_PORT=8081
 
 ```bash
 cd backend
-./scripts/dev-up.sh
-# or: ./gradlew bootRun
+./gradlew bootRun
 ```
 
 The API starts on **port 8081**. H2 console is available at `http://localhost:8081/h2-console`.
-
-**Stop the backend:**
-```bash
-./scripts/dev-down.sh
-```
 
 **Start on an alternate port:**
 ```bash
@@ -160,7 +145,7 @@ The dev server starts on **port 5173**.
 ### 5. Sync a channel
 
 ```bash
-curl -X POST "http://localhost:8081/youtube/sync" \
+curl -X POST "http://localhost:8081/api/v1/youtube/sync" \
   -H "Content-Type: application/json" \
   -d '{"identifier": "@mkbhd"}'
 ```
@@ -173,7 +158,7 @@ Then open `http://localhost:5173` to see the dashboard.
 
 ### Daily Snapshot Strategy
 
-A `DailyRefreshJob` (cron: `0 30 2 * * *`, 2:30 AM UTC) fetches public metrics for every active channel and writes a `channel_metrics_snapshot` row per day. A `UNIQUE(channel_id, captured_day_utc)` constraint enforces exactly one snapshot per channel per UTC day — duplicate insertions are caught as `DataIntegrityViolationException` (409) and silently ignored, making the job naturally idempotent.
+A `DailyRefreshJob` (cron: `0 15 3 * * *`, 3:15 AM server time, configurable via `sociallens.jobs.daily-refresh.cron`) fetches public metrics for every active channel and writes a `channel_metrics_snapshot` row per day. A `UNIQUE(channel_id, captured_day_utc)` constraint enforces exactly one snapshot per channel per UTC day — duplicate insertions are caught as `DataIntegrityViolationException` (409) and silently ignored, making the job naturally idempotent.
 
 ### Timeseries Analytics
 
@@ -187,7 +172,7 @@ Users connect their YouTube account via Google OAuth 2.0 (authorization code flo
 
 ### API Budget Guard
 
-Each daily refresh run is allotted a configurable quota of YouTube API calls (`max-api-calls-per-run`, default 500). The `ApiCallBudget` object tracks consumption and raises `InsufficientApiQuotaException` if the budget is exhausted, preventing quota overruns. The 429 response includes a `Retry-After` header calculated as seconds until YouTube quota reset at midnight UTC.
+Each daily refresh run is allotted a configurable quota of YouTube API calls (`max-api-calls-per-run`, default 500). The `ApiCallBudget` object tracks consumption and raises `InsufficientApiQuotaException` if the budget is exhausted, preventing quota overruns. The 429 response includes a `Retry-After` header calculated as seconds until YouTube quota reset at midnight Pacific Time.
 
 ### Incremental Video Sync
 
@@ -237,7 +222,7 @@ Full interactive docs: `http://localhost:8081/swagger-ui.html`
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/youtube/sync` | Add or re-sync a channel by identifier |
+| `POST` | `/api/v1/youtube/sync` | Add or re-sync a channel by identifier |
 
 ---
 
@@ -308,7 +293,7 @@ These are honest limitations to be aware of before production use:
 
 6. **Instagram is a stub.** `Platform.INSTAGRAM` is defined in the enum; no API integration or OAuth flow exists.
 
-7. **Creator Intelligence is a skeleton.** `CreatorIntelligenceController` and `RetentionDiagnosisService` exist but contain minimal logic and are not connected to anything meaningful.
+7. **Creator Intelligence has no frontend UI.** `RetentionDiagnosisServiceImpl` can detect audience retention drops, classify them by video position (hook / pacing / outro / structure), and return severity-graded diagnoses with recommendations. The endpoint is live at `POST /creator/retention/diagnosis` but there is no frontend page for it.
 
 8. **Jobs are disabled by default.** `sociallens.jobs.enabled=false` by default. Snapshots accumulate only if the cron is enabled or a manual refresh is triggered via the jobs API.
 
