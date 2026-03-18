@@ -1,6 +1,7 @@
 package com.LogicGraph.sociallens.service.youtube;
 
 import com.LogicGraph.sociallens.dto.creator.RetentionPoint;
+import com.LogicGraph.sociallens.exception.UpstreamAnalyticsException;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientResponseException;
@@ -70,7 +71,7 @@ public class YouTubeAnalyticsClient {
             return out;
 
         } catch (RestClientResponseException ex) {
-            throw new IllegalStateException(
+            throw new UpstreamAnalyticsException(
                     "YouTube Analytics error: HTTP " + ex.getRawStatusCode() + " - " + ex.getResponseBodyAsString(),
                     ex
             );

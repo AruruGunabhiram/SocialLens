@@ -1,6 +1,7 @@
 package com.LogicGraph.sociallens.service.analytics;
 
 import com.LogicGraph.sociallens.dto.analytics.YtAnalyticsSummaryDto;
+import com.LogicGraph.sociallens.exception.UpstreamAnalyticsException;
 import com.LogicGraph.sociallens.service.oauth.GoogleTokenService;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -49,7 +50,7 @@ public class YtAnalyticsService {
             );
 
             Map body = res.getBody();
-            if (body == null) throw new IllegalStateException("YouTube Analytics returned empty body");
+            if (body == null) throw new UpstreamAnalyticsException("YouTube Analytics returned empty body");
 
             List rows = (List) body.get("rows");
 
@@ -74,7 +75,7 @@ public class YtAnalyticsService {
             return dto;
 
         } catch (org.springframework.web.client.HttpStatusCodeException e) {
-            throw new IllegalStateException(
+            throw new UpstreamAnalyticsException(
                     "YouTube Analytics API failed: " + e.getStatusCode() + " body=" + e.getResponseBodyAsString(),
                     e
             );
