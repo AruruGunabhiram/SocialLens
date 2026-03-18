@@ -130,7 +130,7 @@ public class YouTubeOAuthService {
 
         String accessToken = account.getAccessToken();
         if (accessToken == null || accessToken.isBlank()) {
-            throw new IllegalStateException("Missing access token for connected account id=" + account.getId());
+            throw new TokenRefreshFailedException(String.valueOf(account.getId()), "missing access token");
         }
 
         Instant expiresAt = account.getExpiresAt();
@@ -141,7 +141,8 @@ public class YouTubeOAuthService {
 
         String refreshToken = account.getRefreshToken();
         if (refreshToken == null || refreshToken.isBlank()) {
-            throw new IllegalStateException("Access token expired and refresh token missing for account id=" + account.getId());
+            throw new TokenRefreshFailedException(String.valueOf(account.getId()),
+                    "access token expired and no refresh token available");
         }
 
         TokenRefreshResult refreshed;
@@ -174,7 +175,7 @@ public class YouTubeOAuthService {
 
         String refreshToken = acc.getRefreshToken();
         if (refreshToken == null || refreshToken.isBlank()) {
-            throw new IllegalStateException("Refresh token missing for account id=" + acc.getId());
+            throw new TokenRefreshFailedException(String.valueOf(acc.getId()), "refresh token missing");
         }
 
         TokenRefreshResult result;

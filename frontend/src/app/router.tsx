@@ -8,6 +8,7 @@ const ChannelsListPage = lazy(() => import('@/features/channels/pages/ChannelsLi
 const ChannelVideosPage = lazy(() => import('@/features/channels/pages/ChannelVideosPage'))
 const InsightsPage = lazy(() => import('@/features/insights/pages/InsightsPage'))
 const TrendsPage = lazy(() => import('@/features/trends/pages/TrendsPage'))
+const VideosPage = lazy(() => import('@/features/videos/pages/VideosPage'))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
 
 export function AppRouter() {
@@ -18,6 +19,9 @@ export function AppRouter() {
         {/* /dashboard and legacy /channel redirect to the channels list */}
         <Route path="/dashboard" element={<Navigate to="/channels" replace />} />
         <Route path="/channel" element={<Navigate to="/channels" replace />} />
+
+        {/* Top-level feature pages */}
+        <Route path="/videos" element={<VideosPage />} />
 
         {/* Channels feature */}
         <Route path="/channels" element={<ChannelsListPage />} />

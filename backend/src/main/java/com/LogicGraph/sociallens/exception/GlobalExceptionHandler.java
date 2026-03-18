@@ -104,6 +104,17 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponseDto(ex.getMessage(), "QUOTA_INSUFFICIENT", Instant.now()));
     }
 
+    /**
+     * Upstream YouTube API failures (analytics or Data API returned an error/empty body).
+     * Returns 502 so callers can distinguish "our bug" (500) from "YouTube is broken" (502).
+     */
+    @ExceptionHandler(UpstreamAnalyticsException.class)
+    public ResponseEntity<ErrorResponseDto> handleUpstreamAnalytics(UpstreamAnalyticsException ex) {
+        log.error("UpstreamAnalyticsException: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                .body(new ErrorResponseDto(ex.getMessage(), "UPSTREAM_ANALYTICS_ERROR", Instant.now()));
+    }
+
     @ExceptionHandler(ConnectedAccountNotFoundException.class)
     public ResponseEntity<ErrorResponseDto> handleConnectedAccountNotFound(ConnectedAccountNotFoundException ex) {
         log.error("ConnectedAccountNotFoundException: {}", ex.getMessage(), ex);

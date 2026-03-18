@@ -4,7 +4,6 @@ import com.LogicGraph.sociallens.dto.account.ConnectAccountRequest;
 import com.LogicGraph.sociallens.entity.ConnectedAccount;
 import com.LogicGraph.sociallens.entity.User;
 import com.LogicGraph.sociallens.enums.Platform;
-import com.LogicGraph.sociallens.exception.ConnectedAccountNotFoundException;
 import com.LogicGraph.sociallens.repository.ConnectedAccountRepository;
 import com.LogicGraph.sociallens.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,8 +31,6 @@ class ConnectedAccountServiceTest {
     @BeforeEach
     void setUp() {
         service = new ConnectedAccountService(connectedAccountRepository, userRepository);
-        ReflectionTestUtils.setField(service, "clientId", "test-client-id");
-        ReflectionTestUtils.setField(service, "clientSecret", "test-secret");
     }
 
     // -------------------------------------------------------------------------
@@ -84,17 +81,4 @@ class ConnectedAccountServiceTest {
         assertThat(result).isFalse();
     }
 
-    /**
-     * getValidAccessToken must throw ConnectedAccountNotFoundException (not
-     * IllegalStateException) when there is no account for the platform.
-     * The GlobalExceptionHandler maps ConnectedAccountNotFoundException → 404.
-     */
-    @Test
-    void getValidAccessToken_platformNotConnected_throwsNotFound() {
-        when(connectedAccountRepository.findByUser_IdAndPlatform(42L, Platform.YOUTUBE))
-                .thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> service.getValidAccessToken(42L, Platform.YOUTUBE))
-                .isInstanceOf(ConnectedAccountNotFoundException.class);
-    }
 }

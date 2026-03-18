@@ -1,13 +1,12 @@
-import { Suspense, useState } from 'react'
+import { Suspense } from 'react'
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion'
 import { Outlet, useLocation } from 'react-router-dom'
 
 import { useReduceMotion } from '@/lib/ReduceMotionContext'
+import { useMode } from '@/lib/ModeContext'
 import { Topbar } from './Topbar'
 import { Sidebar } from './Sidebar'
 import { CopilotPanel } from '@/components/layout/CopilotPanel'
-
-type AppMode = 'explorer' | 'studio'
 
 function PageFallback() {
   return (
@@ -28,7 +27,7 @@ function PageFallback() {
 export function AppShell() {
   const location = useLocation()
   const { reduceMotion } = useReduceMotion()
-  const [mode, setMode] = useState<AppMode>('explorer')
+  const { mode } = useMode()
 
   return (
     <div
@@ -67,34 +66,6 @@ export function AppShell() {
       </div>
 
       <AnimatePresence>{mode === 'studio' && <CopilotPanel />}</AnimatePresence>
-
-      {import.meta.env.DEV && (
-        <button
-          type="button"
-          onClick={() => setMode((m) => (m === 'explorer' ? 'studio' : 'explorer'))}
-          aria-label={`Active mode: ${mode}. Click to toggle.`}
-          title="Dev: toggle Explorer / Studio mode"
-          style={{
-            position: 'fixed',
-            bottom: 'var(--space-4)',
-            right: 'var(--space-4)',
-            zIndex: 9999,
-            background: 'var(--color-surface-3)',
-            border: '1px solid var(--color-border-strong)',
-            borderRadius: 'var(--radius-full)',
-            padding: 'var(--space-2) var(--space-3)',
-            fontFamily: 'var(--font-mono)',
-            fontSize: 'var(--text-xs)',
-            fontWeight: 500,
-            letterSpacing: 'var(--tracking-widest)',
-            color: 'var(--accent)',
-            cursor: 'pointer',
-            transition: 'color var(--duration-base) var(--ease-standard)',
-          }}
-        >
-          {mode === 'explorer' ? 'EXPLORER' : 'STUDIO'}
-        </button>
-      )}
     </div>
   )
 }

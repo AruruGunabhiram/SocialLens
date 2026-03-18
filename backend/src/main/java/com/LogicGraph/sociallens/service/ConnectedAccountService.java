@@ -8,33 +8,14 @@ import com.LogicGraph.sociallens.enums.Platform;
 import com.LogicGraph.sociallens.exception.ConnectedAccountNotFoundException;
 import com.LogicGraph.sociallens.repository.ConnectedAccountRepository;
 import com.LogicGraph.sociallens.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestClientResponseException;
-import org.springframework.web.client.RestTemplate;
-
-import java.time.Instant;
-import java.util.Map;
 
 @Service
 public class ConnectedAccountService {
 
     private final ConnectedAccountRepository connectedAccountRepository;
     private final UserRepository userRepository;
-
-    private final RestTemplate restTemplate = new RestTemplate();
-
-    @Value("${google.oauth.client-id}")
-    private String clientId;
-
-    @Value("${google.oauth.client-secret}")
-    private String clientSecret;
-
-    private static final String TOKEN_URL = "https://oauth2.googleapis.com/token";
 
     public ConnectedAccountService(
             ConnectedAccountRepository connectedAccountRepository,
@@ -99,89 +80,11 @@ public class ConnectedAccountService {
         return connectedAccountRepository
                 .findByUser_IdAndPlatform(userId, platform)
                 .isPresent();
-
     }
 
     @Transactional
     public ConnectedAccount save(ConnectedAccount account) {
         return connectedAccountRepository.save(account);
-    }
-
-    /**
-     * Returns an access token that is valid (refreshes if needed).
-     * Use this BEFORE calling YouTube Data API / YouTube Analytics API.
-     */
-    @Transactional
-    public String getValidAccessToken(Long userId, Platform platform) {
-        ConnectedAccount account = connectedAccountRepository
-                .findByUser_IdAndPlatform(userId, platform)
-                .orElseThrow(() -> new ConnectedAccountNotFoundException(
-                        userId + " (platform=" + platform + ")"));
-
-        // If expires in more than 60 seconds, it’s safe
-        Instant expiresAt = account.getExpiresAt();
-        if (expiresAt != null && expiresAt.isAfter(Instant.now().plusSeconds(60))) {
-            return account.getAccessToken();
-        }
-
-        // Need refresh
-        if (account.getRefreshToken() == null || account.getRefreshToken().isBlank()) {
-            throw new IllegalStateException(
-                    "Access token expired and no refresh token available. Reconnect OAuth.");
-        }
-
-        return refreshAndPersistAccessToken(account);
-    }
-
-    /**
-     * Refresh access token using refresh_token grant, update DB, return new token.
-     * Google expects application/x-www-form-urlencoded.
-     */
-    private String refreshAndPersistAccessToken(ConnectedAccount account) {
-        if (clientId == null || clientId.isBlank() || clientSecret == null || clientSecret.isBlank()) {
-            throw new IllegalStateException("Missing google.oauth.client-id / google.oauth.client-secret");
-        }
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-        form.add("client_id", clientId);
-        form.add("client_secret", clientSecret);
-        form.add("refresh_token", account.getRefreshToken());
-        form.add("grant_type", "refresh_token");
-
-        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(form, headers);
-
-        try {
-            @SuppressWarnings("unchecked")
-            ResponseEntity<Map> response = restTemplate.exchange(
-                    TOKEN_URL,
-                    HttpMethod.POST,
-                    request,
-                    Map.class);
-
-            Map<String, Object> body = response.getBody();
-            if (body == null || body.get("access_token") == null || body.get("expires_in") == null) {
-                throw new IllegalStateException("Failed to refresh access token (unexpected response)");
-            }
-
-            String newAccessToken = body.get("access_token").toString();
-            long expiresIn = Long.parseLong(body.get("expires_in").toString());
-            Instant newExpiry = Instant.now().plusSeconds(expiresIn);
-
-            // Persist new access token + expiry; DO NOT touch refresh token here
-            account.setAccessToken(newAccessToken);
-            account.setExpiresAt(newExpiry);
-
-            connectedAccountRepository.save(account);
-            return newAccessToken;
-
-        } catch (RestClientResponseException ex) {
-            throw new IllegalStateException(
-                    "Token refresh failed: HTTP " + ex.getRawStatusCode() + " - " + ex.getResponseBodyAsString(),
-                    ex);
-        }
     }
 
     private ConnectedAccountResponse toResponse(ConnectedAccount saved) {
