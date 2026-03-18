@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { Grid2X2, TrendingUp } from 'lucide-react'
+import { Grid2X2 } from 'lucide-react'
+import { useMode } from '@/lib/ModeContext'
 
 const CHANNEL_RE = /^\/channels\/(\d+)(\/|$)/
 
@@ -7,13 +8,11 @@ function channelPath(channelDbId: string | undefined, leaf: string): string {
   return channelDbId ? `/channels/${channelDbId}/${leaf}` : `/${leaf}`
 }
 
-const NAV_ITEMS = [
-  { label: 'Channels', to: '/channels', icon: Grid2X2 },
-  { label: 'Trending', to: '/trends', icon: TrendingUp },
-] as const
+const NAV_ITEMS = [{ label: 'Channels', to: '/channels', icon: Grid2X2 }] as const
 
 export function Sidebar() {
   const { pathname } = useLocation()
+  const { setMode } = useMode()
   const channelId = CHANNEL_RE.exec(pathname)?.[1]
 
   // Suppress unused-var warning — channelId will be used once channel-scoped
@@ -143,8 +142,9 @@ export function Sidebar() {
           <button
             type="button"
             className="w-full"
+            onClick={() => setMode('studio')}
             style={{
-              background: 'var(--color-amber-500)',
+              background: 'var(--accent)',
               color: 'var(--color-text-inverse)',
               fontFamily: 'var(--font-body)',
               fontSize: 'var(--text-sm)',
@@ -156,7 +156,7 @@ export function Sidebar() {
               transition: 'opacity var(--duration-base) var(--ease-standard)',
             }}
           >
-            Connect with YouTube
+            Enter Studio
           </button>
         </div>
       </div>

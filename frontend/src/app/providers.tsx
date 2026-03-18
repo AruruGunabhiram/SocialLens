@@ -6,6 +6,7 @@ import { ErrorState } from '@/components/common/ErrorState'
 import { Toaster } from '@/components/ui/sonner'
 import { ReduceMotionProvider } from '@/lib/ReduceMotionContext'
 
+import { ModeProvider } from '@/lib/ModeContext'
 import { queryClient } from './queryClient'
 
 interface ProvidersProps {
@@ -33,11 +34,13 @@ function GlobalErrorFallback({
 
 export function Providers({ children }: ProvidersProps) {
   return (
-    <ReduceMotionProvider>
-      <QueryClientProvider client={queryClient}>
-        <ErrorBoundary FallbackComponent={GlobalErrorFallback}>{children}</ErrorBoundary>
-        <Toaster />
-      </QueryClientProvider>
-    </ReduceMotionProvider>
+    <ModeProvider>
+      <ReduceMotionProvider>
+        <QueryClientProvider client={queryClient}>
+          <ErrorBoundary FallbackComponent={GlobalErrorFallback}>{children}</ErrorBoundary>
+          <Toaster />
+        </QueryClientProvider>
+      </ReduceMotionProvider>
+    </ModeProvider>
   )
 }

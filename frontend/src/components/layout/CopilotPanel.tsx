@@ -70,7 +70,7 @@ export function CopilotPanel() {
               width: 8,
               height: 8,
               borderRadius: 'var(--radius-full)',
-              background: 'var(--color-blue-500)',
+              background: 'var(--accent)',
               flexShrink: 0,
             }}
           />
@@ -96,9 +96,9 @@ export function CopilotPanel() {
             fontWeight: 500,
             letterSpacing: 'var(--tracking-widest)',
             textTransform: 'uppercase',
-            color: 'var(--color-blue-400)',
-            background: 'var(--color-blue-glow)',
-            border: '1px solid rgba(59, 130, 246, 0.3)',
+            color: 'var(--accent-400)',
+            background: 'var(--accent-glow)',
+            border: '1px solid var(--color-border-strong)',
             borderRadius: 'var(--radius-full)',
             padding: '2px 8px',
           }}
