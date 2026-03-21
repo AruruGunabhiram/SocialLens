@@ -1,18 +1,21 @@
+# Copy this file to application-local.properties and fill in real values.
+# Start PostgreSQL first: docker compose up -d db
+
 server.port=8081
 
-youtube.api.key=${YOUTUBE_API_KEY}
-google.oauth.client-id=${GOOGLE_OAUTH_CLIENT_ID}
-google.oauth.client-secret=${GOOGLE_OAUTH_CLIENT_SECRET}
-google.oauth.redirect-uri=${GOOGLE_OAUTH_REDIRECT_URI}
+youtube.api.key=YOUR_YOUTUBE_API_KEY
+google.oauth.client-id=YOUR_GOOGLE_CLIENT_ID
+google.oauth.client-secret=YOUR_GOOGLE_CLIENT_SECRET
+google.oauth.redirect-uri=http://localhost:8081/api/v1/oauth/youtube/callback
 
-spring.datasource.url=jdbc:h2:file:./data/sociallens;MODE=PostgreSQL;AUTO_SERVER=TRUE
-spring.datasource.driverClassName=org.h2.Driver
-spring.datasource.username=sa
-spring.datasource.password=
-spring.h2.console.enabled=true
-spring.h2.console.path=/h2-console
+# PostgreSQL datasource (matches docker-compose.yml defaults)
+spring.datasource.url=jdbc:postgresql://localhost:5432/sociallens
+spring.datasource.driver-class-name=org.postgresql.Driver
+spring.datasource.username=sociallens
+spring.datasource.password=sociallens
 
-spring.jpa.hibernate.ddl-auto=update
+spring.jpa.hibernate.ddl-auto=validate
+spring.flyway.enabled=true
 spring.jpa.open-in-view=false
 spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.format_sql=true

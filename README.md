@@ -113,18 +113,28 @@ GOOGLE_OAUTH_REDIRECT_URI=http://localhost:8081/api/v1/oauth/youtube/callback
 SERVER_PORT=8081
 ```
 
-### 3. Start the backend
+### 3. Start PostgreSQL
+
+The backend requires PostgreSQL. Start it via Docker Compose (from the repo root):
+
+```bash
+docker compose up -d db
+```
+
+This starts `sociallens-postgres` on port 5432 using the credentials defined in `docker-compose.yml` (`sociallens` / `sociallens`). Flyway will apply `V1__baseline.sql` automatically on first boot.
+
+### 4. Start the backend
 
 ```bash
 cd backend
-./gradlew bootRun
+./gradlew bootRun --args='--spring.profiles.active=local'
 ```
 
-The API starts on **port 8081**. H2 console is available at `http://localhost:8081/h2-console`.
+The API starts on **port 8081**.
 
 **Start on an alternate port:**
 ```bash
-SERVER_PORT=8082 ./gradlew bootRun
+./gradlew bootRun --args='--spring.profiles.active=local --server.port=8082'
 ```
 
 **View logs:**
@@ -132,7 +142,7 @@ SERVER_PORT=8082 ./gradlew bootRun
 tail -f /tmp/backend.log
 ```
 
-### 4. Start the frontend
+### 5. Start the frontend
 
 ```bash
 cd frontend
@@ -142,7 +152,7 @@ npm run dev
 
 The dev server starts on **port 5173**.
 
-### 5. Sync a channel
+### 6. Sync a channel
 
 ```bash
 curl -X POST "http://localhost:8081/api/v1/youtube/sync" \
@@ -285,7 +295,7 @@ These are honest limitations to be aware of before production use:
 
 2. **Single-user model.** The database supports users, but the UI has no login/signup flow. OAuth linkage requires hitting the start URL with a hardcoded `userId=1`.
 
-3. **H2 file database for development.** The default data source is file-backed H2. Data survives restarts but is not suitable for multi-instance deployments. Switch to PostgreSQL by configuring `spring.datasource.*`.
+3. **PostgreSQL required locally.** Local dev uses PostgreSQL via `docker-compose.yml`. Tests remain on H2 in-memory with Flyway disabled.
 
 4. **YouTube public API only (no private analytics).** Unless a channel owner connects via OAuth, only publicly available metrics (subscriber count, view count, video count) are tracked. YouTube Analytics API data (watch time, revenue, traffic sources) requires OAuth with the channel owner's consent — the backend infrastructure exists but the frontend UI to trigger this flow is not built.
 
