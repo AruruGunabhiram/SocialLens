@@ -2,6 +2,32 @@ import type { TimeSeriesPoint } from '@/api/types'
 
 export type SeriesMode = 'total' | 'delta'
 
+export interface SnapshotCoverage {
+  /** Number of distinct calendar days returned by the backend */
+  capturedDays: number
+  firstDate: string | null
+  lastDate: string | null
+  /** True when captured days are fewer than the requested range */
+  isSparse: boolean
+}
+
+/**
+ * Summarize how many distinct snapshot days the backend returned vs. the
+ * requested range, so the UI can display honest coverage language.
+ *
+ * `pts` must already be normalized (one entry per day, sorted ascending).
+ */
+export function computeSnapshotCoverage(
+  pts: TimeSeriesPoint[],
+  requestedRange: number
+): SnapshotCoverage {
+  const capturedDays = pts.length
+  const firstDate = capturedDays > 0 ? pts[0].date : null
+  const lastDate = capturedDays > 0 ? pts[capturedDays - 1].date : null
+  const isSparse = capturedDays < requestedRange
+  return { capturedDays, firstDate, lastDate, isSparse }
+}
+
 export interface Insights {
   /** Total mode: (lastValue - firstValue) / calendarDaySpan. Delta mode: mean(deltas). */
   avgPerDay: number

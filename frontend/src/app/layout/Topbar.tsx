@@ -1,6 +1,25 @@
-import { Search } from 'lucide-react'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Loader2, Search } from 'lucide-react'
+import { useChannelSyncMutation } from '@/features/channels/queries'
 
 export function Topbar() {
+  const [query, setQuery] = useState('')
+  const navigate = useNavigate()
+  const sync = useChannelSyncMutation()
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const trimmed = query.trim()
+    if (!trimmed || sync.isPending) return
+    sync.mutate(trimmed, {
+      onSuccess: (data) => {
+        setQuery('')
+        navigate(`/channels/${data.channelDbId}`)
+      },
+    })
+  }
+
   return (
     <header
       className="sticky top-0 z-20 flex shrink-0 items-center justify-between gap-4 px-6"
@@ -61,38 +80,79 @@ export function Topbar() {
         </span>
       </div>
 
-      {/* CENTER: Channel search bar (static shell) */}
+      {/* CENTER: Channel search + Load */}
       <div className="flex flex-1 justify-center">
-        <div
+        <form
+          onSubmit={handleSubmit}
           className="flex items-center gap-2"
-          style={{
-            width: '480px',
-            maxWidth: '100%',
-            height: '36px',
-            background: 'var(--color-surface-1)',
-            border: '1px solid var(--color-border-base)',
-            borderRadius: 'var(--radius-full)',
-            padding: '0 var(--space-4)',
-          }}
-          role="search"
-          aria-label="Channel search"
+          style={{ width: '520px', maxWidth: '100%' }}
         >
-          <Search
-            size={16}
-            aria-hidden
-            style={{ color: 'var(--color-text-muted)', flexShrink: 0 }}
-          />
-          <span
+          <label
+            className="flex flex-1 items-center gap-2"
             style={{
-              flex: 1,
-              fontSize: 'var(--text-sm)',
-              fontFamily: 'var(--font-body)',
-              color: 'var(--color-text-muted)',
+              height: '36px',
+              background: 'var(--color-surface-1)',
+              border: `1px solid ${sync.isError ? 'var(--color-down)' : 'var(--color-border-base)'}`,
+              borderRadius: 'var(--radius-full)',
+              padding: '0 var(--space-4)',
+              cursor: 'text',
             }}
           >
-            Search any YouTube channel...
-          </span>
-        </div>
+            {sync.isPending ? (
+              <Loader2
+                size={16}
+                aria-hidden
+                className="animate-spin"
+                style={{ color: 'var(--color-text-muted)', flexShrink: 0 }}
+              />
+            ) : (
+              <Search
+                size={16}
+                aria-hidden
+                style={{ color: 'var(--color-text-muted)', flexShrink: 0 }}
+              />
+            )}
+            <input
+              type="search"
+              aria-label="Search channels"
+              placeholder="@handle, channel ID, or URL..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              disabled={sync.isPending}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                fontSize: 'var(--text-sm)',
+                fontFamily: 'var(--font-body)',
+                color: 'var(--color-text-primary)',
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+              }}
+            />
+          </label>
+
+          <button
+            type="submit"
+            disabled={!query.trim() || sync.isPending}
+            style={{
+              height: '36px',
+              padding: '0 var(--space-4)',
+              flexShrink: 0,
+              borderRadius: 'var(--radius-full)',
+              fontSize: 'var(--text-sm)',
+              fontWeight: 500,
+              fontFamily: 'var(--font-body)',
+              background: query.trim() && !sync.isPending ? 'var(--accent)' : 'var(--color-surface-2)',
+              color: query.trim() && !sync.isPending ? 'var(--color-text-inverse)' : 'var(--color-text-muted)',
+              border: '1px solid transparent',
+              cursor: query.trim() && !sync.isPending ? 'pointer' : 'default',
+              transition: `background var(--duration-base) var(--ease-standard), color var(--duration-base) var(--ease-standard)`,
+            }}
+          >
+            {sync.isPending ? 'Loading...' : 'Load'}
+          </button>
+        </form>
       </div>
 
       {/* RIGHT: Explorer mode badge */}

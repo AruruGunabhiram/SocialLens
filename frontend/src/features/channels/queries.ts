@@ -106,10 +106,18 @@ export function useChannelTimeSeries(channelDbId?: number, metric: TrendMetric =
 // ==============================================
 
 export function useChannelSyncMutation() {
+  const queryClient = useQueryClient()
+
   return useMutation({
     mutationFn: (identifier: string) => syncChannel(identifier),
     onSuccess: (data) => {
       toastSuccess('Channel loaded', `Loaded channel: ${data.title || data.channelId}`)
+      // Invalidate the channel list so the new channel appears immediately on /channels
+      queryClient.invalidateQueries({ queryKey: channelListQueryKeys.root })
+      // Also wipe analytics and timeseries for this channel so re-loads (e.g. after
+      // a DB reset) never serve data from a stale cache for the same numeric ID.
+      queryClient.invalidateQueries({ queryKey: channelQueryKeys.root })
+      queryClient.invalidateQueries({ queryKey: ['timeseries', data.channelDbId] })
     },
     onError: (error) => {
       toastError(error, 'Failed to load channel')
@@ -186,16 +194,19 @@ export function useChannelRefreshByIdMutation() {
   return useMutation({
     mutationFn: ({ channelDbId }: { channelDbId: number }) => refreshChannelById(channelDbId),
     onSuccess: (_data, { channelDbId }) => {
-      toastSuccess('Refresh triggered', 'Channel data is being updated in the background.')
+      toastSuccess('Refresh complete', 'Snapshot written — chart data is ready.')
       // ['channels', ...] — analytics and any root-level channel queries
       queryClient.invalidateQueries({ queryKey: channelQueryKeys.root })
-      // ['channelList', 'detail', id] — single channel metadata
+      // ['channelList', 'detail', id] — single channel metadata (lastSnapshotAt, lastRefreshStatus)
       queryClient.invalidateQueries({ queryKey: channelListQueryKeys.detail(channelDbId) })
       // ['channelList', 'list', *] — channel list pages
       queryClient.invalidateQueries({ queryKey: channelListQueryKeys.list(false) })
       queryClient.invalidateQueries({ queryKey: channelListQueryKeys.list(true) })
       // ['channelList', 'videos', id, *] — all paginated video queries for this channel
       queryClient.invalidateQueries({ queryKey: ['channelList', 'videos', channelDbId] })
+      // ['timeseries', channelDbId, ...] — Trends chart (all metrics/ranges for this channel)
+      // The backend refresh is synchronous, so new snapshots are committed by the time we land here.
+      queryClient.invalidateQueries({ queryKey: ['timeseries', channelDbId] })
     },
     onError: (error) => {
       toastError(error, 'Failed to trigger refresh')

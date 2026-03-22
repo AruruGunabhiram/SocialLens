@@ -27,6 +27,7 @@ vi.mock('recharts', () => ({
 
 vi.mock('@/features/channels/queries', () => ({
   useChannelQuery: vi.fn(),
+  useChannelRefreshByIdMutation: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
 }))
 
 vi.mock('@/features/trends/queries', () => ({
@@ -161,18 +162,18 @@ describe('TrendsPage', () => {
   // ── Insufficient data — total mode ──────────────────────────────────────────
 
   describe('insufficient data — total mode (default)', () => {
-    it('shows "Need at least 2 snapshots" for 0 data points', () => {
+    it('shows "No snapshot history yet" for 0 data points', () => {
       vi.mocked(useTimeSeries).mockReturnValue(tsSuccess(makeTimeSeriesResponse([])) as any)
       renderTrendsPage()
-      expect(screen.getByText('Need at least 2 snapshots — run refresh')).toBeInTheDocument()
+      expect(screen.getByText('No snapshot history yet')).toBeInTheDocument()
     })
 
-    it('shows the empty state for exactly 1 data point', () => {
+    it('shows "Only 1 snapshot captured" for exactly 1 data point', () => {
       vi.mocked(useTimeSeries).mockReturnValue(
         tsSuccess(makeTimeSeriesResponse([{ date: '2024-01-01', value: 100 }])) as any
       )
       renderTrendsPage()
-      expect(screen.getByText('Need at least 2 snapshots — run refresh')).toBeInTheDocument()
+      expect(screen.getByText('Only 1 snapshot captured — need at least 2')).toBeInTheDocument()
     })
 
     it('does not show the insufficient-data empty state with 2+ distinct points', () => {
@@ -236,6 +237,116 @@ describe('TrendsPage', () => {
     it('shows the channel name in the breadcrumb', () => {
       renderTrendsPage()
       expect(screen.getByText('Test Channel')).toBeInTheDocument()
+    })
+  })
+
+  // ── Snapshot coverage banner ─────────────────────────────────────────────
+
+  describe('snapshot coverage banner', () => {
+    it('does not render the banner when there are 0 captured days', () => {
+      vi.mocked(useTimeSeries).mockReturnValue(tsSuccess(makeTimeSeriesResponse([])) as any)
+      renderTrendsPage()
+      expect(screen.queryByTestId('snapshot-coverage-banner')).not.toBeInTheDocument()
+    })
+
+    it('renders the banner with correct count for 1 captured day', () => {
+      vi.mocked(useTimeSeries).mockReturnValue(
+        tsSuccess(makeTimeSeriesResponse([{ date: '2024-03-21', value: 100 }])) as any
+      )
+      renderTrendsPage()
+      const banner = screen.getByTestId('snapshot-coverage-banner')
+      expect(banner).toBeInTheDocument()
+      expect(banner).toHaveTextContent('1')
+      expect(banner).toHaveTextContent('captured day')
+    })
+
+    it('renders the banner with correct count for 2 captured days', () => {
+      vi.mocked(useTimeSeries).mockReturnValue(
+        tsSuccess(
+          makeTimeSeriesResponse([
+            { date: '2024-03-21', value: 100 },
+            { date: '2024-03-22', value: 200 },
+          ])
+        ) as any
+      )
+      renderTrendsPage()
+      const banner = screen.getByTestId('snapshot-coverage-banner')
+      expect(banner).toHaveTextContent('2')
+      expect(banner).toHaveTextContent('captured days')
+    })
+
+    it('shows "partial window" notice when captured days are fewer than requested range', () => {
+      vi.mocked(useTimeSeries).mockReturnValue(
+        tsSuccess(
+          makeTimeSeriesResponse([
+            { date: '2024-03-21', value: 100 },
+            { date: '2024-03-22', value: 200 },
+          ])
+        ) as any
+      )
+      // default range = 30D, only 2 days captured
+      renderTrendsPage()
+      expect(screen.getByTestId('snapshot-coverage-banner')).toHaveTextContent('partial window')
+    })
+
+    it('does not show "partial window" when captured days match the requested range', () => {
+      const thirtyPoints = Array.from({ length: 30 }, (_, i) => ({
+        date: `2024-03-${String(i + 1).padStart(2, '0')}`,
+        value: 100 + i,
+      }))
+      vi.mocked(useTimeSeries).mockReturnValue(
+        tsSuccess(makeTimeSeriesResponse(thirtyPoints)) as any
+      )
+      renderTrendsPage('1', 'range=30')
+      expect(screen.queryByText(/partial window/)).not.toBeInTheDocument()
+    })
+  })
+
+  // ── Sparse-history copy ───────────────────────────────────────────────────
+
+  describe('sparse history copy', () => {
+    it('shows "No snapshot history yet" for 0 points', () => {
+      vi.mocked(useTimeSeries).mockReturnValue(tsSuccess(makeTimeSeriesResponse([])) as any)
+      renderTrendsPage()
+      expect(screen.getByText('No snapshot history yet')).toBeInTheDocument()
+    })
+
+    it('shows "Only 1 snapshot captured" copy for exactly 1 point (total mode)', () => {
+      vi.mocked(useTimeSeries).mockReturnValue(
+        tsSuccess(makeTimeSeriesResponse([{ date: '2024-03-21', value: 100 }])) as any
+      )
+      renderTrendsPage()
+      expect(screen.getByText('Only 1 snapshot captured — need at least 2')).toBeInTheDocument()
+    })
+
+    it('shows correct description for 0 points', () => {
+      vi.mocked(useTimeSeries).mockReturnValue(tsSuccess(makeTimeSeriesResponse([])) as any)
+      renderTrendsPage()
+      expect(
+        screen.getByText(/No snapshots have been captured for this channel yet/)
+      ).toBeInTheDocument()
+    })
+
+    it('shows correct description for 1 point', () => {
+      vi.mocked(useTimeSeries).mockReturnValue(
+        tsSuccess(makeTimeSeriesResponse([{ date: '2024-03-21', value: 100 }])) as any
+      )
+      renderTrendsPage()
+      expect(screen.getByText(/Only 1 day of data captured so far/)).toBeInTheDocument()
+    })
+
+    it('Growth / Day sub shows captured days count when data is sparse', () => {
+      vi.mocked(useTimeSeries).mockReturnValue(
+        tsSuccess(
+          makeTimeSeriesResponse([
+            { date: '2024-03-21', value: 1000 },
+            { date: '2024-03-22', value: 2000 },
+          ])
+        ) as any
+      )
+      renderTrendsPage()
+      // isSparse = true (2 < 30), so sub should say "across 2 captured days"
+      expect(screen.getByText(/across 2 captured days/)).toBeInTheDocument()
     })
   })
 

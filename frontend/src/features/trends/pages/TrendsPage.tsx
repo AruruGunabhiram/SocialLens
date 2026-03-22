@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { format, parseISO, subDays } from 'date-fns'
 import {
   CartesianGrid,
@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { BarChart2, Calendar, ChevronRight, Minus, TrendingDown, TrendingUp } from 'lucide-react'
+import { BarChart2, Calendar, ChevronRight, Info, Minus, TrendingDown, TrendingUp } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { toastError } from '@/lib/toast'
@@ -22,7 +22,7 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent } from '@/components/ui/card'
-import { useChannelQuery } from '@/features/channels/queries'
+import { useChannelQuery, useChannelRefreshByIdMutation } from '@/features/channels/queries'
 import {
   FreshnessBadge,
   mapChannelItemToFreshnessProps,
@@ -33,8 +33,10 @@ import {
   computeDailyDeltas,
   hasSufficientDataForMode,
   computeInsights,
+  computeSnapshotCoverage,
   type Insights,
   type SeriesMode,
+  type SnapshotCoverage,
 } from '../utils'
 import type { TrendMetric } from '../api'
 import type { TimeSeriesPoint } from '@/api/types'
@@ -138,6 +140,53 @@ function InsightCard({
   )
 }
 
+function SnapshotCoverageBanner({
+  coverage,
+  requestedRange,
+}: {
+  coverage: SnapshotCoverage
+  requestedRange: number
+}) {
+  const { capturedDays, firstDate, lastDate, isSparse } = coverage
+  if (capturedDays === 0) return null // empty state handles the zero case
+
+  const dateRange =
+    firstDate && lastDate && firstDate !== lastDate
+      ? `${fmtDateShort(firstDate)} – ${fmtDateShort(lastDate)}`
+      : firstDate
+        ? fmtDateShort(firstDate)
+        : null
+
+  return (
+    <div
+      className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
+      style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted-foreground)' }}
+      data-testid="snapshot-coverage-banner"
+    >
+      <Info className="h-3.5 w-3.5 shrink-0" aria-hidden />
+      <span>
+        <span
+          style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}
+        >
+          {capturedDays}
+        </span>
+        {' '}captured {capturedDays === 1 ? 'day' : 'days'}
+        {dateRange && (
+          <span> · {dateRange}</span>
+        )}
+        {isSparse && (
+          <span
+            className="ml-1"
+            style={{ color: 'var(--color-muted-foreground)', opacity: 0.75 }}
+          >
+            · partial window of requested {requestedRange}D
+          </span>
+        )}
+      </span>
+    </div>
+  )
+}
+
 function TrendsSkeleton() {
   return (
     <div className="space-y-4 p-4">
@@ -160,6 +209,7 @@ function TrendsSkeleton() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function TrendsPage() {
+  const navigate = useNavigate()
   const { channelDbId: pathParam } = useParams<{ channelDbId: string }>()
   // setSearchParams lets us persist metric/range/mode in the URL, making every
   // toggle change observable in the address bar and the browser network tab.
@@ -219,6 +269,7 @@ export default function TrendsPage() {
 
   const channelQuery = useChannelQuery(channelDbId)
   const { data, isLoading, isError, error, refetch } = useTimeSeries(channelDbId, metric, range)
+  const refreshMutation = useChannelRefreshByIdMutation()
 
   const rawPoints: TimeSeriesPoint[] = data?.points ?? []
 
@@ -267,6 +318,11 @@ export default function TrendsPage() {
 
   const sufficient = hasSufficientDataForMode(normalizedPoints, seriesMode)
 
+  const coverage = useMemo(
+    () => computeSnapshotCoverage(normalizedPoints, range),
+    [normalizedPoints, range]
+  )
+
   const insights = useMemo<Insights | null>(() => {
     if (!sufficient) return null
     return computeInsights(displayPoints, seriesMode)
@@ -296,23 +352,51 @@ export default function TrendsPage() {
     )
   }
 
+  // ── Channel not found (404) ───────────────────────────────────────────────
+  // Checked before isLoading so it surfaces immediately if the channel detail
+  // query returns 404 (e.g. channel deleted or DB reset between sessions).
+  // "Retry" would loop forever here — steer the user back to reload instead.
+  if (channelQuery.isError && channelQuery.error?.status === 404) {
+    return (
+      <div className="p-4">
+        <ErrorState
+          title="Channel no longer available"
+          description="This channel could not be found. It may have been removed or the database was reset. Load it again from the top bar."
+          actionLabel="Back to Channels"
+          onAction={() => navigate('/channels')}
+        />
+      </div>
+    )
+  }
+
   // ── Loading ──────────────────────────────────────────────────────────────
   if (isLoading) return <TrendsSkeleton />
 
   // ── Error ────────────────────────────────────────────────────────────────
   if (isError) {
+    // A 404 from the timeseries endpoint means the channel row is gone.
+    // Show the same recovery path instead of a "Retry" that cannot succeed.
+    const isChannelGone = error.status === 404
     return (
       <div className="p-4">
         <ErrorState
-          title="Failed to load trends"
-          description={normalizeErrorMessage(error)}
-          actionLabel="Retry"
-          onAction={async () => {
-            const result = await refetch()
-            if (result.isError) toastError(result.error, 'Failed to reload trends')
-          }}
-          status={error.status}
-          code={error.code}
+          title={isChannelGone ? 'Channel no longer available' : 'Failed to load trends'}
+          description={
+            isChannelGone
+              ? 'This channel could not be found. Load it again from the top bar.'
+              : normalizeErrorMessage(error)
+          }
+          actionLabel={isChannelGone ? 'Back to Channels' : 'Retry'}
+          onAction={
+            isChannelGone
+              ? () => navigate('/channels')
+              : async () => {
+                  const result = await refetch()
+                  if (result.isError) toastError(result.error, 'Failed to reload trends')
+                }
+          }
+          status={isChannelGone ? undefined : error.status}
+          code={isChannelGone ? undefined : error.code}
         />
       </div>
     )
@@ -331,11 +415,21 @@ export default function TrendsPage() {
       ? 'Change between consecutive daily snapshots'
       : `Daily ${config.label.toLowerCase()} snapshots`
 
-  // Title for the insufficient-data empty state. Delta mode needs one extra point.
-  const insufficientTitle =
-    seriesMode === 'delta'
-      ? 'Need at least 3 snapshots — run refresh'
-      : 'Need at least 2 snapshots — run refresh'
+  // Title + description for the insufficient-data empty state.
+  // Distinguish: no history at all vs. not enough to draw a line/delta.
+  const insufficientTitle = (() => {
+    if (normalizedPoints.length === 0) return 'No snapshot history yet'
+    if (seriesMode === 'delta') return 'Need at least 3 snapshots — run refresh'
+    return 'Only 1 snapshot captured — need at least 2'
+  })()
+
+  const insufficientDescription = (() => {
+    if (normalizedPoints.length === 0)
+      return 'No snapshots have been captured for this channel yet. Run a refresh to record the first data point.'
+    if (normalizedPoints.length === 1)
+      return 'Only 1 day of data captured so far. Run refresh again on a different day to start seeing trends.'
+    return 'Run the refresh job for this channel to write more daily snapshots.'
+  })()
 
   return (
     <div className="space-y-4 p-4">
@@ -375,10 +469,14 @@ export default function TrendsPage() {
         />
       </div>
 
+      {/* ── Snapshot coverage ──────────────────────────────────────────── */}
+      <SnapshotCoverageBanner coverage={coverage} requestedRange={range} />
+
       {/* ── Chart ──────────────────────────────────────────────────────── */}
       <ChartCard
         title={chartTitle}
         subtitle={chartDescription}
+        chartHeight={sufficient ? 320 : 'auto'}
         controls={
           <RangePills
             options={RANGE_PILL_OPTIONS}
@@ -445,9 +543,9 @@ export default function TrendsPage() {
         ) : (
           <EmptyState
             title={insufficientTitle}
-            description="Run the refresh job for this channel, then reload."
-            actionLabel="Refresh now"
-            onAction={() => void refetch()}
+            description={insufficientDescription}
+            actionLabel={refreshMutation.isPending ? 'Refreshing...' : 'Refresh now'}
+            onAction={() => refreshMutation.mutate({ channelDbId: channelDbId! })}
             className="h-full border-0 shadow-none bg-transparent"
           />
         )}
@@ -466,7 +564,11 @@ export default function TrendsPage() {
                   ? '—'
                   : `${insights.avgPerDay >= 0 ? '+' : ''}${fmtNum(Math.round(insights.avgPerDay))}`
             }
-            sub={`over last ${range} days`}
+            sub={
+              coverage.isSparse
+                ? `across ${coverage.capturedDays} captured ${coverage.capturedDays === 1 ? 'day' : 'days'}`
+                : `over last ${range} days`
+            }
           />
           <InsightCard
             icon={<Calendar className="h-4 w-4" />}

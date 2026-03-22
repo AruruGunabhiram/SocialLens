@@ -1,6 +1,6 @@
 export const endpoints = {
   youtube: {
-    sync: '/youtube/sync',
+    sync: '/api/v1/youtube/sync',
   },
   channels: {
     list: '/channels',

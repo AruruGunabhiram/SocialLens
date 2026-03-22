@@ -1,0 +1,67 @@
+import { render, screen, fireEvent } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { Topbar } from './Topbar'
+
+// useChannelSyncMutation depends on React Query context + network; stub it out.
+const mockMutate = vi.fn()
+vi.mock('@/features/channels/queries', () => ({
+  useChannelSyncMutation: () => ({
+    mutate: mockMutate,
+    isPending: false,
+    isError: false,
+  }),
+}))
+
+function renderTopbar() {
+  return render(
+    <MemoryRouter>
+      <Topbar />
+    </MemoryRouter>
+  )
+}
+
+describe('Topbar search', () => {
+  beforeEach(() => {
+    mockMutate.mockReset()
+  })
+
+  it('renders a real search input', () => {
+    renderTopbar()
+    expect(screen.getByRole('searchbox')).toBeInTheDocument()
+  })
+
+  it('renders a Load button', () => {
+    renderTopbar()
+    expect(screen.getByRole('button', { name: /load/i })).toBeInTheDocument()
+  })
+
+  it('accepts typed text', () => {
+    renderTopbar()
+    const input = screen.getByRole('searchbox')
+    fireEvent.change(input, { target: { value: '@FoodonFarm' } })
+    expect(input).toHaveValue('@FoodonFarm')
+  })
+
+  it('calls mutate with trimmed identifier on form submit', () => {
+    renderTopbar()
+    const input = screen.getByRole('searchbox')
+    fireEvent.change(input, { target: { value: '  @mkbhd  ' } })
+    fireEvent.submit(input.closest('form')!)
+    expect(mockMutate).toHaveBeenCalledWith('@mkbhd', expect.any(Object))
+  })
+
+  it('does not call mutate when query is blank', () => {
+    renderTopbar()
+    fireEvent.submit(screen.getByRole('searchbox').closest('form')!)
+    expect(mockMutate).not.toHaveBeenCalled()
+  })
+
+  it('clears the value when changed to empty string', () => {
+    renderTopbar()
+    const input = screen.getByRole('searchbox')
+    fireEvent.change(input, { target: { value: 'test' } })
+    fireEvent.change(input, { target: { value: '' } })
+    expect(input).toHaveValue('')
+  })
+})
