@@ -117,6 +117,22 @@ export const ChannelAnalyticsSchema = z
 // rather than raw Zod errors.
 // -----------------------------------------------------------------------
 
+// -----------------------------------------------------------------------
+// Account status — GET /api/v1/connected-accounts/status
+// -----------------------------------------------------------------------
+
+export const AccountStatusSchema = z.object({
+  userId: z.number(),
+  platform: z.string(),
+  connected: z.boolean(),
+  /** Present when an account row exists; mirrors ConnectedAccountStatus enum on the backend. */
+  accountStatus: z.string().optional(),
+})
+
+export const OAuthStartResponseSchema = z.object({
+  authUrl: z.string(),
+})
+
 export const TimeSeriesPointSchema = z.object({
   date: z.string(), // YYYY-MM-DD
   value: z.number(),

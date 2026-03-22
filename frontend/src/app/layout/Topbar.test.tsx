@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Topbar } from './Topbar'
+import { ModeProvider } from '@/lib/ModeContext'
 
 // useChannelSyncMutation depends on React Query context + network; stub it out.
 const mockMutate = vi.fn()
@@ -13,10 +14,17 @@ vi.mock('@/features/channels/queries', () => ({
   }),
 }))
 
+// useAccountStatus hits the network; stub it out.
+vi.mock('@/features/account/queries', () => ({
+  useAccountStatus: () => ({ data: undefined, isLoading: false, isError: false }),
+}))
+
 function renderTopbar() {
   return render(
     <MemoryRouter>
-      <Topbar />
+      <ModeProvider>
+        <Topbar />
+      </ModeProvider>
     </MemoryRouter>
   )
 }

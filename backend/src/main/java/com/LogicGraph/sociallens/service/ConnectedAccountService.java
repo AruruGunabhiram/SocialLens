@@ -8,6 +8,7 @@ import com.LogicGraph.sociallens.enums.Platform;
 import com.LogicGraph.sociallens.exception.ConnectedAccountNotFoundException;
 import com.LogicGraph.sociallens.repository.ConnectedAccountRepository;
 import com.LogicGraph.sociallens.repository.UserRepository;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -80,6 +81,11 @@ public class ConnectedAccountService {
         return connectedAccountRepository
                 .findByUser_IdAndPlatform(userId, platform)
                 .isPresent();
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<ConnectedAccount> findAccount(Long userId, Platform platform) {
+        return connectedAccountRepository.findByUser_IdAndPlatform(userId, platform);
     }
 
     @Transactional

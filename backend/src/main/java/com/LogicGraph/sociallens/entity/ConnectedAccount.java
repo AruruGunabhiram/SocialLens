@@ -148,6 +148,10 @@ public class ConnectedAccount {
         this.scopes = scopes;
     }
 
+    public ConnectedAccountStatus getStatus() {
+        return status != null ? status : ConnectedAccountStatus.ACTIVE;
+    }
+
     public Instant getLastRefreshedAt() {
         return lastRefreshedAt;
     }

@@ -1,9 +1,11 @@
 import { z } from 'zod'
 
 import {
+  AccountStatusSchema,
   ChannelAnalyticsSchema,
   ChannelItemSchema,
   ChannelMetricPointSchema,
+  OAuthStartResponseSchema,
   PageMetaSchema,
   TimeSeriesPointSchema,
   TimeSeriesResponseSchema,
@@ -21,3 +23,5 @@ export type PageMeta = z.infer<typeof PageMetaSchema>
 export type VideosPageResponse = z.infer<typeof VideosPageResponseSchema>
 export type TimeSeriesPoint = z.infer<typeof TimeSeriesPointSchema>
 export type TimeSeriesResponse = z.infer<typeof TimeSeriesResponseSchema>
+export type AccountStatus = z.infer<typeof AccountStatusSchema>
+export type OAuthStartResponse = z.infer<typeof OAuthStartResponseSchema>

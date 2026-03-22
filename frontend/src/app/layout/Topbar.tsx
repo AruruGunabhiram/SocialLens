@@ -2,11 +2,17 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Loader2, Search } from 'lucide-react'
 import { useChannelSyncMutation } from '@/features/channels/queries'
+import { useMode } from '@/lib/ModeContext'
+import { useAccountStatus } from '@/features/account/queries'
 
 export function Topbar() {
   const [query, setQuery] = useState('')
   const navigate = useNavigate()
   const sync = useChannelSyncMutation()
+  const { mode } = useMode()
+  const { data: accountStatus } = useAccountStatus()
+
+  const connected = accountStatus?.connected ?? false
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -155,42 +161,112 @@ export function Topbar() {
         </form>
       </div>
 
-      {/* RIGHT: Explorer mode badge */}
-      <div className="flex shrink-0 items-center gap-3">
-        <div
-          className="flex items-center gap-2"
-          style={{
-            background: 'var(--color-amber-glow)',
-            border: '1px solid color-mix(in srgb, var(--color-amber-500) 40%, transparent)',
-            borderRadius: 'var(--radius-full)',
-            padding: '4px 10px',
-          }}
-          aria-label="Explorer mode active"
-        >
-          <span
-            className="animate-pulse-dot"
-            aria-hidden
+      {/* RIGHT: Mode + connection badge */}
+      <div className="flex shrink-0 items-center gap-2">
+        {mode === 'studio' ? (
+          <div
+            className="flex items-center gap-2"
             style={{
-              display: 'inline-block',
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              background: 'var(--color-amber-500)',
-              flexShrink: 0,
+              background: 'color-mix(in srgb, var(--accent) 12%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--accent) 40%, transparent)',
+              borderRadius: 'var(--radius-full)',
+              padding: '4px 10px',
             }}
-          />
-          <span
-            className="num"
-            style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 500,
-              letterSpacing: 'var(--tracking-widest)',
-              color: 'var(--color-amber-500)',
-            }}
+            aria-label="Studio mode active"
           >
-            EXPLORING
-          </span>
-        </div>
+            <span
+              aria-hidden
+              style={{
+                display: 'inline-block',
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                background: 'var(--accent)',
+                flexShrink: 0,
+              }}
+            />
+            <span
+              className="num"
+              style={{
+                fontSize: 'var(--text-xs)',
+                fontWeight: 500,
+                letterSpacing: 'var(--tracking-widest)',
+                color: 'var(--accent)',
+              }}
+            >
+              STUDIO
+            </span>
+          </div>
+        ) : connected ? (
+          <div
+            className="flex items-center gap-2"
+            style={{
+              background: 'color-mix(in srgb, var(--color-up) 10%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--color-up) 35%, transparent)',
+              borderRadius: 'var(--radius-full)',
+              padding: '4px 10px',
+            }}
+            aria-label="YouTube account connected"
+          >
+            <span
+              aria-hidden
+              style={{
+                display: 'inline-block',
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                background: 'var(--color-up)',
+                flexShrink: 0,
+              }}
+            />
+            <span
+              className="num"
+              style={{
+                fontSize: 'var(--text-xs)',
+                fontWeight: 500,
+                letterSpacing: 'var(--tracking-widest)',
+                color: 'var(--color-up)',
+              }}
+            >
+              CONNECTED
+            </span>
+          </div>
+        ) : (
+          <div
+            className="flex items-center gap-2"
+            style={{
+              background: 'var(--color-amber-glow)',
+              border: '1px solid color-mix(in srgb, var(--color-amber-500) 40%, transparent)',
+              borderRadius: 'var(--radius-full)',
+              padding: '4px 10px',
+            }}
+            aria-label="Public mode — no account connected"
+          >
+            <span
+              className="animate-pulse-dot"
+              aria-hidden
+              style={{
+                display: 'inline-block',
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                background: 'var(--color-amber-500)',
+                flexShrink: 0,
+              }}
+            />
+            <span
+              className="num"
+              style={{
+                fontSize: 'var(--text-xs)',
+                fontWeight: 500,
+                letterSpacing: 'var(--tracking-widest)',
+                color: 'var(--color-amber-500)',
+              }}
+            >
+              PUBLIC
+            </span>
+          </div>
+        )}
       </div>
     </header>
   )

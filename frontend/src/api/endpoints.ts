@@ -17,6 +17,14 @@ export const endpoints = {
     // POST /api/v1/jobs/refresh/channel?channelDbId={id}
     refreshChannel: '/api/v1/jobs/refresh/channel',
   },
+  account: {
+    // GET /api/v1/connected-accounts/status?userId={id}&platform={platform}
+    status: '/api/v1/connected-accounts/status',
+  },
+  oauth: {
+    // GET /api/v1/oauth/youtube/start?userId={id}  → { authUrl: string }
+    youtubeStart: '/api/v1/oauth/youtube/start',
+  },
 }
 
 export type EndpointKey = keyof typeof endpoints

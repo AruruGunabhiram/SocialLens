@@ -6,6 +6,7 @@ import com.LogicGraph.sociallens.entity.User;
 import com.LogicGraph.sociallens.enums.Platform;
 import com.LogicGraph.sociallens.repository.ConnectedAccountRepository;
 import com.LogicGraph.sociallens.repository.UserRepository;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -79,6 +80,31 @@ class ConnectedAccountServiceTest {
         boolean result = service.isConnected(99L, Platform.YOUTUBE);
 
         assertThat(result).isFalse();
+    }
+
+    // -------------------------------------------------------------------------
+    // findAccount
+    // -------------------------------------------------------------------------
+
+    @Test
+    void findAccount_returnsEmpty_whenNoAccount() {
+        when(connectedAccountRepository.findByUser_IdAndPlatform(99L, Platform.YOUTUBE))
+                .thenReturn(Optional.empty());
+
+        assertThat(service.findAccount(99L, Platform.YOUTUBE)).isEmpty();
+    }
+
+    @Test
+    void findAccount_returnsAccount_whenExists() {
+        User user = new User();
+        ConnectedAccount account = new ConnectedAccount(
+                Platform.YOUTUBE, "UCxxx", "access-token", "refresh-token",
+                Instant.now().plusSeconds(3600), "scope", user);
+
+        when(connectedAccountRepository.findByUser_IdAndPlatform(1L, Platform.YOUTUBE))
+                .thenReturn(Optional.of(account));
+
+        assertThat(service.findAccount(1L, Platform.YOUTUBE)).isPresent();
     }
 
 }
