@@ -34,7 +34,7 @@ public class ChannelsServiceImpl implements ChannelsService {
                 ? youTubeChannelRepository.findAllByOrderByTitleAsc()
                 : youTubeChannelRepository.findByActiveTrueOrderByTitleAsc();
 
-        // Batch-fetch latest snapshots in a single query (replaces N+1).
+        // Batch-fetch latest snapshots and snapshot counts in single queries (replaces N+1).
         List<Long> ids = channels.stream().map(YouTubeChannel::getId).toList();
         Map<Long, Instant> latestSnapshotAt = ids.isEmpty()
                 ? Map.of()
@@ -44,11 +44,20 @@ public class ChannelsServiceImpl implements ChannelsService {
                                 ChannelMetricsSnapshot::getCapturedAt,
                                 (a, b) -> a)); // keep first on tie (unique constraint means no ties)
 
+        Map<Long, Long> snapshotCounts = ids.isEmpty()
+                ? Map.of()
+                : channelMetricsSnapshotRepository.countSnapshotsPerChannel(ids).stream()
+                        .collect(Collectors.toMap(
+                                ChannelMetricsSnapshotRepository.SnapshotCountRow::getChannelId,
+                                ChannelMetricsSnapshotRepository.SnapshotCountRow::getSnapshotCount));
+
         return channels.stream()
                 .sorted(Comparator.comparing(
                         YouTubeChannel::getTitle,
                         Comparator.nullsLast(Comparator.naturalOrder())))
-                .map(ch -> toListItemDto(ch, latestSnapshotAt.get(ch.getId())))
+                .map(ch -> toListItemDto(ch,
+                        latestSnapshotAt.get(ch.getId()),
+                        snapshotCounts.getOrDefault(ch.getId(), 0L)))
                 .collect(Collectors.toList());
     }
 
@@ -64,7 +73,7 @@ public class ChannelsServiceImpl implements ChannelsService {
     // Private mappers
     // -------------------------------------------------------------------------
 
-    private ChannelListItemDto toListItemDto(YouTubeChannel ch, Instant lastSnapshotAt) {
+    private ChannelListItemDto toListItemDto(YouTubeChannel ch, Instant lastSnapshotAt, Long snapshotDayCount) {
         ChannelListItemDto dto = new ChannelListItemDto();
         dto.id = ch.getId();
         dto.title = ch.getTitle();
@@ -73,10 +82,12 @@ public class ChannelsServiceImpl implements ChannelsService {
         dto.active = ch.isActive();
         dto.lastSuccessfulRefreshAt = ch.getLastSuccessfulRefreshAt();
         dto.lastRefreshStatus = ch.getLastRefreshStatus();
+        dto.lastRefreshError = ch.getLastRefreshError();
         dto.subscriberCount = ch.getSubscriberCount();
         dto.viewCount = ch.getViewCount();
         dto.videoCount = ch.getVideoCount();
         dto.lastSnapshotAt = lastSnapshotAt;
+        dto.snapshotDayCount = snapshotDayCount;
         return dto;
     }
 
@@ -93,14 +104,16 @@ public class ChannelsServiceImpl implements ChannelsService {
         dto.publishedAt = ch.getPublishedAt();
         dto.lastSuccessfulRefreshAt = ch.getLastSuccessfulRefreshAt();
         dto.lastRefreshStatus = ch.getLastRefreshStatus();
+        dto.lastRefreshError = ch.getLastRefreshError();
         dto.subscriberCount = ch.getSubscriberCount();
         dto.viewCount = ch.getViewCount();
         dto.videoCount = ch.getVideoCount();
-        // Single-channel detail: one extra SELECT is acceptable here
+        // Single-channel detail: two extra SELECTs are acceptable here
         dto.lastSnapshotAt = channelMetricsSnapshotRepository
                 .findTopByChannel_IdOrderByCapturedAtDesc(ch.getId())
                 .map(ChannelMetricsSnapshot::getCapturedAt)
                 .orElse(null);
+        dto.snapshotDayCount = channelMetricsSnapshotRepository.countByChannel_Id(ch.getId());
         return dto;
     }
 }

@@ -74,4 +74,22 @@ public interface ChannelMetricsSnapshotRepository
                "      WHERE s2.channel.id = s.channel.id)")
         List<ChannelMetricsSnapshot> findLatestPerChannel(@Param("channelIds") List<Long> channelIds);
 
+        /** Total distinct snapshot days for a single channel. */
+        long countByChannel_Id(Long channelDbId);
+
+        /**
+         * Returns one row per channel: (channelId, snapshotCount).
+         * Used to batch-fetch snapshot counts for the channel list without N+1.
+         */
+        @Query("SELECT s.channel.id AS channelId, COUNT(s) AS snapshotCount " +
+               "FROM ChannelMetricsSnapshot s " +
+               "WHERE s.channel.id IN :channelIds " +
+               "GROUP BY s.channel.id")
+        List<SnapshotCountRow> countSnapshotsPerChannel(@Param("channelIds") List<Long> channelIds);
+
+        interface SnapshotCountRow {
+                Long getChannelId();
+                Long getSnapshotCount();
+        }
+
 }

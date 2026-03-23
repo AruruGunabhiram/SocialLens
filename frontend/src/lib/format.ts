@@ -45,6 +45,16 @@ export function fmtDate(iso: string | null | undefined): string {
 }
 
 /**
+ * Format an ISO datetime string to "MMM d, yyyy HH:mm" (local time).
+ * Returns '—' for absent or invalid values.
+ */
+export function fmtDateTime(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  const d = parseISO(iso)
+  return isValid(d) ? format(d, 'MMM d, yyyy HH:mm') : '—'
+}
+
+/**
  * Format an ISO date string to "MMM d" (short form for chart x-axis).
  */
 export function fmtDateShort(date: string): string {

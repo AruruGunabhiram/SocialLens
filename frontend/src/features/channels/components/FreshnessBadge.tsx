@@ -33,6 +33,11 @@ export type FreshnessBadgeProps = {
    * Optional because the backend may not always populate this field.
    */
   lastRefreshError?: string | null
+  /**
+   * Total number of distinct snapshot days captured for this channel.
+   * Used to distinguish "failed with usable historical data" from "failed with no data".
+   */
+  snapshotDayCount: number | null
 }
 
 // ---------------------------------------------------------------------------
@@ -52,7 +57,21 @@ export function mapChannelItemToFreshnessProps(
     lastRefreshAt: item?.lastSuccessfulRefreshAt ?? null,
     status: item?.lastRefreshStatus ?? null,
     lastRefreshError: item?.lastRefreshError ?? null,
+    snapshotDayCount: item?.snapshotDayCount ?? null,
   }
+}
+
+// ---------------------------------------------------------------------------
+// Exported helper — reusable wherever a human-readable status label is needed
+// (e.g. the ChannelOverviewPage details table).
+// ---------------------------------------------------------------------------
+
+export function humanRefreshStatus(status: RefreshStatus | null | undefined): string {
+  if (!status || status === 'NEVER_RUN') return 'Never synced'
+  if (status === 'SUCCESS') return 'Synced'
+  if (status === 'FAILED') return 'Failed'
+  if (status === 'PARTIAL') return 'Partial sync'
+  return status
 }
 
 // ---------------------------------------------------------------------------
@@ -71,21 +90,22 @@ function relAgo(d: Date): string {
   return formatDistanceToNow(d, { addSuffix: true })
 }
 
+/**
+ * Badge variant rules:
+ * - FAILED + has historical data  → 'warning'  (data is usable; sync is broken)
+ * - FAILED + no data at all       → 'danger'   (nothing to show)
+ * - SUCCESS, fresh (≤24 h)        → 'secondary'
+ * - SUCCESS, stale (>24 h)        → 'outline'
+ * - PARTIAL / NEVER_RUN / null    → 'outline'
+ */
 function statusVariant(
   status: RefreshStatus | null,
-  isStale: boolean
-): 'secondary' | 'danger' | 'outline' {
-  if (status === 'FAILED') return 'danger'
+  isStale: boolean,
+  hasData: boolean
+): 'secondary' | 'danger' | 'warning' | 'outline' {
+  if (status === 'FAILED') return hasData ? 'warning' : 'danger'
   if (status === 'SUCCESS') return isStale ? 'outline' : 'secondary'
   return 'outline'
-}
-
-function statusLabel(status: RefreshStatus | null): string {
-  if (!status || status === 'NEVER_RUN') return 'Never run'
-  if (status === 'SUCCESS') return 'SUCCESS'
-  if (status === 'FAILED') return 'FAIL'
-  if (status === 'PARTIAL') return 'Partial'
-  return status
 }
 
 // ---------------------------------------------------------------------------
@@ -97,6 +117,7 @@ export function FreshnessBadge({
   lastRefreshAt,
   status,
   lastRefreshError,
+  snapshotDayCount,
 }: FreshnessBadgeProps) {
   const [errorExpanded, setErrorExpanded] = useState(false)
 
@@ -105,27 +126,47 @@ export function FreshnessBadge({
   const isStale = refreshDate ? differenceInHours(new Date(), refreshDate) >= 24 : true
   const isFailed = status === 'FAILED'
 
+  // "has data" = at least one snapshot exists (either we have a count, or a timestamp).
+  const hasData = (snapshotDayCount != null ? snapshotDayCount > 0 : snapshotDate != null)
+
+  // Snapshot coverage line: prefer "N days captured · last X ago" when count is known.
+  const snapshotLine = snapshotDate
+    ? snapshotDayCount != null && snapshotDayCount > 0
+      ? `${snapshotDayCount} day${snapshotDayCount !== 1 ? 's' : ''} captured · last ${relAgo(snapshotDate)}`
+      : `Snapshot ${relAgo(snapshotDate)}`
+    : 'No snapshots yet'
+
   // When FAILED, lastRefreshAt is the last *successful* time — label accordingly.
   const refreshLabel =
     refreshDate == null
-      ? 'Never refreshed'
+      ? 'Never synced'
       : isFailed
         ? `Last success ${relAgo(refreshDate)}`
-        : `Refreshed ${relAgo(refreshDate)}`
+        : `Synced ${relAgo(refreshDate)}`
 
   return (
-    <div className="flex flex-col gap-y-1.5 text-sm text-muted-foreground">
+    <div
+      className="flex flex-col gap-y-1.5 text-sm text-muted-foreground"
+      data-testid="freshness-badge"
+    >
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
         {/* Status pill */}
-        <Badge variant={statusVariant(status, isStale)} className="shrink-0 font-mono text-xs">
-          {statusLabel(status)}
+        <Badge
+          variant={statusVariant(status, isStale, hasData)}
+          className="shrink-0 font-mono text-xs"
+          data-testid="freshness-status"
+          data-variant={statusVariant(status, isStale, hasData)}
+        >
+          {humanRefreshStatus(status)}
         </Badge>
 
-        {/* Snapshot time */}
-        <span>{snapshotDate ? `Snapshot ${relAgo(snapshotDate)}` : 'No snapshots yet'}</span>
+        {/* Snapshot coverage */}
+        <span data-testid="freshness-snapshot">{snapshotLine}</span>
 
         {/* Last refresh time */}
-        <span className="text-xs text-muted-foreground/70">{refreshLabel}</span>
+        <span className="text-xs text-muted-foreground/70" data-testid="freshness-refresh">
+          {refreshLabel}
+        </span>
 
         {/* "View error" toggle — only visible when status is FAILED */}
         {isFailed && (

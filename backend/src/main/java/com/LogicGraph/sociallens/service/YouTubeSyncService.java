@@ -9,6 +9,8 @@ import com.LogicGraph.sociallens.entity.ChannelMetricsSnapshot;
 import com.LogicGraph.sociallens.entity.VideoMetricsSnapshot;
 import com.LogicGraph.sociallens.entity.YouTubeChannel;
 import com.LogicGraph.sociallens.entity.YouTubeVideo;
+import com.LogicGraph.sociallens.enums.DataSource;
+import com.LogicGraph.sociallens.enums.RefreshStatus;
 import com.LogicGraph.sociallens.exception.NotFoundException;
 import com.LogicGraph.sociallens.repository.ChannelMetricsSnapshotRepository;
 import com.LogicGraph.sociallens.repository.VideoMetricsSnapshotRepository;
@@ -30,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -135,6 +138,19 @@ public class YouTubeSyncService {
 
         } catch (Exception e) {
             warnings.add("Pagination failed: " + e.getMessage());
+        }
+
+        // Enrich video metadata (title, publishedAt, viewCount, likeCount, commentCount,
+        // thumbnailUrl, duration) for the videos we just upserted.  Without this step every
+        // video row is stored with only videoId + channel_id set, leaving the Videos page
+        // showing bare IDs and blank stats.
+        int enriched = 0;
+        try {
+            enriched = enrichVideoMetadata(savedChannel.getId());
+            log.info("syncChannelOnly: enriched {} video rows for channelId={}", enriched, dto.channelId());
+        } catch (Exception e) {
+            warnings.add("Video metadata enrichment failed: " + e.getMessage());
+            log.warn("syncChannelOnly: enrichment failed for channelId={}: {}", dto.channelId(), e.getMessage(), e);
         }
 
         Instant finish = Instant.now();
@@ -281,6 +297,7 @@ public class YouTubeSyncService {
         snap.setSubscriberCount(ch.getSubscriberCount());
         snap.setViewCount(ch.getViewCount());
         snap.setVideoCount(ch.getVideoCount());
+        snap.setSource(DataSource.PUBLIC);
 
         try {
             channelSnapshotRepository.saveAndFlush(snap);
@@ -301,8 +318,18 @@ public class YouTubeSyncService {
             return;
         }
 
-        YouTubeVideo v = videoRepository.findById(videoDbId)
-                .orElseThrow(() -> new IllegalArgumentException("Video not found id=" + videoDbId));
+        // findById runs in this REQUIRES_NEW transaction (T2), which has READ COMMITTED
+        // isolation and cannot see rows inserted by the still-open outer T1.  Videos that
+        // were just upserted by syncIncrementalVideos() in the same outer T1 will appear
+        // missing here.  Soft-skip them: they will be snapshotted on the next refresh run
+        // once T1 has committed and the rows become visible to new transactions.
+        Optional<YouTubeVideo> videoOpt = videoRepository.findById(videoDbId);
+        if (videoOpt.isEmpty()) {
+            log.debug("writeVideoSnapshotIfNeeded: videoDbId={} not visible in this transaction " +
+                    "(likely inserted in the current outer T1, will snapshot on next run)", videoDbId);
+            return;
+        }
+        YouTubeVideo v = videoOpt.get();
 
         VideoMetricsSnapshot snap = new VideoMetricsSnapshot();
         snap.setVideo(v);
@@ -311,6 +338,7 @@ public class YouTubeSyncService {
         snap.setViewCount(v.getViewCount());
         snap.setLikeCount(v.getLikeCount());
         snap.setCommentCount(v.getCommentCount());
+        snap.setSource(DataSource.PUBLIC);
 
         try {
             videoSnapRepo.saveAndFlush(snap);
@@ -319,12 +347,28 @@ public class YouTubeSyncService {
         }
     }
 
+    /**
+     * Persists refresh status + error message for a channel in an independent transaction.
+     * REQUIRES_NEW ensures the write always commits even if the caller's transaction is
+     * already marked rollback-only (which happens when a @Transactional(REQUIRED) method
+     * throws and Spring marks the outer transaction for rollback before the catch block runs).
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void persistChannelRefreshStatus(Long channelDbId, RefreshStatus status, String errorMsg) {
+        YouTubeChannel ch = channelRepository.findById(channelDbId)
+                .orElseThrow(() -> new IllegalArgumentException("Channel not found id=" + channelDbId));
+        ch.setLastRefreshStatus(status);
+        ch.setLastRefreshError(errorMsg);
+        channelRepository.save(ch);
+        log.info("persistChannelRefreshStatus: channelDbId={} status={}", channelDbId, status);
+    }
+
     // =========================
     // Video enrichment
     // =========================
 
     /**
-     * Loads up to 50 stored videoIds for the given channel, calls videos.list
+     * Loads up to 200 stored videoIds for the given channel, calls videos.list
      * (snippet, contentDetails, statistics) in batches, and upserts the metadata
      * back into the existing YOUTUBE_VIDEO rows in a single saveAll transaction.
      *
@@ -333,12 +377,19 @@ public class YouTubeSyncService {
     @Transactional
     public int enrichVideoMetadata(Long channelDbId) {
         List<String> videoIds = videoRepository.findVideoIdsByChannelDbId(
-                channelDbId, PageRequest.of(0, 50));
+                channelDbId, PageRequest.of(0, 200));
         log.info("enrichVideoMetadata: loaded {} videoIds for channelDbId={}", videoIds.size(), channelDbId);
 
         if (videoIds.isEmpty()) return 0;
 
-        List<YouTubeVideosResponse.Item> items = youTubeService.fetchVideoDetails(videoIds);
+        List<YouTubeVideosResponse.Item> items;
+        try {
+            items = youTubeService.fetchVideoDetails(videoIds);
+        } catch (Exception e) {
+            log.warn("enrichVideoMetadata: fetchVideoDetails failed for channelDbId={}, skipping enrichment: {}",
+                    channelDbId, e.getMessage(), e);
+            return 0;
+        }
 
         Map<String, YouTubeVideosResponse.Item> detailMap = items.stream()
                 .filter(i -> i.id != null)
@@ -431,16 +482,13 @@ public class YouTubeSyncService {
     }
 
     private boolean upsertVideo(String videoId, YouTubeChannel channel) {
-        boolean exists = videoRepository.findByVideoId(videoId).isPresent();
-
-        YouTubeVideo video = videoRepository
-                .findByVideoId(videoId)
-                .orElseGet(YouTubeVideo::new);
+        Optional<YouTubeVideo> existing = videoRepository.findByVideoId(videoId);
+        YouTubeVideo video = existing.orElseGet(YouTubeVideo::new);
 
         video.setVideoId(videoId);
         video.setChannel(channel);
 
         videoRepository.save(video);
-        return !exists;
+        return existing.isEmpty();
     }
 }

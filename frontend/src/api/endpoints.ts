@@ -1,6 +1,6 @@
 export const endpoints = {
   youtube: {
-    sync: '/youtube/sync',
+    sync: '/api/v1/youtube/sync',
   },
   channels: {
     list: '/channels',
@@ -16,6 +16,18 @@ export const endpoints = {
   jobs: {
     // POST /api/v1/jobs/refresh/channel?channelDbId={id}
     refreshChannel: '/api/v1/jobs/refresh/channel',
+  },
+  account: {
+    // GET /api/v1/connected-accounts/status?userId={id}&platform={platform}
+    status: '/api/v1/connected-accounts/status',
+  },
+  oauth: {
+    // GET /api/v1/oauth/youtube/start?userId={id}  → { authUrl: string }
+    youtubeStart: '/api/v1/oauth/youtube/start',
+  },
+  creator: {
+    // POST /creator/retention/diagnosis
+    retentionDiagnosis: '/creator/retention/diagnosis',
   },
 }
 

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { BarChart2 } from 'lucide-react'
 
@@ -29,6 +30,8 @@ function SectionLabel({ children }: { children: string }) {
 }
 
 export function CopilotPanel() {
+  const [notes, setNotes] = useState('')
+
   return (
     <motion.aside
       initial={{ x: '100%' }}
@@ -167,28 +170,28 @@ export function CopilotPanel() {
         {/* Notes */}
         <section>
           <SectionLabel>Notes</SectionLabel>
-          <div
+          <textarea
+            aria-label="Notes"
+            placeholder="Add notes here..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
             style={{
+              display: 'block',
+              width: '100%',
+              minHeight: 120,
               background: 'var(--color-surface-1)',
               border: '1px solid var(--color-border-base)',
               borderRadius: 'var(--radius-md)',
               padding: 'var(--space-3) var(--space-4)',
-              minHeight: 120,
+              fontFamily: 'var(--font-body)',
+              fontSize: 'var(--text-sm)',
+              color: 'var(--color-text-primary)',
+              lineHeight: 'var(--leading-relaxed)',
+              resize: 'vertical',
+              outline: 'none',
+              boxSizing: 'border-box',
             }}
-          >
-            <p
-              style={{
-                fontFamily: 'var(--font-body)',
-                fontSize: 'var(--text-sm)',
-                color: 'var(--color-text-muted)',
-                lineHeight: 'var(--leading-relaxed)',
-                margin: 0,
-                fontStyle: 'italic',
-              }}
-            >
-              Add notes here...
-            </p>
-          </div>
+          />
         </section>
       </div>
     </motion.aside>

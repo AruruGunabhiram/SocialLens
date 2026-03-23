@@ -79,15 +79,17 @@ class DailyRefreshWorkerTest {
         when(channelRepo.findById(20L)).thenReturn(Optional.of(ch));
         doThrow(new RuntimeException("YouTube API quota exceeded"))
                 .when(syncService).syncIncrementalVideos(eq("UCfail"), any(Instant.class));
-        when(channelRepo.save(ch)).thenReturn(ch);
 
         assertThatThrownBy(() -> worker.refreshOneChannel(20L))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("YouTube API quota exceeded");
 
-        assertThat(ch.getLastRefreshStatus()).isEqualTo(RefreshStatus.FAILED);
-        assertThat(ch.getLastRefreshError()).contains("YouTube API quota exceeded");
-        verify(channelRepo).save(ch);
+        // Failure status is persisted via syncService.persistChannelRefreshStatus (REQUIRES_NEW),
+        // not by mutating `ch` directly and calling channelRepo.save in the catch block.
+        verify(syncService).persistChannelRefreshStatus(
+                eq(20L),
+                eq(RefreshStatus.FAILED),
+                argThat(msg -> msg != null && msg.contains("YouTube API quota exceeded")));
     }
 
     /**

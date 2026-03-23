@@ -90,6 +90,7 @@ CREATE TABLE IF NOT EXISTS video_metrics_snapshot (
     view_count       BIGINT,
     like_count       BIGINT,
     comment_count    BIGINT,
+    favorite_count   BIGINT,
     captured_at      TIMESTAMPTZ NOT NULL,
     captured_day_utc DATE        NOT NULL,
     source           VARCHAR(50) NOT NULL,
@@ -134,11 +135,12 @@ CREATE TABLE IF NOT EXISTS oauth_states (
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS hashtag (
     id  BIGSERIAL PRIMARY KEY,
-    tag VARCHAR(255)
+    tag VARCHAR(255) NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS video_hashtag (
-    id       BIGSERIAL PRIMARY KEY,
-    video_id BIGINT NOT NULL REFERENCES youtube_video (id),
-    tag_id   BIGINT NOT NULL REFERENCES hashtag (id)
+    id         BIGSERIAL PRIMARY KEY,
+    video_id   BIGINT NOT NULL REFERENCES youtube_video (id),
+    hashtag_id BIGINT NOT NULL REFERENCES hashtag (id),
+    CONSTRAINT uq_video_hashtag UNIQUE (video_id, hashtag_id)
 );

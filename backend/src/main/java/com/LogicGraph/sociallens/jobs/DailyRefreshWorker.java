@@ -97,8 +97,20 @@ public class DailyRefreshWorker {
                     ch.getChannelId(),
                     PageRequest.of(0, maxVideos, Sort.by(Sort.Direction.DESC, "publishedAt")));
 
+            // Per-video try-catch: a single video that cannot be snapshotted (e.g. because it
+            // was just inserted in this same T1 and is invisible to the REQUIRES_NEW T2, or
+            // because of a transient DB error) must not abort the entire refresh.
+            int snapOk = 0;
+            int snapSkipped = 0;
             for (var v : videos) {
-                syncService.writeVideoSnapshotIfNeeded(v.getId(), todayUtc);
+                try {
+                    syncService.writeVideoSnapshotIfNeeded(v.getId(), todayUtc);
+                    snapOk++;
+                } catch (Exception snapEx) {
+                    snapSkipped++;
+                    log.warn("DailyRefreshWorker: skipped snapshot for videoDbId={} channelDbId={}: {}",
+                            v.getId(), ch.getId(), snapEx.getMessage());
+                }
             }
 
             // Only now: advance cursor, mark success
@@ -110,18 +122,28 @@ public class DailyRefreshWorker {
 
             long ms = Instant.now().toEpochMilli() - started.toEpochMilli();
             log.info(
-                    "DailyRefreshWorker success channelId={} channelDbId={} newOrUpdatedVideos={} totalVideos={} dayUtc={} ms={}",
-                    ch.getChannelId(), ch.getId(), newOrUpdated, videos.size(), todayUtc, ms);
+                    "DailyRefreshWorker success channelId={} channelDbId={} newOrUpdatedVideos={} " +
+                    "totalVideos={} snapOk={} snapSkipped={} dayUtc={} ms={}",
+                    ch.getChannelId(), ch.getId(), newOrUpdated, videos.size(),
+                    snapOk, snapSkipped, todayUtc, ms);
 
         } catch (Exception ex) {
-            // DO NOT advance cursor on failure
-            ch.setLastRefreshStatus(RefreshStatus.FAILED);
-            ch.setLastRefreshError(safeErr(ex));
-            channelRepo.save(ch);
-
+            // Surface the original exception before anything else obscures it.
             long ms = Instant.now().toEpochMilli() - started.toEpochMilli();
-            log.warn("DailyRefreshWorker FAILED channelId={} channelDbId={} dayUtc={} ms={} err={}",
-                    ch.getChannelId(), ch.getId(), todayUtc, ms, ex.getMessage(), ex);
+            log.error("DailyRefreshWorker FAILED channelId={} channelDbId={} dayUtc={} ms={}",
+                    ch.getChannelId(), ch.getId(), todayUtc, ms, ex);
+
+            // Persist failure status in a new independent transaction.
+            // The current transaction (T1) may already be marked rollback-only if a
+            // @Transactional(REQUIRED) inner method threw — in that case channelRepo.save(ch)
+            // inside T1 would itself throw "Transaction silently rolled back because it has been
+            // marked as rollback-only", masking the real error. REQUIRES_NEW sidesteps that.
+            try {
+                syncService.persistChannelRefreshStatus(ch.getId(), RefreshStatus.FAILED, safeErr(ex));
+            } catch (Exception saveEx) {
+                log.error("DailyRefreshWorker: could not persist FAILED status for channelDbId={}: {}",
+                        ch.getId(), saveEx.getMessage(), saveEx);
+            }
 
             throw ex;
         } finally {

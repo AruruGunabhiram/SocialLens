@@ -10,10 +10,14 @@ const InsightsPage = lazy(() => import('@/features/insights/pages/InsightsPage')
 const TrendsPage = lazy(() => import('@/features/trends/pages/TrendsPage'))
 const VideosPage = lazy(() => import('@/features/videos/pages/VideosPage'))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
+const OAuthCallbackPage = lazy(() => import('@/pages/OAuthCallbackPage'))
 
 export function AppRouter() {
   return (
     <Routes>
+      {/* Standalone OAuth callback — no app shell, renders in the new tab opened by window.open */}
+      <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
+
       <Route element={<AppShell />}>
         <Route index element={<Navigate to="/channels" replace />} />
         {/* /dashboard and legacy /channel redirect to the channels list */}

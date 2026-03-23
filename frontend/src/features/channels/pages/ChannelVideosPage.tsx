@@ -26,7 +26,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { toastError } from '@/lib/toast'
 import { type VideoQueryParams } from '../api'
-import { useChannelQuery, useVideosQuery } from '../queries'
+import { useChannelQuery, useChannelRefreshByIdMutation, useVideosQuery } from '../queries'
 import { FreshnessBadge, mapChannelItemToFreshnessProps } from '../components/FreshnessBadge'
 
 // ---------------------------------------------------------------------------
@@ -274,6 +274,8 @@ export default function ChannelVideosPage() {
     queryParams
   )
 
+  const refreshMutation = useChannelRefreshByIdMutation()
+
   // Invalid route param — redirect after all hooks have run
   if (Number.isNaN(channelDbId)) return <Navigate to="/channels" replace />
 
@@ -401,10 +403,38 @@ export default function ChannelVideosPage() {
             fontSize: 'var(--text-sm)',
             color: 'var(--color-warn)',
             lineHeight: 'var(--leading-relaxed)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 'var(--space-4)',
           }}
+          data-testid="title-warning-banner"
         >
-          Video titles not available yet — sync may be incomplete. Showing video IDs as fallback.
-          Search works against the displayed ID.
+          <span>
+            Video metadata (titles, thumbnails) not fully populated yet — enrichment may have failed
+            during the last sync. Showing video IDs as fallback. A channel refresh will fix this.
+          </span>
+          <button
+            type="button"
+            disabled={refreshMutation.isPending}
+            onClick={() => refreshMutation.mutate({ channelDbId })}
+            style={{
+              flexShrink: 0,
+              fontFamily: 'var(--font-body)',
+              fontSize: 'var(--text-sm)',
+              fontWeight: 600,
+              color: 'var(--color-warn)',
+              background: 'transparent',
+              border: '1px solid color-mix(in srgb, var(--color-warn) 50%, transparent)',
+              borderRadius: 'var(--radius-md)',
+              padding: 'var(--space-1) var(--space-3)',
+              cursor: refreshMutation.isPending ? 'not-allowed' : 'pointer',
+              opacity: refreshMutation.isPending ? 0.6 : 1,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {refreshMutation.isPending ? 'Refreshing...' : 'Refresh now'}
+          </button>
         </div>
       )}
 

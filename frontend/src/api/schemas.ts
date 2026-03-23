@@ -18,9 +18,11 @@ export const ChannelItemSchema = z.object({
   publishedAt: z.string().nullish(),
   lastSuccessfulRefreshAt: z.string().nullish(),
   lastRefreshStatus: RefreshStatusSchema.nullish(),
-  lastSnapshotAt: z.string().nullish(),
-  /** Error detail from the most recent failed refresh job, if the backend exposes it. */
+  /** Error message from the most recent failed refresh job; null when last job succeeded. */
   lastRefreshError: z.string().nullish(),
+  lastSnapshotAt: z.string().nullish(),
+  /** Total distinct snapshot days captured for this channel. */
+  snapshotDayCount: z.number().nullish(),
   subscriberCount: z.number().nullish(),
   viewCount: z.number().nullish(),
   videoCount: z.number().nullish(),
@@ -116,6 +118,48 @@ export const ChannelAnalyticsSchema = z
 // responsible for catching that and surfacing "Unsupported response format"
 // rather than raw Zod errors.
 // -----------------------------------------------------------------------
+
+// -----------------------------------------------------------------------
+// Account status — GET /api/v1/connected-accounts/status
+// -----------------------------------------------------------------------
+
+export const AccountStatusSchema = z.object({
+  userId: z.number(),
+  platform: z.string(),
+  connected: z.boolean(),
+  /** Present when an account row exists; mirrors ConnectedAccountStatus enum on the backend. */
+  accountStatus: z.string().optional(),
+})
+
+export const OAuthStartResponseSchema = z.object({
+  authUrl: z.string(),
+})
+
+// -----------------------------------------------------------------------
+// Retention Diagnosis — POST /creator/retention/diagnosis
+// -----------------------------------------------------------------------
+
+export const RetentionDropEventSchema = z.object({
+  startProgress: z.number(),
+  endProgress: z.number(),
+  dropMagnitude: z.number(),
+  slope: z.number(),
+  severity: z.enum(['LOW', 'MEDIUM', 'HIGH']),
+})
+
+export const DiagnosisItemSchema = z.object({
+  label: z.string(),
+  severity: z.enum(['LOW', 'MEDIUM', 'HIGH']),
+  evidence: z.string(),
+  recommendation: z.string(),
+})
+
+export const RetentionDiagnosisResponseSchema = z.object({
+  videoId: z.string(),
+  summary: z.string(),
+  dropEvents: z.array(RetentionDropEventSchema),
+  diagnoses: z.array(DiagnosisItemSchema),
+})
 
 export const TimeSeriesPointSchema = z.object({
   date: z.string(), // YYYY-MM-DD

@@ -7,7 +7,8 @@ import { SkeletonBlock } from '@/components/common/SkeletonBlock'
 import { Separator } from '@/components/ui/separator'
 
 import { ChannelHeader } from '../components/ChannelHeader'
-import { mapChannelItemToFreshnessProps } from '../components/FreshnessBadge'
+import { mapChannelItemToFreshnessProps, humanRefreshStatus } from '../components/FreshnessBadge'
+import { fmtDate, fmtDateTime } from '@/lib/format'
 import { ChannelStats } from '../components/ChannelStats'
 import { ChannelChart } from '../components/ChannelChart'
 import { toastError } from '@/lib/toast'
@@ -47,9 +48,23 @@ export default function ChannelOverviewPage() {
           { label: 'Title', value: data.title ?? '—' },
           { label: 'Videos', value: data.videoCount ?? '—' },
           {
-            label: 'Status',
-            value: channelDetail?.lastRefreshStatus ?? '—',
+            label: 'Sync status',
+            value: humanRefreshStatus(channelDetail?.lastRefreshStatus),
           },
+          {
+            label: 'Last synced',
+            value: fmtDateTime(channelDetail?.lastSuccessfulRefreshAt),
+          },
+          {
+            label: 'Last snapshot',
+            value: fmtDate(channelDetail?.lastSnapshotAt),
+          },
+          ...(channelDetail?.snapshotDayCount != null
+            ? [{ label: 'Snapshot days', value: String(channelDetail.snapshotDayCount) }]
+            : []),
+          ...(channelDetail?.lastRefreshStatus === 'FAILED' && channelDetail?.lastRefreshError
+            ? [{ label: 'Last error', value: channelDetail.lastRefreshError }]
+            : []),
         ]
       : []
 

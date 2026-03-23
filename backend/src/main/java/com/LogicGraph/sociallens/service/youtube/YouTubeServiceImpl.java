@@ -348,12 +348,18 @@ public class YouTubeServiceImpl implements YouTubeService {
                 cause);
     }
 
-    private long parseLong(String value) {
-        if (value == null || value.isBlank()) return 0L;
+    /**
+     * Parses a YouTube statistics string to a boxed Long.
+     * Returns {@code null} — not zero — when the value is absent or blank.
+     * YouTube omits fields like {@code likeCount} when likes are disabled, and
+     * returning 0 would misrepresent "unknown" as "zero engagement".
+     */
+    private Long parseLong(String value) {
+        if (value == null || value.isBlank()) return null;
         try {
             return Long.parseLong(value);
         } catch (NumberFormatException e) {
-            return 0L;
+            return null;
         }
     }
 }

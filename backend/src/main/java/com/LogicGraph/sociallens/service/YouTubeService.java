@@ -374,14 +374,19 @@ public class YouTubeService {
             List<String> batch = videoIds.subList(i, Math.min(i + batchSize, videoIds.size()));
             String ids = String.join(",", batch);
 
-            String url = UriComponentsBuilder
+            // build(true).toUri() treats the already-assembled string as a fully-encoded URI,
+            // so commas in the "id" value are passed through literally.  toUriString() would
+            // re-encode them to %2C, which YouTube's videos.list rejects with HTTP 400.
+            URI uri = UriComponentsBuilder
                     .fromHttpUrl(YouTubeConfig.BASE_URL + "/videos")
                     .queryParam("part", "snippet,contentDetails,statistics")
                     .queryParam("id", ids)
                     .queryParam("key", apiKey)
-                    .toUriString();
+                    .build(true)
+                    .toUri();
 
-            YouTubeVideosResponse body = ytGet(url, YouTubeVideosResponse.class);
+            ResponseEntity<YouTubeVideosResponse> resp = ytGetEntity(uri, YouTubeVideosResponse.class);
+            YouTubeVideosResponse body = resp.getBody();
             if (body != null && body.items != null) {
                 result.addAll(body.items);
             }

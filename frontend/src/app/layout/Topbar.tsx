@@ -1,6 +1,31 @@
-import { Search } from 'lucide-react'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Loader2, Search } from 'lucide-react'
+import { useChannelSyncMutation } from '@/features/channels/queries'
+import { useMode } from '@/lib/ModeContext'
+import { useAccountStatus } from '@/features/account/queries'
 
 export function Topbar() {
+  const [query, setQuery] = useState('')
+  const navigate = useNavigate()
+  const sync = useChannelSyncMutation()
+  const { mode } = useMode()
+  const { data: accountStatus } = useAccountStatus()
+
+  const connected = accountStatus?.connected ?? false
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const trimmed = query.trim()
+    if (!trimmed || sync.isPending) return
+    sync.mutate(trimmed, {
+      onSuccess: (data) => {
+        setQuery('')
+        navigate(`/channels/${data.channelDbId}`)
+      },
+    })
+  }
+
   return (
     <header
       className="sticky top-0 z-20 flex shrink-0 items-center justify-between gap-4 px-6"
@@ -61,76 +86,187 @@ export function Topbar() {
         </span>
       </div>
 
-      {/* CENTER: Channel search bar (static shell) */}
+      {/* CENTER: Channel search + Load */}
       <div className="flex flex-1 justify-center">
-        <div
+        <form
+          onSubmit={handleSubmit}
           className="flex items-center gap-2"
-          style={{
-            width: '480px',
-            maxWidth: '100%',
-            height: '36px',
-            background: 'var(--color-surface-1)',
-            border: '1px solid var(--color-border-base)',
-            borderRadius: 'var(--radius-full)',
-            padding: '0 var(--space-4)',
-          }}
-          role="search"
-          aria-label="Channel search"
+          style={{ width: '520px', maxWidth: '100%' }}
         >
-          <Search
-            size={16}
-            aria-hidden
-            style={{ color: 'var(--color-text-muted)', flexShrink: 0 }}
-          />
-          <span
+          <label
+            className="flex flex-1 items-center gap-2"
             style={{
-              flex: 1,
-              fontSize: 'var(--text-sm)',
-              fontFamily: 'var(--font-body)',
-              color: 'var(--color-text-muted)',
+              height: '36px',
+              background: 'var(--color-surface-1)',
+              border: `1px solid ${sync.isError ? 'var(--color-down)' : 'var(--color-border-base)'}`,
+              borderRadius: 'var(--radius-full)',
+              padding: '0 var(--space-4)',
+              cursor: 'text',
             }}
           >
-            Search any YouTube channel...
-          </span>
-        </div>
+            {sync.isPending ? (
+              <Loader2
+                size={16}
+                aria-hidden
+                className="animate-spin"
+                style={{ color: 'var(--color-text-muted)', flexShrink: 0 }}
+              />
+            ) : (
+              <Search
+                size={16}
+                aria-hidden
+                style={{ color: 'var(--color-text-muted)', flexShrink: 0 }}
+              />
+            )}
+            <input
+              type="search"
+              aria-label="Search channels"
+              placeholder="@handle, channel ID, or URL..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              disabled={sync.isPending}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                fontSize: 'var(--text-sm)',
+                fontFamily: 'var(--font-body)',
+                color: 'var(--color-text-primary)',
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+              }}
+            />
+          </label>
+
+          <button
+            type="submit"
+            disabled={!query.trim() || sync.isPending}
+            style={{
+              height: '36px',
+              padding: '0 var(--space-4)',
+              flexShrink: 0,
+              borderRadius: 'var(--radius-full)',
+              fontSize: 'var(--text-sm)',
+              fontWeight: 500,
+              fontFamily: 'var(--font-body)',
+              background: query.trim() && !sync.isPending ? 'var(--accent)' : 'var(--color-surface-2)',
+              color: query.trim() && !sync.isPending ? 'var(--color-text-inverse)' : 'var(--color-text-muted)',
+              border: '1px solid transparent',
+              cursor: query.trim() && !sync.isPending ? 'pointer' : 'default',
+              transition: `background var(--duration-base) var(--ease-standard), color var(--duration-base) var(--ease-standard)`,
+            }}
+          >
+            {sync.isPending ? 'Loading...' : 'Load'}
+          </button>
+        </form>
       </div>
 
-      {/* RIGHT: Explorer mode badge */}
-      <div className="flex shrink-0 items-center gap-3">
-        <div
-          className="flex items-center gap-2"
-          style={{
-            background: 'var(--color-amber-glow)',
-            border: '1px solid color-mix(in srgb, var(--color-amber-500) 40%, transparent)',
-            borderRadius: 'var(--radius-full)',
-            padding: '4px 10px',
-          }}
-          aria-label="Explorer mode active"
-        >
-          <span
-            className="animate-pulse-dot"
-            aria-hidden
+      {/* RIGHT: Mode + connection badge */}
+      <div className="flex shrink-0 items-center gap-2">
+        {mode === 'studio' ? (
+          <div
+            className="flex items-center gap-2"
             style={{
-              display: 'inline-block',
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              background: 'var(--color-amber-500)',
-              flexShrink: 0,
+              background: 'color-mix(in srgb, var(--accent) 12%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--accent) 40%, transparent)',
+              borderRadius: 'var(--radius-full)',
+              padding: '4px 10px',
             }}
-          />
-          <span
-            className="num"
-            style={{
-              fontSize: 'var(--text-xs)',
-              fontWeight: 500,
-              letterSpacing: 'var(--tracking-widest)',
-              color: 'var(--color-amber-500)',
-            }}
+            aria-label="Studio mode active"
           >
-            EXPLORING
-          </span>
-        </div>
+            <span
+              aria-hidden
+              style={{
+                display: 'inline-block',
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                background: 'var(--accent)',
+                flexShrink: 0,
+              }}
+            />
+            <span
+              className="num"
+              style={{
+                fontSize: 'var(--text-xs)',
+                fontWeight: 500,
+                letterSpacing: 'var(--tracking-widest)',
+                color: 'var(--accent)',
+              }}
+            >
+              STUDIO
+            </span>
+          </div>
+        ) : connected ? (
+          <div
+            className="flex items-center gap-2"
+            style={{
+              background: 'color-mix(in srgb, var(--color-up) 10%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--color-up) 35%, transparent)',
+              borderRadius: 'var(--radius-full)',
+              padding: '4px 10px',
+            }}
+            aria-label="YouTube account connected"
+          >
+            <span
+              aria-hidden
+              style={{
+                display: 'inline-block',
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                background: 'var(--color-up)',
+                flexShrink: 0,
+              }}
+            />
+            <span
+              className="num"
+              style={{
+                fontSize: 'var(--text-xs)',
+                fontWeight: 500,
+                letterSpacing: 'var(--tracking-widest)',
+                color: 'var(--color-up)',
+              }}
+            >
+              CONNECTED
+            </span>
+          </div>
+        ) : (
+          <div
+            className="flex items-center gap-2"
+            style={{
+              background: 'var(--color-amber-glow)',
+              border: '1px solid color-mix(in srgb, var(--color-amber-500) 40%, transparent)',
+              borderRadius: 'var(--radius-full)',
+              padding: '4px 10px',
+            }}
+            aria-label="Public mode — no account connected"
+          >
+            <span
+              className="animate-pulse-dot"
+              aria-hidden
+              style={{
+                display: 'inline-block',
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                background: 'var(--color-amber-500)',
+                flexShrink: 0,
+              }}
+            />
+            <span
+              className="num"
+              style={{
+                fontSize: 'var(--text-xs)',
+                fontWeight: 500,
+                letterSpacing: 'var(--tracking-widest)',
+                color: 'var(--color-amber-500)',
+              }}
+            >
+              PUBLIC
+            </span>
+          </div>
+        )}
       </div>
     </header>
   )

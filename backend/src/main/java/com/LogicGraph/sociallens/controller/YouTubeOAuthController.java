@@ -1,13 +1,17 @@
 package com.LogicGraph.sociallens.controller;
 
-import com.LogicGraph.sociallens.dto.oauth.OAuthCallbackResponse;
 import com.LogicGraph.sociallens.dto.oauth.OAuthStartResponse;
 import com.LogicGraph.sociallens.exception.OAuthStateInvalidException;
 import com.LogicGraph.sociallens.service.oauth.YouTubeOAuthService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import lombok.extern.slf4j.Slf4j;
+
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @RestController
@@ -17,10 +21,12 @@ public class YouTubeOAuthController {
 
     private final YouTubeOAuthService youTubeOAuthService;
 
-    
+    @Value("${app.frontend.url:http://localhost:5173}")
+    private String frontendUrl;
+
     /**
-     * Step 1: Start OAuth flow
-     * Frontend redirects user to returned URL
+     * Step 1: Start OAuth flow.
+     * Returns { authUrl } for the frontend to open in a new tab.
      */
     @GetMapping("/start")
     public OAuthStartResponse startOAuth(@RequestParam Long userId) {
@@ -28,10 +34,14 @@ public class YouTubeOAuthController {
     }
 
     /**
-     * Step 2: OAuth callback from Google
+     * Step 2: Google redirects the user's browser here after consent.
+     * We exchange the code, store tokens, then redirect the browser to the
+     * frontend callback page so the user sees a real UI instead of raw JSON.
+     *
+     * Frontend landing: {frontendUrl}/oauth/callback?connected=true|false[&message=...]
      */
     @GetMapping("/callback")
-    public ResponseEntity<?> callback(
+    public ResponseEntity<Void> callback(
             @RequestParam(required = false) String code,
             @RequestParam(required = false) String state,
             @RequestParam(required = false) String error,
@@ -41,25 +51,36 @@ public class YouTubeOAuthController {
                 code != null, state, error, errorDescription);
 
         if (error != null) {
-            return ResponseEntity.badRequest().body(
-                    new OAuthCallbackResponse(false, "Google OAuth error: " + error + " " + errorDescription));
+            String msg = "Google OAuth error: " + error;
+            if (errorDescription != null) msg += " \u2014 " + errorDescription;
+            return redirectToFrontend(false, msg);
         }
 
         if (code == null || state == null) {
-            return ResponseEntity.badRequest().body(
-                    new OAuthCallbackResponse(false, "Missing code or state from Google callback"));
+            return redirectToFrontend(false, "Missing code or state from Google callback");
         }
 
         try {
-            OAuthCallbackResponse response = youTubeOAuthService.handleCallback(code, state);
-            return ResponseEntity.ok(response);
+            youTubeOAuthService.handleCallback(code, state);
+            return redirectToFrontend(true, null);
         } catch (OAuthStateInvalidException e) {
-            // Let GlobalExceptionHandler map this to 400
-            throw e;
+            return redirectToFrontend(false, e.getMessage());
         } catch (Exception e) {
-            log.error("OAuth callback failed. state={}, codePresent={}", state, true, e);
-            return ResponseEntity.status(500).body(
-                    new OAuthCallbackResponse(false, "OAuth callback failed: " + e.getMessage()));
+            log.error("OAuth callback failed. state={}, codePresent=true", state, e);
+            return redirectToFrontend(false, "OAuth callback failed: " + e.getMessage());
         }
+    }
+
+    private ResponseEntity<Void> redirectToFrontend(boolean connected, String message) {
+        StringBuilder url = new StringBuilder(frontendUrl)
+                .append("/oauth/callback?connected=")
+                .append(connected);
+        if (message != null) {
+            url.append("&message=")
+               .append(URLEncoder.encode(message, StandardCharsets.UTF_8));
+        }
+        return ResponseEntity.status(302)
+                .location(URI.create(url.toString()))
+                .build();
     }
 }

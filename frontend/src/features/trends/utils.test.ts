@@ -4,6 +4,7 @@ import {
   computeDailyDeltas,
   hasSufficientDataForMode,
   computeInsights,
+  computeSnapshotCoverage,
 } from './utils'
 import type { TimeSeriesPoint } from '@/api/types'
 
@@ -136,5 +137,45 @@ describe('computeInsights (delta mode)', () => {
     const deltas = [pt('2024-01-01', 0)]
     const { slopeUnavailable } = computeInsights(deltas, 'delta')
     expect(slopeUnavailable).toBe(false)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+describe('computeSnapshotCoverage', () => {
+  it('returns zero capturedDays and null dates for empty input', () => {
+    const result = computeSnapshotCoverage([], 30)
+    expect(result.capturedDays).toBe(0)
+    expect(result.firstDate).toBeNull()
+    expect(result.lastDate).toBeNull()
+    expect(result.isSparse).toBe(true)
+  })
+
+  it('marks isSparse false when capturedDays equals requestedRange', () => {
+    const pts = Array.from({ length: 30 }, (_, i) => pt(`2024-01-${String(i + 1).padStart(2, '0')}`, i))
+    const result = computeSnapshotCoverage(pts, 30)
+    expect(result.capturedDays).toBe(30)
+    expect(result.isSparse).toBe(false)
+  })
+
+  it('marks isSparse true when capturedDays is less than requestedRange', () => {
+    const pts = [pt('2024-01-01', 100), pt('2024-01-02', 200)]
+    const result = computeSnapshotCoverage(pts, 30)
+    expect(result.capturedDays).toBe(2)
+    expect(result.isSparse).toBe(true)
+  })
+
+  it('returns correct firstDate and lastDate for multiple points', () => {
+    const pts = [pt('2024-03-10', 1), pt('2024-03-15', 2), pt('2024-03-20', 3)]
+    const result = computeSnapshotCoverage(pts, 30)
+    expect(result.firstDate).toBe('2024-03-10')
+    expect(result.lastDate).toBe('2024-03-20')
+  })
+
+  it('returns same firstDate and lastDate for a single point', () => {
+    const pts = [pt('2024-03-21', 500)]
+    const result = computeSnapshotCoverage(pts, 7)
+    expect(result.firstDate).toBe('2024-03-21')
+    expect(result.lastDate).toBe('2024-03-21')
+    expect(result.isSparse).toBe(true)
   })
 })
