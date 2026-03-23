@@ -3,14 +3,15 @@ import { useNavigate } from 'react-router-dom'
 import { Loader2, Search } from 'lucide-react'
 import { useChannelSyncMutation } from '@/features/channels/queries'
 import { useMode } from '@/lib/ModeContext'
-import { useAccountStatus } from '@/features/account/queries'
+import { useAccountStatus, useCurrentUser } from '@/features/account/queries'
 
 export function Topbar() {
   const [query, setQuery] = useState('')
   const navigate = useNavigate()
   const sync = useChannelSyncMutation()
   const { mode } = useMode()
-  const { data: accountStatus } = useAccountStatus()
+  const { data: currentUser } = useCurrentUser()
+  const { data: accountStatus } = useAccountStatus(currentUser?.id)
 
   const connected = accountStatus?.connected ?? false
 

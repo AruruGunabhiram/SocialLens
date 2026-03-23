@@ -16,6 +16,7 @@ import {
   fetchChannelVideos,
   refreshChannelById,
   syncChannel,
+  type RefreshChannelResult,
   type TrendMetric,
   type VideoQueryParams,
 } from './api'
@@ -191,10 +192,20 @@ export function useChannelAnalyticsByIdQuery(
 export function useChannelRefreshByIdMutation() {
   const queryClient = useQueryClient()
 
-  return useMutation({
-    mutationFn: ({ channelDbId }: { channelDbId: number }) => refreshChannelById(channelDbId),
-    onSuccess: (_data, { channelDbId }) => {
-      toastSuccess('Refresh complete', 'Snapshot written — chart data is ready.')
+  return useMutation<RefreshChannelResult, unknown, { channelDbId: number }>({
+    mutationFn: ({ channelDbId }) => refreshChannelById(channelDbId),
+    onSuccess: (data, { channelDbId }) => {
+      // Build a meaningful toast from enrichment counts when available.
+      const enriched = data.videosEnriched ?? null
+      const errors = data.enrichmentErrors ?? 0
+      let description = 'Snapshot written — chart data is ready.'
+      if (enriched !== null) {
+        description =
+          errors > 0
+            ? `${enriched} video(s) enriched. ${errors} API batch(es) failed — partial metadata.`
+            : `${enriched} video(s) enriched with full metadata.`
+      }
+      toastSuccess('Refresh complete', description)
       // ['channels', ...] — analytics and any root-level channel queries
       queryClient.invalidateQueries({ queryKey: channelQueryKeys.root })
       // ['channelList', 'detail', id] — single channel metadata (lastSnapshotAt, lastRefreshStatus)

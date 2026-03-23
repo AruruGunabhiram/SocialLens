@@ -50,7 +50,7 @@ function ChannelCard({ channel }: { channel: ChannelItem }) {
             )}
           </div>
           <Badge variant={channel.active ? 'secondary' : 'outline'} className="shrink-0 text-xs">
-            {channel.active ? 'Active' : 'Inactive'}
+            {channel.active ? 'Tracked' : 'Paused'}
           </Badge>
         </div>
 

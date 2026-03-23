@@ -41,10 +41,15 @@ public class JobsController {
     @PostMapping("/refresh/channel")
     public ResponseEntity<Map<String, Object>> refreshSingleChannel(@RequestParam Long channelDbId) {
         try {
-            dailyRefreshWorker.refreshOneChannel(channelDbId);
+            DailyRefreshWorker.RefreshResult result = dailyRefreshWorker.refreshOneChannel(channelDbId);
+            Map<String, Object> body = refreshPayload("refresh_triggered", channelDbId, null);
+            body.put("videosDiscovered", result.videosDiscovered());
+            body.put("videosEnriched", result.videosEnriched());
+            body.put("markedInactive", result.markedInactive());
+            body.put("enrichmentErrors", result.enrichmentErrors());
             return ResponseEntity
                     .status(HttpStatus.ACCEPTED)
-                    .body(refreshPayload("refresh_triggered", channelDbId, null));
+                    .body(body);
 
         } catch (RefreshAlreadyRunningException ex) {
             return ResponseEntity

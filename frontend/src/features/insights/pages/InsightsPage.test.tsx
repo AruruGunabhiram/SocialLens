@@ -18,6 +18,7 @@ vi.mock('@/features/trends/queries', () => ({
 
 vi.mock('@/features/account/queries', () => ({
   useAccountStatus: vi.fn(),
+  useCurrentUser: vi.fn(),
 }))
 
 vi.mock('@/features/retention/queries', () => ({
@@ -42,7 +43,7 @@ vi.mock('@/lib/toast', () => ({
 
 import { useChannelQuery, useVideosQuery } from '@/features/channels/queries'
 import { useTimeSeries } from '@/features/trends/queries'
-import { useAccountStatus } from '@/features/account/queries'
+import { useAccountStatus, useCurrentUser } from '@/features/account/queries'
 import { useRetentionDiagnosis } from '@/features/retention/queries'
 
 // ─── Factories ────────────────────────────────────────────────────────────────
@@ -141,6 +142,7 @@ describe('InsightsPage', () => {
     vi.mocked(useVideosQuery).mockReturnValue(idle() as any)
     vi.mocked(useTimeSeries).mockReturnValue(idle() as any)
     vi.mocked(useAccountStatus).mockReturnValue(idle() as any)
+    vi.mocked(useCurrentUser).mockReturnValue(success({ id: 1 }) as any)
     vi.mocked(useRetentionDiagnosis).mockReturnValue(DEFAULT_MUTATION as any)
   })
 

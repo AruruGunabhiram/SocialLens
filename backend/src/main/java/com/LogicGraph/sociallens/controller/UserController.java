@@ -7,7 +7,7 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/api/v1/users")
 public class UserController {
 
     private final UserService userService;
@@ -19,5 +19,16 @@ public class UserController {
     @PostMapping
     public UserResponse createUser(@Valid @RequestBody CreateUserRequest request) {
         return userService.createUser(request);
+    }
+
+    /**
+     * Returns the implicit "current user" for local-dev (no auth layer yet).
+     * Creates the default local-dev user on first call if the table is empty.
+     *
+     * Replace this with a principal-based lookup once real auth is added.
+     */
+    @GetMapping("/me")
+    public UserResponse me() {
+        return userService.getOrCreateDefaultLocalUser();
     }
 }

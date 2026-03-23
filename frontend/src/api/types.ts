@@ -6,6 +6,7 @@ import {
   ChannelItemSchema,
   ChannelMetricPointSchema,
   DiagnosisItemSchema,
+  LocalUserSchema,
   OAuthStartResponseSchema,
   PageMetaSchema,
   RetentionDiagnosisResponseSchema,
@@ -17,6 +18,7 @@ import {
   YouTubeSyncResponseSchema,
 } from './schemas'
 
+export type LocalUser = z.infer<typeof LocalUserSchema>
 export type YouTubeSyncResponse = z.infer<typeof YouTubeSyncResponseSchema>
 export type ChannelAnalytics = z.infer<typeof ChannelAnalyticsSchema>
 export type ChannelMetricPoint = z.infer<typeof ChannelMetricPointSchema>

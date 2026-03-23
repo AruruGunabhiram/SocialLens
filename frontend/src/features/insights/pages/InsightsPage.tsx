@@ -12,10 +12,9 @@ import {
 
 import { useChannelQuery, useVideosQuery } from '@/features/channels/queries'
 import { useTimeSeries } from '@/features/trends/queries'
-import { useAccountStatus } from '@/features/account/queries'
+import { useAccountStatus, useCurrentUser } from '@/features/account/queries'
 import { useRetentionDiagnosis } from '@/features/retention/queries'
 import { extractVideoId } from '@/features/retention/api'
-import { MVP_USER_ID } from '@/features/account/api'
 import {
   computeDailyDeltas,
   computeInsights,
@@ -388,7 +387,8 @@ export default function InsightsPage() {
   const { data: channel, isLoading: channelLoading } = useChannelQuery(channelDbId)
   const channelName = channel?.title ?? (channel?.handle ? `@${channel.handle}` : undefined)
 
-  const { data: accountStatus, isLoading: accountLoading } = useAccountStatus()
+  const { data: currentUser } = useCurrentUser()
+  const { data: accountStatus, isLoading: accountLoading } = useAccountStatus(currentUser?.id)
   const isConnected = accountStatus?.connected === true
 
   const RANGE = 30
@@ -439,7 +439,7 @@ export default function InsightsPage() {
       return
     }
     if (!channel?.channelId) return
-    mutate({ userId: MVP_USER_ID, channelId: channel.channelId, videoId })
+    mutate({ userId: currentUser?.id ?? 0, channelId: channel.channelId, videoId })
   }
 
   function handleInputChange(val: string) {
@@ -486,7 +486,7 @@ export default function InsightsPage() {
           Insights
         </h1>
         <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 'var(--leading-relaxed)' }}>
-          Performance analysis for {channelName ?? 'this channel'} — last {RANGE} days.
+          Performance analysis for {channelName ?? 'this channel'} based on captured snapshots.
         </p>
       </div>
 
@@ -521,7 +521,7 @@ export default function InsightsPage() {
                       fontVariantNumeric: 'tabular-nums',
                       color: viewsCoverage.isSparse ? 'var(--color-warn, var(--color-text-secondary))' : 'var(--color-text-primary)',
                     }}>
-                      {viewsCoverage.capturedDays} of {RANGE}{viewsCoverage.isSparse ? ' — sparse' : ''}
+                      {viewsCoverage.capturedDays} of {RANGE}{viewsCoverage.isSparse ? ' — partial' : ''}
                     </div>
                   </div>
                 </div>
@@ -645,7 +645,7 @@ export default function InsightsPage() {
                 YouTube account not connected
               </p>
               <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 'var(--leading-relaxed)' }}>
-                Retention data requires OAuth access to YouTube Analytics. Connect your account in Studio mode to unlock this feature.
+                Retention Diagnosis requires YouTube Analytics access. Connect your YouTube account via the sidebar to unlock this feature.
               </p>
             </div>
           </div>

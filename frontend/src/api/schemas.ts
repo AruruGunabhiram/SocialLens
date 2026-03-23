@@ -72,6 +72,8 @@ export const YouTubeSyncResponseSchema = z.object({
     videosUpdated: z.number(),
     pagesFetched: z.number(),
     pageSize: z.number(),
+    videosEnriched: z.number().optional(),
+    enrichmentErrors: z.number().optional(),
   }),
   timing: z.object({
     startedAt: z.string(),
@@ -122,6 +124,16 @@ export const ChannelAnalyticsSchema = z
 // -----------------------------------------------------------------------
 // Account status — GET /api/v1/connected-accounts/status
 // -----------------------------------------------------------------------
+
+// -----------------------------------------------------------------------
+// Local user — GET /api/v1/users/me
+// -----------------------------------------------------------------------
+
+export const LocalUserSchema = z.object({
+  id: z.number(),
+  email: z.string(),
+  name: z.string(),
+})
 
 export const AccountStatusSchema = z.object({
   userId: z.number(),

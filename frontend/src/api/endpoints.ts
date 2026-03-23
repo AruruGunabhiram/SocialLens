@@ -21,6 +21,10 @@ export const endpoints = {
     // GET /api/v1/connected-accounts/status?userId={id}&platform={platform}
     status: '/api/v1/connected-accounts/status',
   },
+  users: {
+    // GET /api/v1/users/me  → { id, email, name } — returns/creates the local-dev user
+    me: '/api/v1/users/me',
+  },
   oauth: {
     // GET /api/v1/oauth/youtube/start?userId={id}  → { authUrl: string }
     youtubeStart: '/api/v1/oauth/youtube/start',
