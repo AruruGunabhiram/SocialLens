@@ -14,8 +14,9 @@ vi.mock('@/features/channels/queries', () => ({
   }),
 }))
 
-// useAccountStatus hits the network; stub it out.
+// useAccountStatus and useCurrentUser hit the network; stub them out.
 vi.mock('@/features/account/queries', () => ({
+  useCurrentUser: () => ({ data: { id: 1 } }),
   useAccountStatus: () => ({ data: undefined, isLoading: false, isError: false }),
 }))
 
