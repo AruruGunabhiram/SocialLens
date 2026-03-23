@@ -110,18 +110,18 @@ describe('InsightsPage — Retention Diagnosis', () => {
       data: undefined,
       isLoading: false,
       isError: false,
-    } as ReturnType<typeof useVideosQuery>)
+    } as unknown as ReturnType<typeof useVideosQuery>)
     vi.mocked(useTimeSeries).mockReturnValue({
       data: undefined,
       isLoading: false,
       isError: false,
-    } as ReturnType<typeof useTimeSeries>)
+    } as unknown as ReturnType<typeof useTimeSeries>)
     vi.mocked(useAccountStatus).mockReturnValue({
       data: { userId: 1, platform: 'YOUTUBE', connected: true },
       isLoading: false,
     } as ReturnType<typeof useAccountStatus>)
     vi.mocked(useRetentionDiagnosis).mockReturnValue(
-      makeMutation({}) as ReturnType<typeof useRetentionDiagnosis>
+      makeMutation({}) as unknown as ReturnType<typeof useRetentionDiagnosis>
     )
   })
 
@@ -136,7 +136,7 @@ describe('InsightsPage — Retention Diagnosis', () => {
       isLoading: false,
     } as ReturnType<typeof useAccountStatus>)
     vi.mocked(useRetentionDiagnosis).mockReturnValue(
-      makeMutation({}) as ReturnType<typeof useRetentionDiagnosis>
+      makeMutation({}) as unknown as ReturnType<typeof useRetentionDiagnosis>
     )
 
     renderPage()
@@ -163,7 +163,7 @@ describe('InsightsPage — Retention Diagnosis', () => {
   it('calls mutate with correct args for bare video ID', async () => {
     const mutate = vi.fn()
     vi.mocked(useRetentionDiagnosis).mockReturnValue(
-      makeMutation({ mutate }) as ReturnType<typeof useRetentionDiagnosis>
+      makeMutation({ mutate }) as unknown as ReturnType<typeof useRetentionDiagnosis>
     )
     renderPage()
     fireEvent.change(screen.getByTestId('video-input'), { target: { value: 'dQw4w9WgXcQ' } })
@@ -180,7 +180,7 @@ describe('InsightsPage — Retention Diagnosis', () => {
   it('calls mutate with extracted video ID from full URL', async () => {
     const mutate = vi.fn()
     vi.mocked(useRetentionDiagnosis).mockReturnValue(
-      makeMutation({ mutate }) as ReturnType<typeof useRetentionDiagnosis>
+      makeMutation({ mutate }) as unknown as ReturnType<typeof useRetentionDiagnosis>
     )
     renderPage()
     fireEvent.change(screen.getByTestId('video-input'), {
@@ -198,7 +198,7 @@ describe('InsightsPage — Retention Diagnosis', () => {
 
   it('shows loading skeleton while isPending', () => {
     vi.mocked(useRetentionDiagnosis).mockReturnValue(
-      makeMutation({ isPending: true }) as ReturnType<typeof useRetentionDiagnosis>
+      makeMutation({ isPending: true }) as unknown as ReturnType<typeof useRetentionDiagnosis>
     )
     renderPage()
     expect(screen.getByTestId('loading-state')).toBeInTheDocument()
@@ -207,7 +207,7 @@ describe('InsightsPage — Retention Diagnosis', () => {
 
   it('shows error state on API failure', () => {
     vi.mocked(useRetentionDiagnosis).mockReturnValue(
-      makeMutation({ error: new Error('Video not found') }) as ReturnType<
+      makeMutation({ error: new Error('Video not found') }) as unknown as ReturnType<
         typeof useRetentionDiagnosis
       >
     )
@@ -218,7 +218,7 @@ describe('InsightsPage — Retention Diagnosis', () => {
 
   it('renders diagnosis results on success', () => {
     vi.mocked(useRetentionDiagnosis).mockReturnValue(
-      makeMutation({ data: makeResult() }) as ReturnType<typeof useRetentionDiagnosis>
+      makeMutation({ data: makeResult() }) as unknown as ReturnType<typeof useRetentionDiagnosis>
     )
     renderPage()
     expect(screen.getByTestId('diagnosis-results')).toBeInTheDocument()
@@ -233,7 +233,7 @@ describe('InsightsPage — Retention Diagnosis', () => {
 
   it('renders empty drop events message when no drops', () => {
     vi.mocked(useRetentionDiagnosis).mockReturnValue(
-      makeMutation({ data: makeResult({ dropEvents: [] }) }) as ReturnType<
+      makeMutation({ data: makeResult({ dropEvents: [] }) }) as unknown as ReturnType<
         typeof useRetentionDiagnosis
       >
     )
