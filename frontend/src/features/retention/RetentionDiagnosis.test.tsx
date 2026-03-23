@@ -19,6 +19,7 @@ vi.mock('@/features/channels/queries', () => ({
 
 vi.mock('@/features/account/queries', () => ({
   useAccountStatus: vi.fn(),
+  useCurrentUser: vi.fn(),
 }))
 
 vi.mock('@/features/retention/queries', () => ({
@@ -29,12 +30,8 @@ vi.mock('@/features/trends/queries', () => ({
   useTimeSeries: vi.fn(),
 }))
 
-vi.mock('@/features/account/api', () => ({
-  MVP_USER_ID: 1,
-}))
-
 import { useChannelQuery, useVideosQuery } from '@/features/channels/queries'
-import { useAccountStatus } from '@/features/account/queries'
+import { useAccountStatus, useCurrentUser } from '@/features/account/queries'
 import { useRetentionDiagnosis } from '@/features/retention/queries'
 import { useTimeSeries } from '@/features/trends/queries'
 
@@ -116,6 +113,7 @@ describe('InsightsPage — Retention Diagnosis', () => {
       isLoading: false,
       isError: false,
     } as unknown as ReturnType<typeof useTimeSeries>)
+    vi.mocked(useCurrentUser).mockReturnValue({ data: { id: 1 } } as ReturnType<typeof useCurrentUser>)
     vi.mocked(useAccountStatus).mockReturnValue({
       data: { userId: 1, platform: 'YOUTUBE', connected: true },
       isLoading: false,
