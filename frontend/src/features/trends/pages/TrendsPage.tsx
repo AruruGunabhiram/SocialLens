@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { BarChart2, Calendar, ChevronRight, Info, Minus, TrendingDown, TrendingUp } from 'lucide-react'
+import { AlertTriangle, BarChart2, Calendar, ChevronRight, Info, Minus, TrendingDown, TrendingUp } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { toastError } from '@/lib/toast'
@@ -34,6 +34,8 @@ import {
   hasSufficientDataForMode,
   computeInsights,
   computeSnapshotCoverage,
+  isLowConfidenceCoverage,
+  MIN_RELIABLE_DAYS,
   type Insights,
   type SeriesMode,
   type SnapshotCoverage,
@@ -149,6 +151,7 @@ function SnapshotCoverageBanner({
 }) {
   const { capturedDays, firstDate, lastDate, isSparse } = coverage
   if (capturedDays === 0) return null // empty state handles the zero case
+  if (!isSparse) return null // full coverage — no banner needed
 
   const dateRange =
     firstDate && lastDate && firstDate !== lastDate
@@ -156,6 +159,46 @@ function SnapshotCoverageBanner({
       : firstDate
         ? fmtDateShort(firstDate)
         : null
+
+  const isLowCoverage = isLowConfidenceCoverage(capturedDays)
+
+  if (isLowCoverage) {
+    return (
+      <div
+        className="flex items-start gap-2 rounded-lg border px-3 py-2.5 text-sm"
+        style={{
+          borderColor: 'var(--color-warn)',
+          background: 'var(--color-warn-muted)',
+          color: 'var(--color-text-secondary)',
+        }}
+        data-testid="snapshot-coverage-banner"
+      >
+        <AlertTriangle
+          className="h-3.5 w-3.5 shrink-0 mt-0.5"
+          aria-hidden
+          style={{ color: 'var(--color-warn)' }}
+        />
+        <div>
+          <span>
+            Only{' '}
+            <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+              {capturedDays}
+            </span>{' '}
+            captured {capturedDays === 1 ? 'day' : 'days'} available
+            {dateRange && <span> · {dateRange}</span>}
+            {' '}· partial window of requested{' '}
+            <span style={{ fontFamily: 'var(--font-mono)' }}>{requestedRange}</span>D
+          </span>
+          <p
+            className="mt-0.5"
+            style={{ fontSize: 'var(--text-xs)', color: 'var(--color-warn)' }}
+          >
+            Need at least {MIN_RELIABLE_DAYS} captured days for reliable trends
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -165,23 +208,14 @@ function SnapshotCoverageBanner({
     >
       <Info className="h-3.5 w-3.5 shrink-0" aria-hidden />
       <span>
-        <span
-          style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}
-        >
+        <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
           {capturedDays}
+        </span>{' '}
+        captured {capturedDays === 1 ? 'day' : 'days'}
+        {dateRange && <span> · {dateRange}</span>}
+        <span style={{ color: 'var(--color-muted-foreground)', opacity: 0.75 }}>
+          {' '}· partial window of requested {requestedRange}D
         </span>
-        {' '}captured {capturedDays === 1 ? 'day' : 'days'}
-        {dateRange && (
-          <span> · {dateRange}</span>
-        )}
-        {isSparse && (
-          <span
-            className="ml-1"
-            style={{ color: 'var(--color-muted-foreground)', opacity: 0.75 }}
-          >
-            · partial window of requested {requestedRange}D
-          </span>
-        )}
       </span>
     </div>
   )
@@ -570,9 +604,11 @@ export default function TrendsPage() {
                   : `${insights.avgPerDay >= 0 ? '+' : ''}${fmtNum(Math.round(insights.avgPerDay))}`
             }
             sub={
-              coverage.isSparse
-                ? `across ${coverage.capturedDays} captured ${coverage.capturedDays === 1 ? 'day' : 'days'}`
-                : `over last ${range} days`
+              isLowConfidenceCoverage(coverage.capturedDays)
+                ? `across ${coverage.capturedDays} captured ${coverage.capturedDays === 1 ? 'day' : 'days'} — low confidence`
+                : coverage.isSparse
+                  ? `across ${coverage.capturedDays} captured ${coverage.capturedDays === 1 ? 'day' : 'days'}`
+                  : `over last ${range} days`
             }
           />
           <InsightCard
@@ -601,13 +637,16 @@ export default function TrendsPage() {
             }
             label="Trend"
             value={insights.trendLabel === 'N/A' ? '—' : insights.trendLabel}
-            sub={
-              insights.slopeUnavailable
-                ? 'Not enough date range'
-                : seriesMode === 'delta'
+            sub={(() => {
+              if (insights.slopeUnavailable) return 'Not enough date range'
+              const slopeStr =
+                seriesMode === 'delta'
                   ? `${fmtDelta(Math.round(insights.slope))} / day avg`
                   : `${insights.slope >= 0 ? '+' : ''}${fmtNum(Math.round(Math.abs(insights.slope)))} / day`
-            }
+              return isLowConfidenceCoverage(coverage.capturedDays)
+                ? `${slopeStr} · low coverage`
+                : slopeStr
+            })()}
             valueStyle={
               insights.trendLabel === 'Up'
                 ? { color: 'var(--color-up)' }

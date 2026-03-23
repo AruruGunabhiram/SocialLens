@@ -12,10 +12,9 @@ import {
 
 import { useChannelQuery, useVideosQuery } from '@/features/channels/queries'
 import { useTimeSeries } from '@/features/trends/queries'
-import { useAccountStatus } from '@/features/account/queries'
+import { useAccountStatus, useCurrentUser } from '@/features/account/queries'
 import { useRetentionDiagnosis } from '@/features/retention/queries'
 import { extractVideoId } from '@/features/retention/api'
-import { MVP_USER_ID } from '@/features/account/api'
 import {
   computeDailyDeltas,
   computeInsights,
@@ -388,7 +387,8 @@ export default function InsightsPage() {
   const { data: channel, isLoading: channelLoading } = useChannelQuery(channelDbId)
   const channelName = channel?.title ?? (channel?.handle ? `@${channel.handle}` : undefined)
 
-  const { data: accountStatus, isLoading: accountLoading } = useAccountStatus()
+  const { data: currentUser } = useCurrentUser()
+  const { data: accountStatus, isLoading: accountLoading } = useAccountStatus(currentUser?.id)
   const isConnected = accountStatus?.connected === true
 
   const RANGE = 30
@@ -439,7 +439,7 @@ export default function InsightsPage() {
       return
     }
     if (!channel?.channelId) return
-    mutate({ userId: MVP_USER_ID, channelId: channel.channelId, videoId })
+    mutate({ userId: currentUser?.id ?? 0, channelId: channel.channelId, videoId })
   }
 
   function handleInputChange(val: string) {

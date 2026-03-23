@@ -2,6 +2,14 @@ import type { TimeSeriesPoint } from '@/api/types'
 
 export type SeriesMode = 'total' | 'delta'
 
+/** Minimum captured days before trend conclusions are considered reliable. */
+export const MIN_RELIABLE_DAYS = 7
+
+/** True when there are too few captured days to draw reliable trend conclusions. */
+export function isLowConfidenceCoverage(capturedDays: number): boolean {
+  return capturedDays < MIN_RELIABLE_DAYS
+}
+
 export interface SnapshotCoverage {
   /** Number of distinct calendar days returned by the backend */
   capturedDays: number
