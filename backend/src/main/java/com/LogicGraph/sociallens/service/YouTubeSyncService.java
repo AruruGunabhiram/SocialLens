@@ -38,6 +38,17 @@ import java.util.stream.Collectors;
 @Service
 public class YouTubeSyncService {
 
+    /**
+     * Counts from a single {@link #enrichVideoMetadata} run.
+     *
+     * @param enriched       videos that received full metadata from the YouTube API
+     * @param markedInactive videos the YouTube API returned no data for (deleted / private)
+     * @param failedBatches  API batches that threw (network / quota); affected videos are untouched
+     */
+    public record EnrichmentResult(int enriched, int markedInactive, int failedBatches) {
+        public static EnrichmentResult empty() { return new EnrichmentResult(0, 0, 0); }
+    }
+
     private static final Logger log = LoggerFactory.getLogger(YouTubeSyncService.class);
 
     private final YouTubeService youTubeService;
@@ -144,10 +155,15 @@ public class YouTubeSyncService {
         // thumbnailUrl, duration) for the videos we just upserted.  Without this step every
         // video row is stored with only videoId + channel_id set, leaving the Videos page
         // showing bare IDs and blank stats.
-        int enriched = 0;
+        EnrichmentResult enrichResult = EnrichmentResult.empty();
         try {
-            enriched = enrichVideoMetadata(savedChannel.getId());
-            log.info("syncChannelOnly: enriched {} video rows for channelId={}", enriched, dto.channelId());
+            enrichResult = enrichVideoMetadata(savedChannel.getId());
+            log.info("syncChannelOnly: channelId={} enriched={} markedInactive={} failedBatches={}",
+                    dto.channelId(), enrichResult.enriched(), enrichResult.markedInactive(), enrichResult.failedBatches());
+            if (enrichResult.failedBatches() > 0) {
+                warnings.add("Enrichment partial: " + enrichResult.failedBatches() + " API batch(es) failed; "
+                        + enrichResult.enriched() + " video(s) enriched.");
+            }
         } catch (Exception e) {
             warnings.add("Video metadata enrichment failed: " + e.getMessage());
             log.warn("syncChannelOnly: enrichment failed for channelId={}: {}", dto.channelId(), e.getMessage(), e);
@@ -175,6 +191,8 @@ public class YouTubeSyncService {
         res.result.videosFetched = videosFetched;
         res.result.videosSaved = videosSaved;
         res.result.videosUpdated = videosUpdated;
+        res.result.videosEnriched = enrichResult.enriched();
+        res.result.enrichmentErrors = enrichResult.failedBatches();
 
         res.timing = new YouTubeSyncResponseDto.Timing();
         res.timing.startedAt = start.toString();
@@ -260,6 +278,21 @@ public class YouTubeSyncService {
                     videoId = item.snippet.resourceId.videoId;
                 }
                 if (videoId == null || videoId.isBlank()) continue;
+
+                // Stop pagination once we reach a video published at or before the cursor.
+                // playlist items are returned newest-first, so the first item older than the
+                // cursor means all subsequent items are also older.
+                if (item.snippet != null && item.snippet.publishedAt != null) {
+                    try {
+                        Instant videoPublishedAt = Instant.parse(item.snippet.publishedAt);
+                        if (!videoPublishedAt.isAfter(publishedAfter)) {
+                            cursorReached = true;
+                            break;
+                        }
+                    } catch (Exception ignored) {
+                        // Malformed publishedAt — include this video and keep going
+                    }
+                }
 
                 upsertVideo(videoId, channel);
                 synced++;
@@ -364,6 +397,27 @@ public class YouTubeSyncService {
     }
 
     // =========================
+    // Channel metadata refresh
+    // =========================
+
+    /**
+     * Fetches the latest channel metadata from YouTube and upserts it into the DB.
+     * Called by {@link com.LogicGraph.sociallens.jobs.DailyRefreshWorker} on every refresh run
+     * so that subscriber counts, view counts, and title stay current.
+     */
+    @Transactional
+    public void refreshChannelMetadata(String channelId) {
+        try {
+            ChannelSummaryDto dto = youTubeService.getChannelSummaryByChannelId(channelId);
+            upsertChannel(dto);
+            log.info("refreshChannelMetadata: updated channelId={}", channelId);
+        } catch (Exception e) {
+            log.warn("refreshChannelMetadata: failed for channelId={}: {}", channelId, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    // =========================
     // Video enrichment
     // =========================
 
@@ -372,24 +426,31 @@ public class YouTubeSyncService {
      * (snippet, contentDetails, statistics) in batches, and upserts the metadata
      * back into the existing YOUTUBE_VIDEO rows in a single saveAll transaction.
      *
-     * @return number of rows actually updated
+     * <p>Uses per-batch error handling in {@code fetchVideoDetails}, so a single
+     * failed batch does not abort enrichment for the rest of the channel's videos.
+     *
+     * @return {@link EnrichmentResult} with enriched / markedInactive / failedBatches counts
      */
     @Transactional
-    public int enrichVideoMetadata(Long channelDbId) {
+    public EnrichmentResult enrichVideoMetadata(Long channelDbId) {
         List<String> videoIds = videoRepository.findVideoIdsByChannelDbId(
                 channelDbId, PageRequest.of(0, 200));
-        log.info("enrichVideoMetadata: loaded {} videoIds for channelDbId={}", videoIds.size(), channelDbId);
+        log.info("enrichVideoMetadata: channelDbId={} discovered {} stored videoIds",
+                channelDbId, videoIds.size());
 
-        if (videoIds.isEmpty()) return 0;
+        if (videoIds.isEmpty()) return EnrichmentResult.empty();
 
         List<YouTubeVideosResponse.Item> items;
         try {
             items = youTubeService.fetchVideoDetails(videoIds);
         } catch (Exception e) {
-            log.warn("enrichVideoMetadata: fetchVideoDetails failed for channelDbId={}, skipping enrichment: {}",
+            log.warn("enrichVideoMetadata: fetchVideoDetails failed entirely for channelDbId={}: {}",
                     channelDbId, e.getMessage(), e);
-            return 0;
+            return new EnrichmentResult(0, 0, 1);
         }
+
+        log.info("enrichVideoMetadata: channelDbId={} YouTube API returned {} item(s) for {} videoId(s)",
+                channelDbId, items.size(), videoIds.size());
 
         Map<String, YouTubeVideosResponse.Item> detailMap = items.stream()
                 .filter(i -> i.id != null)
@@ -397,6 +458,8 @@ public class YouTubeSyncService {
 
         List<YouTubeVideo> videos = videoRepository.findAllByVideoIdIn(videoIds);
         List<YouTubeVideo> toSave = new ArrayList<>();
+        int enrichedCount = 0;
+        int markedInactiveCount = 0;
 
         for (YouTubeVideo video : videos) {
             YouTubeVideosResponse.Item detail = detailMap.get(video.getVideoId());
@@ -405,18 +468,22 @@ public class YouTubeSyncService {
                 if (video.isActive()) {
                     video.setActive(false);
                     toSave.add(video);
-                    log.info("enrichVideoMetadata: marking videoId={} inactive (not returned by YouTube API)", video.getVideoId());
+                    markedInactiveCount++;
+                    log.info("enrichVideoMetadata: marking videoId={} inactive (not returned by YouTube API)",
+                            video.getVideoId());
                 }
                 continue;
             }
             video.setActive(true); // re-activate if it was previously marked inactive
             applyVideoDetails(video, detail);
             toSave.add(video);
+            enrichedCount++;
         }
 
         videoRepository.saveAll(toSave);
-        log.info("enrichVideoMetadata: persisted {} updated video rows for channelDbId={}", toSave.size(), channelDbId);
-        return toSave.size();
+        log.info("enrichVideoMetadata: channelDbId={} enriched={} markedInactive={} totalSaved={}",
+                channelDbId, enrichedCount, markedInactiveCount, toSave.size());
+        return new EnrichmentResult(enrichedCount, markedInactiveCount, 0);
     }
 
     private void applyVideoDetails(YouTubeVideo video, YouTubeVideosResponse.Item item) {

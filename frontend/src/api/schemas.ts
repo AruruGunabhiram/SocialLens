@@ -72,6 +72,8 @@ export const YouTubeSyncResponseSchema = z.object({
     videosUpdated: z.number(),
     pagesFetched: z.number(),
     pageSize: z.number(),
+    videosEnriched: z.number().optional(),
+    enrichmentErrors: z.number().optional(),
   }),
   timing: z.object({
     startedAt: z.string(),

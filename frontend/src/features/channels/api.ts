@@ -138,14 +138,22 @@ export async function fetchChannelTimeSeries(
 // Single entry point; always sends exactly the `channelDbId` query param.
 // ==============================================
 
-export async function refreshChannelById(channelDbId: number): Promise<{ status?: string }> {
+export type RefreshChannelResult = {
+  status?: string
+  videosDiscovered?: number
+  videosEnriched?: number
+  markedInactive?: number
+  enrichmentErrors?: number
+}
+
+export async function refreshChannelById(channelDbId: number): Promise<RefreshChannelResult> {
   try {
     const { data } = await axiosClient.post(
       endpoints.jobs.refreshChannel,
       null, // no request body
       { params: { channelDbId } } // MUST be `channelDbId` — backend @RequestParam
     )
-    return data as { status?: string }
+    return data as RefreshChannelResult
   } catch (error) {
     throw normalizeHttpError(error)
   }

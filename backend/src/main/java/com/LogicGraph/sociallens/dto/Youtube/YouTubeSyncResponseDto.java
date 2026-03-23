@@ -28,6 +28,10 @@ public class YouTubeSyncResponseDto {
         public int videosUpdated;
         public int pagesFetched;
         public int pageSize;
+        /** Videos that received full metadata from the YouTube API during this sync. */
+        public int videosEnriched;
+        /** Number of API batches that failed during enrichment (each batch covers up to 50 videos). */
+        public int enrichmentErrors;
     }
 
     public static class Timing {

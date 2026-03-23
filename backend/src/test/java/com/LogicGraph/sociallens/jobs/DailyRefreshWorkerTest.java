@@ -5,7 +5,6 @@ import com.LogicGraph.sociallens.enums.RefreshStatus;
 import com.LogicGraph.sociallens.exception.RefreshAlreadyRunningException;
 import com.LogicGraph.sociallens.repository.YouTubeChannelRepository;
 import com.LogicGraph.sociallens.repository.YouTubeVideoRepository;
-import com.LogicGraph.sociallens.service.YouTubeService;
 import com.LogicGraph.sociallens.service.YouTubeSyncService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,7 +32,6 @@ class DailyRefreshWorkerTest {
 
     @Mock private YouTubeChannelRepository channelRepo;
     @Mock private YouTubeVideoRepository videoRepo;
-    @Mock private YouTubeService ytService;
     @Mock private YouTubeSyncService syncService;
 
     private DailyRefreshWorker worker;
@@ -42,7 +40,7 @@ class DailyRefreshWorkerTest {
     @BeforeEach
     void setUp() {
         props = new JobProperties(); // defaults: maxVideosPerChannelPerRun = 400
-        worker = new DailyRefreshWorker(channelRepo, videoRepo, ytService, props, syncService);
+        worker = new DailyRefreshWorker(channelRepo, videoRepo, props, syncService);
     }
 
     // -------------------------------------------------------------------------
@@ -55,8 +53,10 @@ class DailyRefreshWorkerTest {
     void refreshOneChannel_successPath_setsStatusSuccess() {
         YouTubeChannel ch = channel(10L, "UCsuccess");
         when(channelRepo.findById(10L)).thenReturn(Optional.of(ch));
+        doNothing().when(syncService).refreshChannelMetadata("UCsuccess");
         when(syncService.syncIncrementalVideos(eq("UCsuccess"), any(Instant.class))).thenReturn(3);
-        when(syncService.enrichVideoMetadata(10L)).thenReturn(3);
+        when(syncService.enrichVideoMetadata(10L))
+                .thenReturn(new YouTubeSyncService.EnrichmentResult(3, 0, 0));
         when(videoRepo.findByChannel_ChannelId(eq("UCsuccess"), any())).thenReturn(List.of());
         when(channelRepo.save(ch)).thenReturn(ch);
 

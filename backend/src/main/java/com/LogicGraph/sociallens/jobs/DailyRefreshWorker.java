@@ -6,7 +6,6 @@ import com.LogicGraph.sociallens.enums.RefreshStatus;
 import com.LogicGraph.sociallens.exception.RefreshAlreadyRunningException;
 import com.LogicGraph.sociallens.repository.YouTubeChannelRepository;
 import com.LogicGraph.sociallens.repository.YouTubeVideoRepository;
-import com.LogicGraph.sociallens.service.YouTubeService;
 import com.LogicGraph.sociallens.service.YouTubeSyncService;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -23,6 +22,16 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class DailyRefreshWorker {
 
+    /**
+     * Per-channel refresh outcome returned by {@link #refreshOneChannel}.
+     *
+     * @param videosDiscovered  videos upserted (new or existing) during incremental sync
+     * @param videosEnriched    videos that received full metadata from the YouTube API
+     * @param markedInactive    videos the YouTube API returned no data for (deleted / private)
+     * @param enrichmentErrors  API batches that failed during enrichment
+     */
+    public record RefreshResult(int videosDiscovered, int videosEnriched, int markedInactive, int enrichmentErrors) {}
+
     private static final Logger log = LoggerFactory.getLogger(DailyRefreshWorker.class);
 
     /** In-memory guard: channelDbId -> time the refresh started. Prevents double-runs. */
@@ -32,24 +41,21 @@ public class DailyRefreshWorker {
 
     private final YouTubeChannelRepository channelRepo;
     private final YouTubeVideoRepository videoRepo;
-    private final YouTubeService ytService;
     private final YouTubeSyncService syncService;
 
     public DailyRefreshWorker(
             YouTubeChannelRepository channelRepo,
             YouTubeVideoRepository videoRepo,
-            YouTubeService ytService,
             JobProperties props,
             YouTubeSyncService syncService) {
         this.channelRepo = channelRepo;
         this.videoRepo = videoRepo;
-        this.ytService = ytService;
         this.props = props;
         this.syncService = syncService;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void refreshOneChannel(Long channelDbId) {
+    public RefreshResult refreshOneChannel(Long channelDbId) {
         // Concurrency guard: atomically claim this channel or reject if already running.
         if (running.putIfAbsent(channelDbId, Instant.now()) != null) {
             throw new RefreshAlreadyRunningException(channelDbId);
@@ -65,8 +71,8 @@ public class DailyRefreshWorker {
         LocalDate todayUtc = LocalDate.now(ZoneOffset.UTC);
 
         try {
-            // 1) Refresh channel metadata (Data API)
-            ytService.refreshChannelMetadata(ch.getChannelId());
+            // 1) Refresh channel metadata (subscribers, views, title) via Data API
+            syncService.refreshChannelMetadata(ch.getChannelId());
 
             // 2) Incremental video sync (Data API)
             Instant since = ch.getLastVideoSyncAt();
@@ -82,8 +88,9 @@ public class DailyRefreshWorker {
             int newOrUpdated = syncService.syncIncrementalVideos(ch.getChannelId(), since);
 
             // 2b) Enrich video metadata (snippet + statistics) for this channel
-            int enriched = syncService.enrichVideoMetadata(ch.getId());
-            log.info("DailyRefreshWorker enriched {} video rows for channelDbId={}", enriched, ch.getId());
+            YouTubeSyncService.EnrichmentResult enrichResult = syncService.enrichVideoMetadata(ch.getId());
+            log.info("DailyRefreshWorker: channelDbId={} enriched={} markedInactive={} failedBatches={}",
+                    ch.getId(), enrichResult.enriched(), enrichResult.markedInactive(), enrichResult.failedBatches());
 
             // 3) Write daily snapshots (idempotent)
             // IMPORTANT: these should be DB-guarded with UNIQUE(channel_id, day) and
@@ -122,10 +129,15 @@ public class DailyRefreshWorker {
 
             long ms = Instant.now().toEpochMilli() - started.toEpochMilli();
             log.info(
-                    "DailyRefreshWorker success channelId={} channelDbId={} newOrUpdatedVideos={} " +
+                    "DailyRefreshWorker success channelId={} channelDbId={} " +
+                    "newOrUpdatedVideos={} enriched={} markedInactive={} enrichmentErrors={} " +
                     "totalVideos={} snapOk={} snapSkipped={} dayUtc={} ms={}",
-                    ch.getChannelId(), ch.getId(), newOrUpdated, videos.size(),
-                    snapOk, snapSkipped, todayUtc, ms);
+                    ch.getChannelId(), ch.getId(), newOrUpdated,
+                    enrichResult.enriched(), enrichResult.markedInactive(), enrichResult.failedBatches(),
+                    videos.size(), snapOk, snapSkipped, todayUtc, ms);
+
+            return new RefreshResult(newOrUpdated, enrichResult.enriched(),
+                    enrichResult.markedInactive(), enrichResult.failedBatches());
 
         } catch (Exception ex) {
             // Surface the original exception before anything else obscures it.

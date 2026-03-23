@@ -1,5 +1,5 @@
 import { useAutoAnimate } from '@formkit/auto-animate/react'
-import { BarChart2, Database, PlaySquare, ThumbsUp, Users } from 'lucide-react'
+import { BarChart2, Database, PlaySquare, Users } from 'lucide-react'
 
 import { InfoTooltip } from '@/components/common/InfoTooltip'
 import { StatCard } from '@/components/common/StatCard'
@@ -24,7 +24,7 @@ export function ChannelStats({ data, indexedVideoCount, loading }: ChannelStatsP
   const [parent] = useAutoAnimate()
 
   return (
-    <div ref={parent} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+    <div ref={parent} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <StatCard
         label="Subscribers"
         value={formatNumber(data?.subscriberCount)}
@@ -48,12 +48,6 @@ export function ChannelStats({ data, indexedVideoCount, loading }: ChannelStatsP
         labelExtra={<InfoTooltip text={INDEXED_TOOLTIP} />}
         value={formatNumber(indexedVideoCount)}
         icon={<Database className="h-4 w-4 text-muted-foreground" />}
-        loading={loading}
-      />
-      <StatCard
-        label="Likes"
-        value={formatNumber(data?.likeCount)}
-        icon={<ThumbsUp className="h-4 w-4 text-muted-foreground" />}
         loading={loading}
       />
     </div>

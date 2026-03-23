@@ -10,7 +10,7 @@ import {
   Search,
   Video,
 } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 
 import type { ChannelItem, VideoRow } from '@/api/types'
@@ -76,6 +76,7 @@ function displayTitle(v: VideoRow): string {
 
 type SortableHeaderProps = {
   label: string
+  labelExtra?: ReactNode
   sortKey: SortKey
   currentSort: SortKey
   currentDir: 'asc' | 'desc'
@@ -85,6 +86,7 @@ type SortableHeaderProps = {
 
 function SortableHeader({
   label,
+  labelExtra,
   sortKey,
   currentSort,
   currentDir,
@@ -120,6 +122,7 @@ function SortableHeader({
         {label}
         <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
       </button>
+      {labelExtra}
     </th>
   )
 }
@@ -494,6 +497,7 @@ export default function ChannelVideosPage() {
                   />
                   <SortableHeader
                     label="Likes"
+                    labelExtra={<InfoTooltip text="Populated after enrichment. YouTube may disable likes on individual videos." />}
                     sortKey="likes"
                     currentSort={sort}
                     currentDir={dir}
@@ -502,6 +506,7 @@ export default function ChannelVideosPage() {
                   />
                   <SortableHeader
                     label="Comments"
+                    labelExtra={<InfoTooltip text="Populated after enrichment." />}
                     sortKey="comments"
                     currentSort={sort}
                     currentDir={dir}

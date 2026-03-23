@@ -8,6 +8,8 @@ import com.LogicGraph.sociallens.dto.youtube.YouTubeSyncRequestDto;
 import com.LogicGraph.sociallens.dto.youtube.YouTubeSyncResponseDto;
 import com.LogicGraph.sociallens.dto.youtube.YouTubeVideosResponse;
 import com.LogicGraph.sociallens.service.resolver.ResolvedChannelIdentifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,8 @@ import java.util.List;
 
 @Service
 public class YouTubeService {
+
+    private static final Logger log = LoggerFactory.getLogger(YouTubeService.class);
 
     @Value("${youtube.api.key}")
     private String apiKey;
@@ -360,17 +364,21 @@ public class YouTubeService {
     /**
      * Fetches video snippet, contentDetails, and statistics from videos.list.
      * Batches at most 50 IDs per request (YouTube API limit).
+     * Per-batch error handling: a failure in one batch is logged and skipped; other batches still run.
      *
      * @param videoIds YouTube video IDs to enrich
-     * @return list of Item objects with populated snippet/contentDetails/statistics
+     * @return list of Item objects with populated snippet/contentDetails/statistics (may be partial on batch errors)
      */
     public List<YouTubeVideosResponse.Item> fetchVideoDetails(List<String> videoIds) {
         validateApiKey();
 
         List<YouTubeVideosResponse.Item> result = new ArrayList<>();
         int batchSize = 50;
+        int totalBatches = (videoIds.size() + batchSize - 1) / batchSize;
+        int failedBatches = 0;
 
         for (int i = 0; i < videoIds.size(); i += batchSize) {
+            int batchNum = i / batchSize + 1;
             List<String> batch = videoIds.subList(i, Math.min(i + batchSize, videoIds.size()));
             String ids = String.join(",", batch);
 
@@ -385,13 +393,28 @@ public class YouTubeService {
                     .build(true)
                     .toUri();
 
-            ResponseEntity<YouTubeVideosResponse> resp = ytGetEntity(uri, YouTubeVideosResponse.class);
-            YouTubeVideosResponse body = resp.getBody();
-            if (body != null && body.items != null) {
-                result.addAll(body.items);
+            try {
+                ResponseEntity<YouTubeVideosResponse> resp = ytGetEntity(uri, YouTubeVideosResponse.class);
+                YouTubeVideosResponse body = resp.getBody();
+                if (body != null && body.items != null) {
+                    result.addAll(body.items);
+                    log.debug("fetchVideoDetails: batch {}/{} returned {} items",
+                            batchNum, totalBatches, body.items.size());
+                }
+            } catch (Exception e) {
+                failedBatches++;
+                log.warn("fetchVideoDetails: batch {}/{} failed (ids[{}..{}]): {}",
+                        batchNum, totalBatches, i, Math.min(i + batchSize, videoIds.size()) - 1,
+                        e.getMessage(), e);
             }
         }
 
+        if (failedBatches > 0) {
+            log.warn("fetchVideoDetails: {}/{} batches failed; {} items returned from successful batches",
+                    failedBatches, totalBatches, result.size());
+        } else {
+            log.debug("fetchVideoDetails: all {} batches succeeded; {} total items", totalBatches, result.size());
+        }
         return result;
     }
 
