@@ -14,6 +14,7 @@ import type { RetentionDiagnosisResponse, ChannelItem } from '@/api/types'
 
 vi.mock('@/features/channels/queries', () => ({
   useChannelQuery: vi.fn(),
+  useVideosQuery: vi.fn(),
 }))
 
 vi.mock('@/features/account/queries', () => ({
@@ -24,13 +25,18 @@ vi.mock('@/features/retention/queries', () => ({
   useRetentionDiagnosis: vi.fn(),
 }))
 
+vi.mock('@/features/trends/queries', () => ({
+  useTimeSeries: vi.fn(),
+}))
+
 vi.mock('@/features/account/api', () => ({
   MVP_USER_ID: 1,
 }))
 
-import { useChannelQuery } from '@/features/channels/queries'
+import { useChannelQuery, useVideosQuery } from '@/features/channels/queries'
 import { useAccountStatus } from '@/features/account/queries'
 import { useRetentionDiagnosis } from '@/features/retention/queries'
+import { useTimeSeries } from '@/features/trends/queries'
 
 // ─── Factories ────────────────────────────────────────────────────────────────
 
@@ -100,6 +106,16 @@ describe('InsightsPage — Retention Diagnosis', () => {
     vi.mocked(useChannelQuery).mockReturnValue({ data: makeChannel() } as ReturnType<
       typeof useChannelQuery
     >)
+    vi.mocked(useVideosQuery).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false,
+    } as ReturnType<typeof useVideosQuery>)
+    vi.mocked(useTimeSeries).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false,
+    } as ReturnType<typeof useTimeSeries>)
     vi.mocked(useAccountStatus).mockReturnValue({
       data: { userId: 1, platform: 'YOUTUBE', connected: true },
       isLoading: false,
