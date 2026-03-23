@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { AlertTriangle, CheckCircle2, Globe, Grid2X2, Loader2, RefreshCw } from 'lucide-react'
 import { useMode } from '@/lib/ModeContext'
-import { useAccountStatus } from '@/features/account/queries'
-import { fetchOAuthStartUrl, MVP_USER_ID } from '@/features/account/api'
+import { useAccountStatus, useCurrentUser } from '@/features/account/queries'
+import { fetchOAuthStartUrl } from '@/features/account/api'
 
 // ─── AccountConnectionCard ────────────────────────────────────────────────────
 //
@@ -21,7 +21,8 @@ import { fetchOAuthStartUrl, MVP_USER_ID } from '@/features/account/api'
 
 function AccountConnectionCard() {
   const { mode, setMode } = useMode()
-  const { data: status, isLoading, isError, refetch } = useAccountStatus()
+  const { data: currentUser } = useCurrentUser()
+  const { data: status, isLoading, isError, refetch } = useAccountStatus(currentUser?.id)
   const [isStartingOAuth, setIsStartingOAuth] = useState(false)
   const [oauthOpened, setOauthOpened] = useState(false)
   const [connectError, setConnectError] = useState<string | null>(null)
@@ -34,10 +35,14 @@ function AccountConnectionCard() {
     !connected && (accountStatus === 'REFRESH_FAILED' || accountStatus === 'EXPIRED')
 
   async function handleConnect() {
+    if (!currentUser) {
+      setConnectError('Could not resolve your account. Try refreshing the page.')
+      return
+    }
     setConnectError(null)
     setIsStartingOAuth(true)
     try {
-      const authUrl = await fetchOAuthStartUrl(MVP_USER_ID)
+      const authUrl = await fetchOAuthStartUrl(currentUser.id)
       window.open(authUrl, '_blank', 'noopener,noreferrer')
       setOauthOpened(true)
     } catch {
@@ -232,8 +237,7 @@ function AccountConnectionCard() {
 
         {!needsReconnect && (
           <p style={fineStyle}>
-            Connecting links your YouTube account and enables YouTube Analytics API access — private
-            metrics, retention &amp; audience data coming soon.
+            Connect to unlock Retention Diagnosis — analyze where viewers drop off on your uploaded videos.
           </p>
         )}
       </div>
@@ -252,7 +256,7 @@ function AccountConnectionCard() {
         Connected
       </p>
       <p style={bodyStyle}>
-        YouTube account linked. Token auto-refreshes daily.
+        YouTube account linked. Retention Diagnosis is available on the Insights page.
       </p>
       {mode !== 'studio' ? (
         <button
@@ -277,8 +281,7 @@ function AccountConnectionCard() {
         </div>
       )}
       <p style={fineStyle}>
-        YouTube Analytics API access ready. Private metrics and deeper creator insights available
-        in Studio.
+        Retention Diagnosis unlocked. Go to any channel's Insights page to analyze a video.
       </p>
     </div>
   )
@@ -348,7 +351,7 @@ export function Sidebar() {
             color: 'var(--color-text-primary)',
           }}
         >
-          CIPHER
+          SOCIALLENS
         </span>
       </div>
 

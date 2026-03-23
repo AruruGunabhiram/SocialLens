@@ -405,10 +405,15 @@ export default function TrendsPage() {
   const config = METRIC_CONFIG[metric]
   const channelTitle = channelQuery.data?.title
 
+  const windowLabel =
+    coverage.isSparse && coverage.capturedDays > 0
+      ? `${coverage.capturedDays} of ${range} days captured`
+      : `Last ${range} days`
+
   const chartTitle =
     seriesMode === 'delta'
-      ? `Daily Change in ${config.label} — Last ${range} Days`
-      : `${config.label} — Last ${range} Days`
+      ? `Daily Change in ${config.label} — ${windowLabel}`
+      : `${config.label} — ${windowLabel}`
 
   const chartDescription =
     seriesMode === 'delta'

@@ -1,14 +1,22 @@
 import { axiosClient } from '@/api/axiosClient'
 import { endpoints } from '@/api/endpoints'
 import { normalizeHttpError } from '@/api/httpError'
-import { AccountStatusSchema, OAuthStartResponseSchema } from '@/api/schemas'
-import type { AccountStatus } from '@/api/types'
+import { AccountStatusSchema, LocalUserSchema, OAuthStartResponseSchema } from '@/api/schemas'
+import type { AccountStatus, LocalUser } from '@/api/types'
 
 /**
- * MVP: The backend requires an explicit userId because there is no auth
- * middleware yet. All requests use userId=1 until a real auth layer exists.
+ * Returns the implicit "current user" for local-dev.
+ * The backend creates the user on first call if the table is empty, so there
+ * is no fragile assumption about which id the user has.
  */
-export const MVP_USER_ID = 1
+export async function fetchCurrentUser(): Promise<LocalUser> {
+  try {
+    const { data } = await axiosClient.get(endpoints.users.me)
+    return LocalUserSchema.parse(data)
+  } catch (error) {
+    throw normalizeHttpError(error)
+  }
+}
 
 export async function fetchAccountStatus(
   userId: number,

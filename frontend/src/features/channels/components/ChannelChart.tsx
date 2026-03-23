@@ -20,7 +20,7 @@ export function ChannelChart({ data }: ChannelChartProps) {
   const points = data?.timeseries ?? []
 
   return (
-    <ChartCard title="Performance" description="Recent trend" className="col-span-2">
+    <ChartCard title="Performance" description="Views and subscribers over indexed history" className="col-span-2">
       {points.length === 0 ? (
         <EmptyState title="No chart data" description="We could not find time-series data yet." />
       ) : (

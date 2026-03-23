@@ -486,7 +486,7 @@ export default function InsightsPage() {
           Insights
         </h1>
         <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 'var(--leading-relaxed)' }}>
-          Performance analysis for {channelName ?? 'this channel'} — last {RANGE} days.
+          Performance analysis for {channelName ?? 'this channel'} based on captured snapshots.
         </p>
       </div>
 
@@ -521,7 +521,7 @@ export default function InsightsPage() {
                       fontVariantNumeric: 'tabular-nums',
                       color: viewsCoverage.isSparse ? 'var(--color-warn, var(--color-text-secondary))' : 'var(--color-text-primary)',
                     }}>
-                      {viewsCoverage.capturedDays} of {RANGE}{viewsCoverage.isSparse ? ' — sparse' : ''}
+                      {viewsCoverage.capturedDays} of {RANGE}{viewsCoverage.isSparse ? ' — partial' : ''}
                     </div>
                   </div>
                 </div>
@@ -645,7 +645,7 @@ export default function InsightsPage() {
                 YouTube account not connected
               </p>
               <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 'var(--leading-relaxed)' }}>
-                Retention data requires OAuth access to YouTube Analytics. Connect your account in Studio mode to unlock this feature.
+                Retention Diagnosis requires YouTube Analytics access. Connect your YouTube account via the sidebar to unlock this feature.
               </p>
             </div>
           </div>
