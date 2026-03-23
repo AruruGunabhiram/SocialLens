@@ -10,6 +10,10 @@ import type { ChannelItem, VideoRow, VideosPageResponse } from '@/api/types'
 vi.mock('@/features/channels/queries', () => ({
   useChannelQuery: vi.fn(),
   useVideosQuery: vi.fn(),
+  useChannelRefreshByIdMutation: vi.fn(() => ({
+    mutate: vi.fn(),
+    isPending: false,
+  })),
 }))
 
 vi.mock('@/lib/toast', () => ({
@@ -18,7 +22,11 @@ vi.mock('@/lib/toast', () => ({
 }))
 
 // Import mocked modules so we can control their return values per-test
-import { useChannelQuery, useVideosQuery } from '@/features/channels/queries'
+import {
+  useChannelQuery,
+  useChannelRefreshByIdMutation,
+  useVideosQuery,
+} from '@/features/channels/queries'
 
 // ─── Factories ───────────────────────────────────────────────────────────────
 
@@ -236,7 +244,7 @@ describe('ChannelVideosPage', () => {
   // ── Missing title warning ───────────────────────────────────────────────────
 
   describe('missing title warning', () => {
-    it('shows the sync-incomplete warning when >80% of videos have no title', () => {
+    function makeMissingTitleState() {
       // 5 out of 6 have no title ≈ 83% → threshold is strictly > 0.8
       const videos = [
         makeVideo({ id: 1, title: null }),
@@ -246,9 +254,41 @@ describe('ChannelVideosPage', () => {
         makeVideo({ id: 5, title: null, videoId: 'v5' }),
         makeVideo({ id: 6, title: 'One with a title', videoId: 'v6' }),
       ]
-      vi.mocked(useVideosQuery).mockReturnValue(success(makeVideosResponse(videos)) as any)
+      return success(makeVideosResponse(videos))
+    }
+
+    it('shows the warning banner when >80% of videos have no title', () => {
+      vi.mocked(useVideosQuery).mockReturnValue(makeMissingTitleState() as any)
       renderPage()
-      expect(screen.getByText(/Video titles not available yet/i)).toBeInTheDocument()
+      expect(screen.getByTestId('title-warning-banner')).toBeInTheDocument()
+    })
+
+    it('warning banner contains a refresh button', () => {
+      vi.mocked(useVideosQuery).mockReturnValue(makeMissingTitleState() as any)
+      renderPage()
+      expect(screen.getByRole('button', { name: /refresh now/i })).toBeInTheDocument()
+    })
+
+    it('clicking refresh calls the mutation with the current channelDbId', () => {
+      const mutate = vi.fn()
+      vi.mocked(useChannelRefreshByIdMutation).mockReturnValue({
+        mutate,
+        isPending: false,
+      } as any)
+      vi.mocked(useVideosQuery).mockReturnValue(makeMissingTitleState() as any)
+      renderPage()
+      fireEvent.click(screen.getByRole('button', { name: /refresh now/i }))
+      expect(mutate).toHaveBeenCalledWith({ channelDbId: 1 })
+    })
+
+    it('refresh button is disabled while refresh is pending', () => {
+      vi.mocked(useChannelRefreshByIdMutation).mockReturnValue({
+        mutate: vi.fn(),
+        isPending: true,
+      } as any)
+      vi.mocked(useVideosQuery).mockReturnValue(makeMissingTitleState() as any)
+      renderPage()
+      expect(screen.getByRole('button', { name: /refreshing/i })).toBeDisabled()
     })
 
     it('does not show the warning when the majority of videos have titles', () => {
@@ -259,7 +299,7 @@ describe('ChannelVideosPage', () => {
       ]
       vi.mocked(useVideosQuery).mockReturnValue(success(makeVideosResponse(videos)) as any)
       renderPage()
-      expect(screen.queryByText(/Video titles not available yet/i)).not.toBeInTheDocument()
+      expect(screen.queryByTestId('title-warning-banner')).not.toBeInTheDocument()
     })
   })
 

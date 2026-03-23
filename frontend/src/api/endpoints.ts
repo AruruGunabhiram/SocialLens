@@ -25,6 +25,10 @@ export const endpoints = {
     // GET /api/v1/oauth/youtube/start?userId={id}  → { authUrl: string }
     youtubeStart: '/api/v1/oauth/youtube/start',
   },
+  creator: {
+    // POST /creator/retention/diagnosis
+    retentionDiagnosis: '/creator/retention/diagnosis',
+  },
 }
 
 export type EndpointKey = keyof typeof endpoints

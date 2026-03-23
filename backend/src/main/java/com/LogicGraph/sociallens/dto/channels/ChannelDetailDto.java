@@ -19,8 +19,12 @@ public class ChannelDetailDto {
     public Instant publishedAt;
     public Instant lastSuccessfulRefreshAt;
     public RefreshStatus lastRefreshStatus;
+    /** Error message from the most recent failed refresh job; null when last job succeeded. */
+    public String lastRefreshError;
     /** capturedAt of the most recent ChannelMetricsSnapshot; null if none exists yet. */
     public Instant lastSnapshotAt;
+    /** Total number of distinct snapshot days captured for this channel. */
+    public Long snapshotDayCount;
     public Long subscriberCount;
     public Long viewCount;
     public Long videoCount;
