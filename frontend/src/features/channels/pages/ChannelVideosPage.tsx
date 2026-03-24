@@ -165,6 +165,7 @@ function SkeletonRows({ count = 5 }: { count?: number }) {
 // ---------------------------------------------------------------------------
 
 function VideoTableRow({ video }: { video: VideoRow }) {
+  const hasTitle = Boolean(video.title?.trim())
   return (
     <tr className="group align-middle hover:bg-muted/40 transition-colors">
       <td className="py-2 pl-4 pr-4">
@@ -182,9 +183,18 @@ function VideoTableRow({ video }: { video: VideoRow }) {
         )}
       </td>
       <td className="max-w-xs py-2 pr-4">
-        <span className="line-clamp-2 text-sm font-medium leading-snug" title={displayTitle(video)}>
-          {displayTitle(video)}
-        </span>
+        {hasTitle ? (
+          <span className="line-clamp-2 text-sm font-medium leading-snug" title={video.title!}>
+            {video.title}
+          </span>
+        ) : (
+          <span
+            className="font-mono text-xs text-muted-foreground/60"
+            title="Title not yet populated — run a refresh to enrich metadata"
+          >
+            {video.videoId}
+          </span>
+        )}
       </td>
       <td className="py-2 pr-4 text-sm text-muted-foreground whitespace-nowrap">
         {fmtDate(video.publishedAt)}
@@ -414,8 +424,7 @@ export default function ChannelVideosPage() {
           data-testid="title-warning-banner"
         >
           <span>
-            Video metadata (titles, thumbnails) not fully populated yet — enrichment may have failed
-            during the last sync. Showing video IDs as fallback. A channel refresh will fix this.
+            Most videos are missing titles — metadata enrichment may have failed during the last sync. Run a refresh to fix this.
           </span>
           <button
             type="button"

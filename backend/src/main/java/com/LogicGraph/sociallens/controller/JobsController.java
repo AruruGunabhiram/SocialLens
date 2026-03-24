@@ -42,7 +42,12 @@ public class JobsController {
     public ResponseEntity<Map<String, Object>> refreshSingleChannel(@RequestParam Long channelDbId) {
         try {
             DailyRefreshWorker.RefreshResult result = dailyRefreshWorker.refreshOneChannel(channelDbId);
-            Map<String, Object> body = refreshPayload("refresh_triggered", channelDbId, null);
+            String statusStr = switch (result.outcomeStatus()) {
+                case PARTIAL -> "partial_success";
+                default -> "success";
+            };
+            Map<String, Object> body = refreshPayload(statusStr, channelDbId, null);
+            body.put("outcomeStatus", result.outcomeStatus().name());
             body.put("videosDiscovered", result.videosDiscovered());
             body.put("videosEnriched", result.videosEnriched());
             body.put("markedInactive", result.markedInactive());
@@ -52,9 +57,11 @@ public class JobsController {
                     .body(body);
 
         } catch (RefreshAlreadyRunningException ex) {
+            Map<String, Object> body = refreshPayload("already_running", channelDbId, null);
+            body.put("message", "Refresh already in progress for this channel.");
             return ResponseEntity
                     .status(HttpStatus.CONFLICT)
-                    .body(refreshPayload("already_running", channelDbId, ex.getMessage()));
+                    .body(body);
 
         } catch (IllegalArgumentException ex) {
             // Channel not found in DailyRefreshWorker.refreshOneChannel

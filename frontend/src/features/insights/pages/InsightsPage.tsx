@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   AlertCircle,
+  CheckCircle2,
   ChevronRight,
   Lock,
+  Loader2,
   Minus,
   Search,
   TrendingDown,
@@ -13,6 +15,7 @@ import {
 import { useChannelQuery, useVideosQuery } from '@/features/channels/queries'
 import { useTimeSeries } from '@/features/trends/queries'
 import { useAccountStatus, useCurrentUser } from '@/features/account/queries'
+import { fetchOAuthStartUrl } from '@/features/account/api'
 import { useRetentionDiagnosis } from '@/features/retention/queries'
 import { extractVideoId } from '@/features/retention/api'
 import {
@@ -41,6 +44,14 @@ const CARD = {
 }
 
 // ─── Retention helpers ────────────────────────────────────────────────────────
+
+/** Convert SNAKE_CASE label → Title Case for display */
+function toTitleCase(s: string): string {
+  return s
+    .split('_')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ')
+}
 
 const SEVERITY_COLOR: Record<string, string> = {
   HIGH: 'var(--color-down)',
@@ -89,7 +100,7 @@ function DropEventsTable({ drops }: { drops: RetentionDropEvent[] }) {
       <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)' }}>
         <thead>
           <tr>
-            {['Severity', 'Video position', 'Drop', 'Slope'].map((h) => (
+            {['Severity', 'Position', 'Drop', 'Rate'].map((h) => (
               <th
                 key={h}
                 style={{
@@ -133,7 +144,7 @@ function DiagnosesList({ diagnoses }: { diagnoses: DiagnosisItem[] }) {
   if (diagnoses.length === 0) {
     return (
       <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', margin: 0 }}>
-        No diagnoses generated.
+        No significant issues detected.
       </p>
     )
   }
@@ -155,7 +166,7 @@ function DiagnosesList({ diagnoses }: { diagnoses: DiagnosisItem[] }) {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
             <span style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text-primary)' }}>
-              {d.label.replace(/_/g, ' ')}
+              {toTitleCase(d.label)}
             </span>
             <SeverityBadge severity={d.severity} />
           </div>
@@ -178,8 +189,8 @@ function DiagnosisResults({ result }: { result: RetentionDiagnosisResponse }) {
         <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', color: 'var(--color-text-primary)', lineHeight: 'var(--leading-relaxed)', margin: 0 }} data-testid="diagnosis-summary">
           {result.summary}
         </p>
-        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginTop: 'var(--space-2)', marginBottom: 0, fontVariantNumeric: 'tabular-nums' }}>
-          Video: {result.videoId}
+        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginTop: 'var(--space-3)', marginBottom: 0, fontVariantNumeric: 'tabular-nums', opacity: 0.6 }}>
+          {result.videoId}
         </p>
       </div>
       <section>
@@ -425,6 +436,29 @@ export default function InsightsPage() {
           ? 'Moderate'
           : 'Sparse'
 
+  // ── Inline connect flow (for the Retention Diagnosis gate CTA) ───────────
+  const [isStartingOAuth, setIsStartingOAuth] = useState(false)
+  const [oauthOpened, setOauthOpened] = useState(false)
+  const [connectError, setConnectError] = useState<string | null>(null)
+
+  async function handleConnectFromInsights() {
+    if (!currentUser) {
+      setConnectError('Could not resolve your account. Try refreshing the page.')
+      return
+    }
+    setConnectError(null)
+    setIsStartingOAuth(true)
+    try {
+      const authUrl = await fetchOAuthStartUrl(currentUser.id)
+      window.open(authUrl, '_blank', 'noopener,noreferrer')
+      setOauthOpened(true)
+    } catch {
+      setConnectError('Could not start sign-in. Check your connection and try again.')
+    } finally {
+      setIsStartingOAuth(false)
+    }
+  }
+
   // ── Retention diagnosis state ─────────────────────────────────────────────
   const [rawInput, setRawInput] = useState('')
   const [inputError, setInputError] = useState<string | null>(null)
@@ -638,16 +672,93 @@ export default function InsightsPage() {
 
         {/* Not-connected gate */}
         {!accountLoading && !isConnected && (
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-3)', ...CARD }} data-testid="not-connected">
-            <Lock size={16} aria-hidden style={{ color: 'var(--color-text-muted)', marginTop: 2 }} />
-            <div>
-              <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text-primary)', margin: '0 0 var(--space-1)' }}>
-                YouTube account not connected
-              </p>
-              <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 'var(--leading-relaxed)' }}>
-                Retention Diagnosis requires YouTube Analytics access. Connect your YouTube account via the sidebar to unlock this feature.
+          <div
+            style={{
+              ...CARD,
+              borderColor: 'color-mix(in srgb, var(--accent) 25%, var(--color-border))',
+            }}
+            data-testid="not-connected"
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
+              <Lock size={15} aria-hidden style={{ color: 'var(--accent)', flexShrink: 0 }} />
+              <p style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--color-text-primary)', margin: 0 }}>
+                Owner analytics required
               </p>
             </div>
+
+            {/* Description */}
+            <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', margin: '0 0 var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
+              Retention Diagnosis reads your YouTube Analytics retention curve and identifies where viewers stop watching — broken down by severity, timestamp, and root cause.
+            </p>
+
+            {/* What you get */}
+            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+              {[
+                'Drop event detection with severity (HIGH / MEDIUM / LOW)',
+                'Root cause labels: hook weakness, pacing issues, outro length',
+                'Exact video timestamps and viewer retention percentages',
+              ].map((item) => (
+                <li
+                  key={item}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 'var(--space-2)',
+                    fontFamily: 'var(--font-body)',
+                    fontSize: 'var(--text-sm)',
+                    color: 'var(--color-text-secondary)',
+                    lineHeight: 'var(--leading-relaxed)',
+                  }}
+                >
+                  <CheckCircle2
+                    size={13}
+                    aria-hidden
+                    style={{ color: 'var(--accent)', flexShrink: 0, marginTop: '3px' }}
+                  />
+                  {item}
+                </li>
+              ))}
+            </ul>
+
+            {/* CTA */}
+            {oauthOpened ? (
+              <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 'var(--leading-relaxed)', margin: 0 }}>
+                Sign-in window opened. Complete the flow — this page will update automatically.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', alignItems: 'flex-start' }}>
+                <button
+                  type="button"
+                  disabled={isStartingOAuth}
+                  onClick={() => void handleConnectFromInsights()}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 'var(--space-2)',
+                    background: 'var(--accent)',
+                    color: 'var(--color-text-inverse)',
+                    fontFamily: 'var(--font-body)',
+                    fontSize: 'var(--text-sm)',
+                    fontWeight: 600,
+                    border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    padding: 'var(--space-2) var(--space-4)',
+                    cursor: isStartingOAuth ? 'not-allowed' : 'pointer',
+                    opacity: isStartingOAuth ? 0.7 : 1,
+                    transition: 'opacity var(--duration-base) var(--ease-standard)',
+                  }}
+                >
+                  {isStartingOAuth && <Loader2 size={13} className="animate-spin" aria-hidden />}
+                  Connect YouTube Account
+                </button>
+                {connectError && (
+                  <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-xs)', color: 'var(--color-down)', margin: 0 }}>
+                    {connectError}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         )}
 

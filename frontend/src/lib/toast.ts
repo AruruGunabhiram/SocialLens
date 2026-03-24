@@ -21,3 +21,11 @@ export const toastError = (error: unknown, fallback = 'Something went wrong') =>
 export const toastSuccess = (message: string, description?: string) => {
   toast.success(message, { description })
 }
+
+export const toastWarning = (message: string, description?: string) => {
+  toast.warning(message, { description })
+}
+
+export const toastInfo = (message: string, description?: string) => {
+  toast.info(message, { description })
+}

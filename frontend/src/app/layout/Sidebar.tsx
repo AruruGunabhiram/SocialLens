@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { AlertTriangle, CheckCircle2, Globe, Grid2X2, Loader2, RefreshCw } from 'lucide-react'
-import { useMode } from '@/lib/ModeContext'
 import { useAccountStatus, useCurrentUser } from '@/features/account/queries'
 import { fetchOAuthStartUrl } from '@/features/account/api'
 
@@ -20,7 +19,6 @@ import { fetchOAuthStartUrl } from '@/features/account/api'
 // yet. This will be replaced when real auth is added.
 
 function AccountConnectionCard() {
-  const { mode, setMode } = useMode()
   const { data: currentUser } = useCurrentUser()
   const { data: status, isLoading, isError, refetch } = useAccountStatus(currentUser?.id)
   const [isStartingOAuth, setIsStartingOAuth] = useState(false)
@@ -182,8 +180,56 @@ function AccountConnectionCard() {
         <p style={bodyStyle}>
           {needsReconnect
             ? 'Your YouTube token expired or could not be refreshed. Re-connect to restore Analytics access.'
-            : 'Tracking public channel data via YouTube Data API. Trends are snapshot-based — captured each time you run a refresh.'}
+            : 'Public YouTube Data API — channel metrics, snapshots, and trends only.'}
         </p>
+
+        {!needsReconnect && (
+          <div style={{ marginBottom: 'var(--space-3)' }}>
+            <p
+              style={{
+                ...fineStyle,
+                marginTop: 0,
+                marginBottom: 'var(--space-2)',
+                fontWeight: 600,
+                color: 'var(--color-text-secondary)',
+              }}
+            >
+              Connect to unlock:
+            </p>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-1.5)' }}>
+              {[
+                'Retention Diagnosis',
+                'Watch time and avg view duration',
+                'Subscriber gain / loss velocity',
+              ].map((item) => (
+                <li
+                  key={item}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--space-2)',
+                    fontFamily: 'var(--font-body)',
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--color-text-secondary)',
+                    lineHeight: 'var(--leading-relaxed)',
+                  }}
+                >
+                  <span
+                    aria-hidden
+                    style={{
+                      width: '4px',
+                      height: '4px',
+                      borderRadius: '50%',
+                      background: 'var(--accent)',
+                      flexShrink: 0,
+                    }}
+                  />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {oauthOpened ? (
           <div>
@@ -234,19 +280,18 @@ function AccountConnectionCard() {
             {connectError}
           </p>
         )}
-
-        {!needsReconnect && (
-          <p style={fineStyle}>
-            Connect to unlock Retention Diagnosis — analyze where viewers drop off on your uploaded videos.
-          </p>
-        )}
       </div>
     )
   }
 
-  // ── Connected — show Studio entry point ──────────────────────────────────
+  // ── Connected — confirm what's unlocked ────────────────────────────────────
   return (
-    <div style={{ ...cardStyle, borderColor: 'color-mix(in srgb, var(--accent) 35%, var(--color-border-base))' }}>
+    <div
+      style={{
+        ...cardStyle,
+        borderColor: 'color-mix(in srgb, var(--color-up) 35%, var(--color-border-base))',
+      }}
+    >
       <p style={headingStyle}>
         <CheckCircle2
           size={14}
@@ -255,33 +300,40 @@ function AccountConnectionCard() {
         />
         Connected
       </p>
-      <p style={bodyStyle}>
-        YouTube account linked. Retention Diagnosis is available on the Insights page.
-      </p>
-      {mode !== 'studio' ? (
-        <button
-          type="button"
-          style={primaryBtnStyle}
-          onClick={() => setMode('studio')}
-        >
-          Enter Studio
-        </button>
-      ) : (
-        <div
-          style={{
-            textAlign: 'center',
-            fontSize: 'var(--text-xs)',
-            fontFamily: 'var(--font-body)',
-            color: 'var(--accent)',
-            fontWeight: 600,
-            padding: 'var(--space-2)',
-          }}
-        >
-          Studio active
-        </div>
-      )}
+      <ul
+        style={{
+          listStyle: 'none',
+          padding: 0,
+          margin: '0 0 var(--space-3)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--space-1.5)',
+        }}
+      >
+        {[
+          'Retention Diagnosis',
+          'Watch time and avg view duration',
+          'Subscriber gain / loss velocity',
+        ].map((item) => (
+          <li
+            key={item}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-2)',
+              fontFamily: 'var(--font-body)',
+              fontSize: 'var(--text-xs)',
+              color: 'var(--color-up)',
+              lineHeight: 'var(--leading-relaxed)',
+            }}
+          >
+            <CheckCircle2 size={10} aria-hidden style={{ flexShrink: 0 }} />
+            {item}
+          </li>
+        ))}
+      </ul>
       <p style={fineStyle}>
-        Retention Diagnosis unlocked. Go to any channel's Insights page to analyze a video.
+        Open Insights on any channel to run Retention Diagnosis.
       </p>
     </div>
   )

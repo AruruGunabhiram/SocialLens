@@ -180,20 +180,18 @@ function SnapshotCoverageBanner({
         />
         <div>
           <span>
-            Only{' '}
             <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
               {capturedDays}
             </span>{' '}
-            captured {capturedDays === 1 ? 'day' : 'days'} available
+            of{' '}
+            <span style={{ fontFamily: 'var(--font-mono)' }}>{requestedRange}</span>d captured
             {dateRange && <span> · {dateRange}</span>}
-            {' '}· partial window of requested{' '}
-            <span style={{ fontFamily: 'var(--font-mono)' }}>{requestedRange}</span>D
           </span>
           <p
             className="mt-0.5"
             style={{ fontSize: 'var(--text-xs)', color: 'var(--color-warn)' }}
           >
-            Need at least {MIN_RELIABLE_DAYS} captured days for reliable trends
+            Fewer than {MIN_RELIABLE_DAYS} days — trends may not be reliable yet
           </p>
         </div>
       </div>
@@ -211,11 +209,9 @@ function SnapshotCoverageBanner({
         <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
           {capturedDays}
         </span>{' '}
-        captured {capturedDays === 1 ? 'day' : 'days'}
-        {dateRange && <span> · {dateRange}</span>}
-        <span style={{ color: 'var(--color-muted-foreground)', opacity: 0.75 }}>
-          {' '}· partial window of requested {requestedRange}D
-        </span>
+        of{' '}
+        <span style={{ fontFamily: 'var(--font-mono)' }}>{requestedRange}</span>d captured
+        {dateRange && <span style={{ color: 'var(--color-muted-foreground)', opacity: 0.75 }}> · {dateRange}</span>}
       </span>
     </div>
   )
@@ -523,12 +519,7 @@ export default function TrendsPage() {
             onChange={(v) => setRange(Number(v) as Range)}
           />
         }
-        dataWindow={`Showing data for: ${dataWindowLabel}`}
-        footer={
-          channelQuery.data ? (
-            <FreshnessBadge {...mapChannelItemToFreshnessProps(channelQuery.data)} />
-          ) : undefined
-        }
+        dataWindow={dataWindowLabel}
       >
         {sufficient ? (
           <ResponsiveContainer width="100%" height="100%">
