@@ -219,7 +219,7 @@ export function FreshnessBadge({
               {lastRefreshError}
             </pre>
           ) : (
-            <p className="text-muted-foreground">No details available from the server.</p>
+            <p className="text-muted-foreground">No error details available.</p>
           )}
         </div>
       )}

@@ -257,7 +257,7 @@ describe('TrendsPage', () => {
       const banner = screen.getByTestId('snapshot-coverage-banner')
       expect(banner).toBeInTheDocument()
       expect(banner).toHaveTextContent('1')
-      expect(banner).toHaveTextContent('captured day')
+      expect(banner).toHaveTextContent('of 30d captured')
     })
 
     it('renders the banner with correct count for 2 captured days', () => {
@@ -272,7 +272,7 @@ describe('TrendsPage', () => {
       renderTrendsPage()
       const banner = screen.getByTestId('snapshot-coverage-banner')
       expect(banner).toHaveTextContent('2')
-      expect(banner).toHaveTextContent('captured days')
+      expect(banner).toHaveTextContent('of 30d captured')
     })
 
     it('shows "partial window" notice when captured days are fewer than requested range', () => {
@@ -286,7 +286,7 @@ describe('TrendsPage', () => {
       )
       // default range = 30D, only 2 days captured
       renderTrendsPage()
-      expect(screen.getByTestId('snapshot-coverage-banner')).toHaveTextContent('partial window')
+      expect(screen.getByTestId('snapshot-coverage-banner')).toHaveTextContent('trends may not be reliable')
     })
 
     it('does not show "partial window" when captured days match the requested range', () => {
