@@ -223,7 +223,7 @@ describe('InsightsPage — Retention Diagnosis', () => {
     expect(screen.getByTestId('diagnosis-summary')).toHaveTextContent(
       'Strong hook, significant mid-video drop.'
     )
-    expect(screen.getByText('PACING OR TOPIC SHIFT')).toBeInTheDocument()
+    expect(screen.getByText('Pacing Or Topic Shift')).toBeInTheDocument()
     expect(
       screen.getByText('Review pacing at the 40–55% mark for abrupt topic changes.')
     ).toBeInTheDocument()

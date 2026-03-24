@@ -139,7 +139,10 @@ export async function fetchChannelTimeSeries(
 // ==============================================
 
 export type RefreshChannelResult = {
+  /** HTTP-level status string: "success", "partial_success", "already_running", "failed" */
   status?: string
+  /** Enum value from backend RefreshStatus: SUCCESS, PARTIAL, FAILED */
+  outcomeStatus?: string
   videosDiscovered?: number
   videosEnriched?: number
   markedInactive?: number

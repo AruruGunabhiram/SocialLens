@@ -94,9 +94,10 @@ function relAgo(d: Date): string {
  * Badge variant rules:
  * - FAILED + has historical data  → 'warning'  (data is usable; sync is broken)
  * - FAILED + no data at all       → 'danger'   (nothing to show)
+ * - PARTIAL                       → 'warning'  (sync ran but enrichment partially failed)
  * - SUCCESS, fresh (≤24 h)        → 'secondary'
  * - SUCCESS, stale (>24 h)        → 'outline'
- * - PARTIAL / NEVER_RUN / null    → 'outline'
+ * - NEVER_RUN / null              → 'outline'
  */
 function statusVariant(
   status: RefreshStatus | null,
@@ -104,6 +105,7 @@ function statusVariant(
   hasData: boolean
 ): 'secondary' | 'danger' | 'warning' | 'outline' {
   if (status === 'FAILED') return hasData ? 'warning' : 'danger'
+  if (status === 'PARTIAL') return 'warning'
   if (status === 'SUCCESS') return isStale ? 'outline' : 'secondary'
   return 'outline'
 }
@@ -125,6 +127,8 @@ export function FreshnessBadge({
   const refreshDate = parseTs(lastRefreshAt)
   const isStale = refreshDate ? differenceInHours(new Date(), refreshDate) >= 24 : true
   const isFailed = status === 'FAILED'
+  const isPartial = status === 'PARTIAL'
+  const showDetailToggle = isFailed || isPartial
 
   // "has data" = at least one snapshot exists (either we have a count, or a timestamp).
   const hasData = (snapshotDayCount != null ? snapshotDayCount > 0 : snapshotDate != null)
@@ -137,12 +141,15 @@ export function FreshnessBadge({
     : 'No snapshots yet'
 
   // When FAILED, lastRefreshAt is the last *successful* time — label accordingly.
+  // When PARTIAL, lastRefreshAt IS the partial run time (snapshot succeeded).
   const refreshLabel =
     refreshDate == null
       ? 'Never synced'
       : isFailed
         ? `Last success ${relAgo(refreshDate)}`
-        : `Synced ${relAgo(refreshDate)}`
+        : isPartial
+          ? `Partial sync ${relAgo(refreshDate)}`
+          : `Synced ${relAgo(refreshDate)}`
 
   return (
     <div
@@ -168,16 +175,22 @@ export function FreshnessBadge({
           {refreshLabel}
         </span>
 
-        {/* "View error" toggle — only visible when status is FAILED */}
-        {isFailed && (
+        {/* "View error / View details" toggle — visible for FAILED and PARTIAL */}
+        {showDetailToggle && (
           <button
             type="button"
             onClick={() => setErrorExpanded((v) => !v)}
-            className="flex items-center gap-0.5 rounded text-xs text-destructive hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-destructive"
+            className={`flex items-center gap-0.5 rounded text-xs hover:underline focus-visible:outline-none focus-visible:ring-1 ${
+              isFailed
+                ? 'text-destructive focus-visible:ring-destructive'
+                : 'text-muted-foreground focus-visible:ring-ring'
+            }`}
             aria-expanded={errorExpanded}
             aria-controls="freshness-error-detail"
           >
-            {errorExpanded ? 'Hide error' : 'View error'}
+            {errorExpanded
+              ? isFailed ? 'Hide error' : 'Hide details'
+              : isFailed ? 'View error' : 'View details'}
             {errorExpanded ? (
               <ChevronUp className="h-3 w-3" aria-hidden="true" />
             ) : (
@@ -187,18 +200,26 @@ export function FreshnessBadge({
         )}
       </div>
 
-      {/* Collapsible error detail panel */}
-      {isFailed && errorExpanded && (
+      {/* Collapsible detail panel — error for FAILED, partial summary for PARTIAL */}
+      {showDetailToggle && errorExpanded && (
         <div
           id="freshness-error-detail"
-          className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs"
+          className={`rounded-md border px-3 py-2 text-xs ${
+            isFailed
+              ? 'border-destructive/30 bg-destructive/5'
+              : 'border-warning/30 bg-warning/5'
+          }`}
         >
           {lastRefreshError ? (
-            <pre className="whitespace-pre-wrap break-all font-mono text-destructive">
+            <pre
+              className={`whitespace-pre-wrap break-all font-mono ${
+                isFailed ? 'text-destructive' : 'text-muted-foreground'
+              }`}
+            >
               {lastRefreshError}
             </pre>
           ) : (
-            <p className="text-muted-foreground">No error details available from the server.</p>
+            <p className="text-muted-foreground">No error details available.</p>
           )}
         </div>
       )}

@@ -2,14 +2,12 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Loader2, Search } from 'lucide-react'
 import { useChannelSyncMutation } from '@/features/channels/queries'
-import { useMode } from '@/lib/ModeContext'
 import { useAccountStatus, useCurrentUser } from '@/features/account/queries'
 
 export function Topbar() {
   const [query, setQuery] = useState('')
   const navigate = useNavigate()
   const sync = useChannelSyncMutation()
-  const { mode } = useMode()
   const { data: currentUser } = useCurrentUser()
   const { data: accountStatus } = useAccountStatus(currentUser?.id)
 
@@ -162,43 +160,9 @@ export function Topbar() {
         </form>
       </div>
 
-      {/* RIGHT: Mode + connection badge */}
+      {/* RIGHT: Connection status badge */}
       <div className="flex shrink-0 items-center gap-2">
-        {mode === 'studio' ? (
-          <div
-            className="flex items-center gap-2"
-            style={{
-              background: 'color-mix(in srgb, var(--accent) 12%, transparent)',
-              border: '1px solid color-mix(in srgb, var(--accent) 40%, transparent)',
-              borderRadius: 'var(--radius-full)',
-              padding: '4px 10px',
-            }}
-            aria-label="Studio mode active"
-          >
-            <span
-              aria-hidden
-              style={{
-                display: 'inline-block',
-                width: '6px',
-                height: '6px',
-                borderRadius: '50%',
-                background: 'var(--accent)',
-                flexShrink: 0,
-              }}
-            />
-            <span
-              className="num"
-              style={{
-                fontSize: 'var(--text-xs)',
-                fontWeight: 500,
-                letterSpacing: 'var(--tracking-widest)',
-                color: 'var(--accent)',
-              }}
-            >
-              STUDIO
-            </span>
-          </div>
-        ) : connected ? (
+        {connected ? (
           <div
             className="flex items-center gap-2"
             style={{
@@ -207,7 +171,7 @@ export function Topbar() {
               borderRadius: 'var(--radius-full)',
               padding: '4px 10px',
             }}
-            aria-label="YouTube account connected"
+            aria-label="YouTube account connected — owner analytics available"
           >
             <span
               aria-hidden
@@ -241,7 +205,7 @@ export function Topbar() {
               borderRadius: 'var(--radius-full)',
               padding: '4px 10px',
             }}
-            aria-label="Public mode — no account connected"
+            aria-label="Public mode — connect your YouTube account to unlock owner analytics"
           >
             <span
               className="animate-pulse-dot"

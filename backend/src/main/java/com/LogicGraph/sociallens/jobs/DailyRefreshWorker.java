@@ -29,8 +29,15 @@ public class DailyRefreshWorker {
      * @param videosEnriched    videos that received full metadata from the YouTube API
      * @param markedInactive    videos the YouTube API returned no data for (deleted / private)
      * @param enrichmentErrors  API batches that failed during enrichment
+     * @param outcomeStatus     SUCCESS when all stages completed cleanly; PARTIAL when enrichment
+     *                          had batch failures but the snapshot and channel metadata succeeded
      */
-    public record RefreshResult(int videosDiscovered, int videosEnriched, int markedInactive, int enrichmentErrors) {}
+    public record RefreshResult(
+            int videosDiscovered,
+            int videosEnriched,
+            int markedInactive,
+            int enrichmentErrors,
+            RefreshStatus outcomeStatus) {}
 
     private static final Logger log = LoggerFactory.getLogger(DailyRefreshWorker.class);
 
@@ -120,24 +127,34 @@ public class DailyRefreshWorker {
                 }
             }
 
-            // Only now: advance cursor, mark success
+            // Determine outcome: PARTIAL when enrichment had batch failures but snapshot succeeded.
+            boolean enrichmentPartial = enrichResult.failedBatches() > 0;
+            RefreshStatus outcomeStatus = enrichmentPartial ? RefreshStatus.PARTIAL : RefreshStatus.SUCCESS;
+            String outcomeError = enrichmentPartial
+                    ? "Enrichment partial: " + enrichResult.failedBatches() + " API batch(es) failed — "
+                      + enrichResult.enriched() + " video(s) enriched successfully. "
+                      + "Some titles/thumbnails may be missing until the next refresh."
+                    : null;
+
+            // Advance cursor and persist outcome. lastSuccessfulRefreshAt is set for both SUCCESS
+            // and PARTIAL because the channel snapshot and metadata DID refresh successfully.
             ch.setLastVideoSyncAt(newCursor);
             ch.setLastSuccessfulRefreshAt(Instant.now());
-            ch.setLastRefreshStatus(RefreshStatus.SUCCESS);
-            ch.setLastRefreshError(null);
+            ch.setLastRefreshStatus(outcomeStatus);
+            ch.setLastRefreshError(outcomeError);
             channelRepo.save(ch);
 
             long ms = Instant.now().toEpochMilli() - started.toEpochMilli();
             log.info(
-                    "DailyRefreshWorker success channelId={} channelDbId={} " +
+                    "DailyRefreshWorker {} channelId={} channelDbId={} " +
                     "newOrUpdatedVideos={} enriched={} markedInactive={} enrichmentErrors={} " +
                     "totalVideos={} snapOk={} snapSkipped={} dayUtc={} ms={}",
-                    ch.getChannelId(), ch.getId(), newOrUpdated,
+                    outcomeStatus, ch.getChannelId(), ch.getId(), newOrUpdated,
                     enrichResult.enriched(), enrichResult.markedInactive(), enrichResult.failedBatches(),
                     videos.size(), snapOk, snapSkipped, todayUtc, ms);
 
             return new RefreshResult(newOrUpdated, enrichResult.enriched(),
-                    enrichResult.markedInactive(), enrichResult.failedBatches());
+                    enrichResult.markedInactive(), enrichResult.failedBatches(), outcomeStatus);
 
         } catch (Exception ex) {
             // Surface the original exception before anything else obscures it.

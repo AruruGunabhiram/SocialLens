@@ -21,8 +21,8 @@ import {
   type VideoQueryParams,
 } from './api'
 import type { ChannelAnalytics } from './schemas'
-import { toastError, toastSuccess } from '@/lib/toast'
-import type { AppError } from '@/api/httpError'
+import { toastError, toastInfo, toastSuccess, toastWarning } from '@/lib/toast'
+import { isAppError, type AppError } from '@/api/httpError'
 import type { ChannelItem, TimeSeriesResponse, VideosPageResponse } from '@/api/types'
 
 // -----------------------------------------------------------------------
@@ -195,31 +195,40 @@ export function useChannelRefreshByIdMutation() {
   return useMutation<RefreshChannelResult, unknown, { channelDbId: number }>({
     mutationFn: ({ channelDbId }) => refreshChannelById(channelDbId),
     onSuccess: (data, { channelDbId }) => {
-      // Build a meaningful toast from enrichment counts when available.
       const enriched = data.videosEnriched ?? null
       const errors = data.enrichmentErrors ?? 0
-      let description = 'Snapshot written — chart data is ready.'
-      if (enriched !== null) {
-        description =
-          errors > 0
-            ? `${enriched} video(s) enriched. ${errors} API batch(es) failed — partial metadata.`
-            : `${enriched} video(s) enriched with full metadata.`
+      const isPartial = errors > 0 || data.outcomeStatus === 'PARTIAL'
+
+      if (isPartial) {
+        // Enrichment had batch failures — snapshot and channel data are fresh, but some
+        // videos may still be missing titles/thumbnails.
+        const description =
+          enriched !== null
+            ? `${enriched} video(s) enriched. ${errors} API batch(es) failed — some titles/thumbnails may be missing.`
+            : `${errors} enrichment batch(es) failed — some video metadata may be incomplete.`
+        toastWarning('Partial refresh', description)
+      } else {
+        const description =
+          enriched !== null
+            ? `${enriched} video(s) enriched with full metadata. Snapshot written.`
+            : 'Snapshot written — chart data is ready.'
+        toastSuccess('Refresh complete', description)
       }
-      toastSuccess('Refresh complete', description)
-      // ['channels', ...] — analytics and any root-level channel queries
+
+      // Invalidate all downstream queries so UI reflects updated data.
       queryClient.invalidateQueries({ queryKey: channelQueryKeys.root })
-      // ['channelList', 'detail', id] — single channel metadata (lastSnapshotAt, lastRefreshStatus)
       queryClient.invalidateQueries({ queryKey: channelListQueryKeys.detail(channelDbId) })
-      // ['channelList', 'list', *] — channel list pages
       queryClient.invalidateQueries({ queryKey: channelListQueryKeys.list(false) })
       queryClient.invalidateQueries({ queryKey: channelListQueryKeys.list(true) })
-      // ['channelList', 'videos', id, *] — all paginated video queries for this channel
       queryClient.invalidateQueries({ queryKey: ['channelList', 'videos', channelDbId] })
-      // ['timeseries', channelDbId, ...] — Trends chart (all metrics/ranges for this channel)
-      // The backend refresh is synchronous, so new snapshots are committed by the time we land here.
       queryClient.invalidateQueries({ queryKey: ['timeseries', channelDbId] })
     },
     onError: (error) => {
+      // 409 = refresh already running; not an error worth alarming the user.
+      if (isAppError(error) && error.status === 409) {
+        toastInfo('Refresh already in progress', 'This channel is currently being refreshed.')
+        return
+      }
       toastError(error, 'Failed to trigger refresh')
     },
   })
