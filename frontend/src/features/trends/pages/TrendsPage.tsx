@@ -11,7 +11,16 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { AlertTriangle, BarChart2, Calendar, ChevronRight, Info, Minus, TrendingDown, TrendingUp } from 'lucide-react'
+import {
+  AlertTriangle,
+  BarChart2,
+  Calendar,
+  ChevronRight,
+  Info,
+  Minus,
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { toastError } from '@/lib/toast'
@@ -183,14 +192,10 @@ function SnapshotCoverageBanner({
             <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
               {capturedDays}
             </span>{' '}
-            of{' '}
-            <span style={{ fontFamily: 'var(--font-mono)' }}>{requestedRange}</span>d captured
+            of <span style={{ fontFamily: 'var(--font-mono)' }}>{requestedRange}</span>d captured
             {dateRange && <span> · {dateRange}</span>}
           </span>
-          <p
-            className="mt-0.5"
-            style={{ fontSize: 'var(--text-xs)', color: 'var(--color-warn)' }}
-          >
+          <p className="mt-0.5" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-warn)' }}>
             Fewer than {MIN_RELIABLE_DAYS} days — trends may not be reliable yet
           </p>
         </div>
@@ -209,9 +214,13 @@ function SnapshotCoverageBanner({
         <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
           {capturedDays}
         </span>{' '}
-        of{' '}
-        <span style={{ fontFamily: 'var(--font-mono)' }}>{requestedRange}</span>d captured
-        {dateRange && <span style={{ color: 'var(--color-muted-foreground)', opacity: 0.75 }}> · {dateRange}</span>}
+        of <span style={{ fontFamily: 'var(--font-mono)' }}>{requestedRange}</span>d captured
+        {dateRange && (
+          <span style={{ color: 'var(--color-muted-foreground)', opacity: 0.75 }}>
+            {' '}
+            · {dateRange}
+          </span>
+        )}
       </span>
     </div>
   )

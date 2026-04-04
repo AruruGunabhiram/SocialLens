@@ -113,7 +113,9 @@ describe('InsightsPage — Retention Diagnosis', () => {
       isLoading: false,
       isError: false,
     } as unknown as ReturnType<typeof useTimeSeries>)
-    vi.mocked(useCurrentUser).mockReturnValue({ data: { id: 1 } } as ReturnType<typeof useCurrentUser>)
+    vi.mocked(useCurrentUser).mockReturnValue({ data: { id: 1 } } as ReturnType<
+      typeof useCurrentUser
+    >)
     vi.mocked(useAccountStatus).mockReturnValue({
       data: { userId: 1, platform: 'YOUTUBE', connected: true },
       isLoading: false,

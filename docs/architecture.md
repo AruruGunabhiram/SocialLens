@@ -348,10 +348,12 @@ Frontend                   Backend                          Google
 ```
 
 **OAuth scopes requested:**
+
 - `https://www.googleapis.com/auth/yt-analytics.readonly`
 - `https://www.googleapis.com/auth/youtube.readonly`
 
 **Token refresh logic (`YouTubeOAuthService.getValidAccessToken`):**
+
 1. Check `expiresAt` — if more than 60 seconds away, return stored `accessToken`
 2. Otherwise POST to `https://oauth2.googleapis.com/token` with `grant_type=refresh_token`
 3. Update `accessToken` and `expiresAt` in DB
@@ -404,10 +406,9 @@ SocialLens uses **TanStack Query v5** as the sole server-state manager. There is
 ### Query key conventions
 
 ```typescript
-['channels']                                    // channel list
-['channel', channelDbId]                        // channel overview
-['timeseries', channelDbId, metric, rangeDays]  // trend chart data
-['videos', channelDbId, page, size, sortBy]     // paginated video table
+["channels"][("channel", channelDbId)][ // channel list // channel overview
+  ("timeseries", channelDbId, metric, rangeDays)
+][("videos", channelDbId, page, size, sortBy)]; // trend chart data // paginated video table
 ```
 
 ### Data flow

@@ -15,7 +15,15 @@ type StatCardProps = {
   className?: string
 }
 
-export function StatCard({ label, labelExtra, value, description, icon, loading, className }: StatCardProps) {
+export function StatCard({
+  label,
+  labelExtra,
+  value,
+  description,
+  icon,
+  loading,
+  className,
+}: StatCardProps) {
   return (
     <Card className={cn('h-full', className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

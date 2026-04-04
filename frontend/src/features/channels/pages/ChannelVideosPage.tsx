@@ -424,7 +424,8 @@ export default function ChannelVideosPage() {
           data-testid="title-warning-banner"
         >
           <span>
-            Most videos are missing titles — metadata enrichment may have failed during the last sync. Run a refresh to fix this.
+            Most videos are missing titles — metadata enrichment may have failed during the last
+            sync. Run a refresh to fix this.
           </span>
           <button
             type="button"
@@ -506,7 +507,9 @@ export default function ChannelVideosPage() {
                   />
                   <SortableHeader
                     label="Likes"
-                    labelExtra={<InfoTooltip text="Populated after enrichment. YouTube may disable likes on individual videos." />}
+                    labelExtra={
+                      <InfoTooltip text="Populated after enrichment. YouTube may disable likes on individual videos." />
+                    }
                     sortKey="likes"
                     currentSort={sort}
                     currentDir={dir}

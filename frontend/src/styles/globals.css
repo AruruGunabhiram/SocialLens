@@ -13,25 +13,25 @@
 :root {
   --radius: var(--radius-lg);
 
-  --background:            223 30% 5%;    /* --color-canvas   #080A0F */
-  --foreground:            222 35% 92%;   /* --color-text-primary #E4E8F2 */
-  --card:                  228 28% 7%;    /* --color-surface-0 #0D0F17 */
-  --card-foreground:       222 35% 92%;
-  --popover:               230 28% 16%;   /* --color-surface-3 #1E2235 */
-  --popover-foreground:    222 35% 92%;
-  --primary:               41 100% 47%;   /* --color-amber-500 #F0A500 (Explorer) */
-  --primary-foreground:    223 30% 5%;    /* --color-text-inverse */
-  --secondary:             229 27% 12%;   /* --color-surface-2 #171A28 */
-  --secondary-foreground:  222 35% 92%;
-  --muted:                 228 31% 10%;   /* --color-surface-1 #111420 */
-  --muted-foreground:      228 15% 60%;   /* --color-text-secondary #8A90A8 */
-  --accent:                228 31% 10%;   /* --color-surface-1 (neutral) */
-  --accent-foreground:     222 35% 92%;
-  --destructive:           350 89% 60%;   /* --color-down #F43F5E */
-  --destructive-foreground:222 35% 92%;
-  --border:                233 27% 20%;   /* --color-border-base #252840 */
-  --input:                 233 27% 20%;
-  --ring:                  217 91% 60%;   /* --color-blue-500 #3B82F6 */
+  --background: 223 30% 5%; /* --color-canvas   #080A0F */
+  --foreground: 222 35% 92%; /* --color-text-primary #E4E8F2 */
+  --card: 228 28% 7%; /* --color-surface-0 #0D0F17 */
+  --card-foreground: 222 35% 92%;
+  --popover: 230 28% 16%; /* --color-surface-3 #1E2235 */
+  --popover-foreground: 222 35% 92%;
+  --primary: 41 100% 47%; /* --color-amber-500 #F0A500 (Explorer) */
+  --primary-foreground: 223 30% 5%; /* --color-text-inverse */
+  --secondary: 229 27% 12%; /* --color-surface-2 #171A28 */
+  --secondary-foreground: 222 35% 92%;
+  --muted: 228 31% 10%; /* --color-surface-1 #111420 */
+  --muted-foreground: 228 15% 60%; /* --color-text-secondary #8A90A8 */
+  --accent: 228 31% 10%; /* --color-surface-1 (neutral) */
+  --accent-foreground: 222 35% 92%;
+  --destructive: 350 89% 60%; /* --color-down #F43F5E */
+  --destructive-foreground: 222 35% 92%;
+  --border: 233 27% 20%; /* --color-border-base #252840 */
+  --input: 233 27% 20%;
+  --ring: 217 91% 60%; /* --color-blue-500 #3B82F6 */
 }
 
 .container {

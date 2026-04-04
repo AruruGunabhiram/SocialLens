@@ -148,8 +148,12 @@ export function Topbar() {
               fontSize: 'var(--text-sm)',
               fontWeight: 500,
               fontFamily: 'var(--font-body)',
-              background: query.trim() && !sync.isPending ? 'var(--accent)' : 'var(--color-surface-2)',
-              color: query.trim() && !sync.isPending ? 'var(--color-text-inverse)' : 'var(--color-text-muted)',
+              background:
+                query.trim() && !sync.isPending ? 'var(--accent)' : 'var(--color-surface-2)',
+              color:
+                query.trim() && !sync.isPending
+                  ? 'var(--color-text-inverse)'
+                  : 'var(--color-text-muted)',
               border: '1px solid transparent',
               cursor: query.trim() && !sync.isPending ? 'pointer' : 'default',
               transition: `background var(--duration-base) var(--ease-standard), color var(--duration-base) var(--ease-standard)`,

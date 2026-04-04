@@ -32,7 +32,12 @@ import {
   FreshnessBadge,
   mapChannelItemToFreshnessProps,
 } from '@/features/channels/components/FreshnessBadge'
-import type { DiagnosisItem, RetentionDiagnosisResponse, RetentionDropEvent, VideoRow } from '@/api/types'
+import type {
+  DiagnosisItem,
+  RetentionDiagnosisResponse,
+  RetentionDropEvent,
+  VideoRow,
+} from '@/api/types'
 
 // ─── Shared card style ────────────────────────────────────────────────────────
 
@@ -90,14 +95,28 @@ function SeverityBadge({ severity }: { severity: string }) {
 function DropEventsTable({ drops }: { drops: RetentionDropEvent[] }) {
   if (drops.length === 0) {
     return (
-      <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', margin: 0 }}>
+      <p
+        style={{
+          fontFamily: 'var(--font-body)',
+          fontSize: 'var(--text-sm)',
+          color: 'var(--color-text-muted)',
+          margin: 0,
+        }}
+      >
         No significant drop events detected.
       </p>
     )
   }
   return (
     <div style={{ overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)' }}>
+      <table
+        style={{
+          width: '100%',
+          borderCollapse: 'collapse',
+          fontFamily: 'var(--font-body)',
+          fontSize: 'var(--text-sm)',
+        }}
+      >
         <thead>
           <tr>
             {['Severity', 'Position', 'Drop', 'Rate'].map((h) => (
@@ -119,17 +138,41 @@ function DropEventsTable({ drops }: { drops: RetentionDropEvent[] }) {
         </thead>
         <tbody>
           {drops.map((d, i) => (
-            <tr key={i} style={{ borderBottom: '1px solid var(--color-border-subtle, var(--color-border))' }}>
+            <tr
+              key={i}
+              style={{ borderBottom: '1px solid var(--color-border-subtle, var(--color-border))' }}
+            >
               <td style={{ padding: 'var(--space-2) var(--space-3)' }}>
                 <SeverityBadge severity={d.severity} />
               </td>
-              <td style={{ padding: 'var(--space-2) var(--space-3)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', color: 'var(--color-text-primary)' }}>
+              <td
+                style={{
+                  padding: 'var(--space-2) var(--space-3)',
+                  fontFamily: 'var(--font-mono)',
+                  fontVariantNumeric: 'tabular-nums',
+                  color: 'var(--color-text-primary)',
+                }}
+              >
                 {pct(d.startProgress)} → {pct(d.endProgress)}
               </td>
-              <td style={{ padding: 'var(--space-2) var(--space-3)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', color: 'var(--color-down)' }}>
+              <td
+                style={{
+                  padding: 'var(--space-2) var(--space-3)',
+                  fontFamily: 'var(--font-mono)',
+                  fontVariantNumeric: 'tabular-nums',
+                  color: 'var(--color-down)',
+                }}
+              >
                 -{pct(d.dropMagnitude)}
               </td>
-              <td style={{ padding: 'var(--space-2) var(--space-3)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', color: 'var(--color-text-secondary)' }}>
+              <td
+                style={{
+                  padding: 'var(--space-2) var(--space-3)',
+                  fontFamily: 'var(--font-mono)',
+                  fontVariantNumeric: 'tabular-nums',
+                  color: 'var(--color-text-secondary)',
+                }}
+              >
                 {d.slope.toFixed(2)}
               </td>
             </tr>
@@ -143,13 +186,23 @@ function DropEventsTable({ drops }: { drops: RetentionDropEvent[] }) {
 function DiagnosesList({ diagnoses }: { diagnoses: DiagnosisItem[] }) {
   if (diagnoses.length === 0) {
     return (
-      <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', margin: 0 }}>
+      <p
+        style={{
+          fontFamily: 'var(--font-body)',
+          fontSize: 'var(--text-sm)',
+          color: 'var(--color-text-muted)',
+          margin: 0,
+        }}
+      >
         No significant issues detected.
       </p>
     )
   }
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }} data-testid="diagnoses-list">
+    <div
+      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}
+      data-testid="diagnoses-list"
+    >
       {diagnoses.map((d, i) => (
         <div
           key={i}
@@ -165,15 +218,38 @@ function DiagnosesList({ diagnoses }: { diagnoses: DiagnosisItem[] }) {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            <span style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+            <span
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--text-sm)',
+                fontWeight: 600,
+                color: 'var(--color-text-primary)',
+              }}
+            >
               {toTitleCase(d.label)}
             </span>
             <SeverityBadge severity={d.severity} />
           </div>
-          <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 'var(--leading-relaxed)' }}>
+          <p
+            style={{
+              fontFamily: 'var(--font-body)',
+              fontSize: 'var(--text-sm)',
+              color: 'var(--color-text-secondary)',
+              margin: 0,
+              lineHeight: 'var(--leading-relaxed)',
+            }}
+          >
             {d.evidence}
           </p>
-          <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', color: 'var(--color-text-primary)', margin: 0, lineHeight: 'var(--leading-relaxed)' }}>
+          <p
+            style={{
+              fontFamily: 'var(--font-body)',
+              fontSize: 'var(--text-sm)',
+              color: 'var(--color-text-primary)',
+              margin: 0,
+              lineHeight: 'var(--leading-relaxed)',
+            }}
+          >
             {d.recommendation}
           </p>
         </div>
@@ -184,28 +260,84 @@ function DiagnosesList({ diagnoses }: { diagnoses: DiagnosisItem[] }) {
 
 function DiagnosisResults({ result }: { result: RetentionDiagnosisResponse }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }} data-testid="diagnosis-results">
+    <div
+      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}
+      data-testid="diagnosis-results"
+    >
       <div style={{ ...CARD }}>
-        <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', color: 'var(--color-text-primary)', lineHeight: 'var(--leading-relaxed)', margin: 0 }} data-testid="diagnosis-summary">
+        <p
+          style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: 'var(--text-sm)',
+            color: 'var(--color-text-primary)',
+            lineHeight: 'var(--leading-relaxed)',
+            margin: 0,
+          }}
+          data-testid="diagnosis-summary"
+        >
           {result.summary}
         </p>
-        <p style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', marginTop: 'var(--space-3)', marginBottom: 0, fontVariantNumeric: 'tabular-nums', opacity: 0.6 }}>
+        <p
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--text-xs)',
+            color: 'var(--color-text-muted)',
+            marginTop: 'var(--space-3)',
+            marginBottom: 0,
+            fontVariantNumeric: 'tabular-nums',
+            opacity: 0.6,
+          }}
+        >
           {result.videoId}
         </p>
       </div>
       <section>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 'var(--space-3)' }}>
+        <h3
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'var(--text-base)',
+            fontWeight: 600,
+            color: 'var(--color-text-primary)',
+            marginBottom: 'var(--space-3)',
+          }}
+        >
           Drop events
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', fontVariantNumeric: 'tabular-nums', color: 'var(--color-text-muted)', marginLeft: 'var(--space-2)', fontWeight: 400 }}>
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 'var(--text-xs)',
+              fontVariantNumeric: 'tabular-nums',
+              color: 'var(--color-text-muted)',
+              marginLeft: 'var(--space-2)',
+              fontWeight: 400,
+            }}
+          >
             ({result.dropEvents.length})
           </span>
         </h3>
         <DropEventsTable drops={result.dropEvents} />
       </section>
       <section>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 'var(--space-3)' }}>
+        <h3
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'var(--text-base)',
+            fontWeight: 600,
+            color: 'var(--color-text-primary)',
+            marginBottom: 'var(--space-3)',
+          }}
+        >
           Diagnoses
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', fontVariantNumeric: 'tabular-nums', color: 'var(--color-text-muted)', marginLeft: 'var(--space-2)', fontWeight: 400 }}>
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 'var(--text-xs)',
+              fontVariantNumeric: 'tabular-nums',
+              color: 'var(--color-text-muted)',
+              marginLeft: 'var(--space-2)',
+              fontWeight: 400,
+            }}
+          >
             ({result.diagnoses.length})
           </span>
         </h3>
@@ -219,8 +351,23 @@ function DiagnosisResults({ result }: { result: RetentionDiagnosisResponse }) {
 
 function SectionHeading({ label, badge }: { label: string; badge?: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
-      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--color-text-primary)', margin: 0 }}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 'var(--space-2)',
+        marginBottom: 'var(--space-4)',
+      }}
+    >
+      <h2
+        style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: 'var(--text-lg)',
+          fontWeight: 600,
+          color: 'var(--color-text-primary)',
+          margin: 0,
+        }}
+      >
         {label}
       </h2>
       {badge}
@@ -276,16 +423,18 @@ function TrendCard({
   }
 
   const labelEl = (
-    <span style={{
-      fontFamily: 'var(--font-body)',
-      fontSize: 'var(--text-xs)',
-      fontWeight: 600,
-      color: 'var(--color-text-secondary)',
-      letterSpacing: '0.06em',
-      textTransform: 'uppercase' as const,
-      display: 'block',
-      marginBottom: 'var(--space-3)',
-    }}>
+    <span
+      style={{
+        fontFamily: 'var(--font-body)',
+        fontSize: 'var(--text-xs)',
+        fontWeight: 600,
+        color: 'var(--color-text-secondary)',
+        letterSpacing: '0.06em',
+        textTransform: 'uppercase' as const,
+        display: 'block',
+        marginBottom: 'var(--space-3)',
+      }}
+    >
       {label}
     </span>
   )
@@ -294,7 +443,13 @@ function TrendCard({
     return (
       <div style={CARD}>
         {labelEl}
-        <span style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
+        <span
+          style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: 'var(--text-sm)',
+            color: 'var(--color-text-muted)',
+          }}
+        >
           No data available
         </span>
       </div>
@@ -313,19 +468,47 @@ function TrendCard({
   return (
     <div style={CARD} data-testid={`trend-card-${label.toLowerCase()}`}>
       {labelEl}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--space-2)',
+          marginBottom: 'var(--space-2)',
+        }}
+      >
         <TrendIcon size={20} style={{ color: trendColor }} aria-hidden />
-        <span style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', fontWeight: 700, color: trendColor }}>
+        <span
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'var(--text-2xl)',
+            fontWeight: 700,
+            color: trendColor,
+          }}
+        >
           {trendLabel}
         </span>
       </div>
       {avgPerDay != null && (
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)', fontVariantNumeric: 'tabular-nums', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-1)' }}>
+        <div
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--text-sm)',
+            fontVariantNumeric: 'tabular-nums',
+            color: 'var(--color-text-secondary)',
+            marginBottom: 'var(--space-1)',
+          }}
+        >
           {fmtDelta(Math.round(avgPerDay))} {unit}/day avg
         </div>
       )}
       {capturedDays != null && capturedDays > 0 && (
-        <div style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+        <div
+          style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: 'var(--text-xs)',
+            color: 'var(--color-text-muted)',
+          }}
+        >
           Based on {capturedDays} day{capturedDays !== 1 ? 's' : ''} of data
         </div>
       )}
@@ -339,7 +522,12 @@ function TopVideosTable({ videos }: { videos: VideoRow[] }) {
   return (
     <div style={{ overflowX: 'auto' }}>
       <table
-        style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)' }}
+        style={{
+          width: '100%',
+          borderCollapse: 'collapse',
+          fontFamily: 'var(--font-body)',
+          fontSize: 'var(--text-sm)',
+        }}
         data-testid="top-videos-table"
       >
         <thead>
@@ -363,20 +551,64 @@ function TopVideosTable({ videos }: { videos: VideoRow[] }) {
         </thead>
         <tbody>
           {videos.map((v, i) => (
-            <tr key={v.id} style={{ borderBottom: '1px solid var(--color-border-subtle, var(--color-border))' }}>
-              <td style={{ padding: 'var(--space-2) var(--space-3)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', color: 'var(--color-text-muted)', textAlign: 'center' }}>
+            <tr
+              key={v.id}
+              style={{ borderBottom: '1px solid var(--color-border-subtle, var(--color-border))' }}
+            >
+              <td
+                style={{
+                  padding: 'var(--space-2) var(--space-3)',
+                  fontFamily: 'var(--font-mono)',
+                  fontVariantNumeric: 'tabular-nums',
+                  color: 'var(--color-text-muted)',
+                  textAlign: 'center',
+                }}
+              >
                 {i + 1}
               </td>
-              <td style={{ padding: 'var(--space-2) var(--space-3)', color: 'var(--color-text-primary)', maxWidth: 340, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <td
+                style={{
+                  padding: 'var(--space-2) var(--space-3)',
+                  color: 'var(--color-text-primary)',
+                  maxWidth: 340,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
                 {v.title?.trim() || v.videoId}
               </td>
-              <td style={{ padding: 'var(--space-2) var(--space-3)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', color: 'var(--color-text-primary)', textAlign: 'right' }}>
+              <td
+                style={{
+                  padding: 'var(--space-2) var(--space-3)',
+                  fontFamily: 'var(--font-mono)',
+                  fontVariantNumeric: 'tabular-nums',
+                  color: 'var(--color-text-primary)',
+                  textAlign: 'right',
+                }}
+              >
                 {fmtCompact(v.viewCount)}
               </td>
-              <td style={{ padding: 'var(--space-2) var(--space-3)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', color: 'var(--color-text-secondary)', textAlign: 'right' }}>
+              <td
+                style={{
+                  padding: 'var(--space-2) var(--space-3)',
+                  fontFamily: 'var(--font-mono)',
+                  fontVariantNumeric: 'tabular-nums',
+                  color: 'var(--color-text-secondary)',
+                  textAlign: 'right',
+                }}
+              >
                 {fmtCompact(v.likeCount)}
               </td>
-              <td style={{ padding: 'var(--space-2) var(--space-3)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', color: 'var(--color-text-secondary)', textAlign: 'right' }}>
+              <td
+                style={{
+                  padding: 'var(--space-2) var(--space-3)',
+                  fontFamily: 'var(--font-mono)',
+                  fontVariantNumeric: 'tabular-nums',
+                  color: 'var(--color-text-secondary)',
+                  textAlign: 'right',
+                }}
+              >
                 {fmtCompact(v.commentCount)}
               </td>
             </tr>
@@ -404,14 +636,26 @@ export default function InsightsPage() {
 
   const RANGE = 30
 
-  const { data: viewsData, isLoading: viewsLoading, isError: viewsError } =
-    useTimeSeries(channelDbId, 'VIEWS', RANGE)
-  const { data: subsData, isLoading: subsLoading, isError: subsError } =
-    useTimeSeries(channelDbId, 'SUBSCRIBERS', RANGE)
-  const { data: uploadsData, isLoading: uploadsLoading, isError: uploadsError } =
-    useTimeSeries(channelDbId, 'UPLOADS', RANGE)
-  const { data: videosData, isLoading: videosLoading, isError: videosError } =
-    useVideosQuery(channelDbId ?? 0, { sort: 'views', dir: 'desc', page: 0, size: 5 })
+  const {
+    data: viewsData,
+    isLoading: viewsLoading,
+    isError: viewsError,
+  } = useTimeSeries(channelDbId, 'VIEWS', RANGE)
+  const {
+    data: subsData,
+    isLoading: subsLoading,
+    isError: subsError,
+  } = useTimeSeries(channelDbId, 'SUBSCRIBERS', RANGE)
+  const {
+    data: uploadsData,
+    isLoading: uploadsLoading,
+    isError: uploadsError,
+  } = useTimeSeries(channelDbId, 'UPLOADS', RANGE)
+  const {
+    data: videosData,
+    isLoading: videosLoading,
+    isError: videosError,
+  } = useVideosQuery(channelDbId ?? 0, { sort: 'views', dir: 'desc', page: 0, size: 5 })
 
   // ── Computed ─────────────────────────────────────────────────────────────────
   const viewsPts = viewsData ? normalizeTimeseriesPoints(viewsData.points) : []
@@ -487,10 +731,32 @@ export default function InsightsPage() {
   // ── No channel ───────────────────────────────────────────────────────────────
   if (!channelDbId) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', padding: 'var(--space-4)', maxWidth: 900 }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-3)', ...CARD }} data-testid="no-channel">
-          <AlertCircle size={16} aria-hidden style={{ color: 'var(--color-text-muted)', marginTop: 2 }} />
-          <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', margin: 0 }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--space-6)',
+          padding: 'var(--space-4)',
+          maxWidth: 900,
+        }}
+      >
+        <div
+          style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-3)', ...CARD }}
+          data-testid="no-channel"
+        >
+          <AlertCircle
+            size={16}
+            aria-hidden
+            style={{ color: 'var(--color-text-muted)', marginTop: 2 }}
+          />
+          <p
+            style={{
+              fontFamily: 'var(--font-body)',
+              fontSize: 'var(--text-sm)',
+              color: 'var(--color-text-secondary)',
+              margin: 0,
+            }}
+          >
             No channel loaded. Navigate to a channel page and open Insights from there.
           </p>
         </div>
@@ -499,15 +765,38 @@ export default function InsightsPage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)', padding: 'var(--space-4)', maxWidth: 900 }}>
-
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--space-8)',
+        padding: 'var(--space-4)',
+        maxWidth: 900,
+      }}
+    >
       {/* Breadcrumb */}
-      <nav style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
-        <Link to="/channels" style={{ color: 'inherit', textDecoration: 'none' }}>Channels</Link>
+      <nav
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--space-1)',
+          fontFamily: 'var(--font-body)',
+          fontSize: 'var(--text-sm)',
+          color: 'var(--color-text-secondary)',
+        }}
+      >
+        <Link to="/channels" style={{ color: 'inherit', textDecoration: 'none' }}>
+          Channels
+        </Link>
         {channelName && (
           <>
             <ChevronRight size={12} aria-hidden />
-            <Link to={`/channels/${channelDbId}`} style={{ color: 'inherit', textDecoration: 'none' }}>{channelName}</Link>
+            <Link
+              to={`/channels/${channelDbId}`}
+              style={{ color: 'inherit', textDecoration: 'none' }}
+            >
+              {channelName}
+            </Link>
           </>
         )}
         <ChevronRight size={12} aria-hidden />
@@ -516,10 +805,26 @@ export default function InsightsPage() {
 
       {/* Page heading */}
       <div>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 var(--space-1)' }}>
+        <h1
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'var(--text-2xl)',
+            fontWeight: 700,
+            color: 'var(--color-text-primary)',
+            margin: '0 0 var(--space-1)',
+          }}
+        >
           Insights
         </h1>
-        <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', margin: 0, lineHeight: 'var(--leading-relaxed)' }}>
+        <p
+          style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: 'var(--text-sm)',
+            color: 'var(--color-text-secondary)',
+            margin: 0,
+            lineHeight: 'var(--leading-relaxed)',
+          }}
+        >
           Performance analysis for {channelName ?? 'this channel'} based on captured snapshots.
         </p>
       </div>
@@ -538,29 +843,68 @@ export default function InsightsPage() {
               ) : viewsPts.length > 0 ? (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-6)' }}>
                   <div>
-                    <div style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' as const, marginBottom: 'var(--space-1)' }}>
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-body)',
+                        fontSize: 'var(--text-xs)',
+                        fontWeight: 600,
+                        color: 'var(--color-text-muted)',
+                        letterSpacing: '0.06em',
+                        textTransform: 'uppercase' as const,
+                        marginBottom: 'var(--space-1)',
+                      }}
+                    >
                       Snapshot range
                     </div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)', fontVariantNumeric: 'tabular-nums', color: 'var(--color-text-primary)' }}>
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: 'var(--text-sm)',
+                        fontVariantNumeric: 'tabular-nums',
+                        color: 'var(--color-text-primary)',
+                      }}
+                    >
                       {fmtDate(viewsCoverage.firstDate)} — {fmtDate(viewsCoverage.lastDate)}
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' as const, marginBottom: 'var(--space-1)' }}>
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-body)',
+                        fontSize: 'var(--text-xs)',
+                        fontWeight: 600,
+                        color: 'var(--color-text-muted)',
+                        letterSpacing: '0.06em',
+                        textTransform: 'uppercase' as const,
+                        marginBottom: 'var(--space-1)',
+                      }}
+                    >
                       Days captured
                     </div>
-                    <div style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: 'var(--text-sm)',
-                      fontVariantNumeric: 'tabular-nums',
-                      color: viewsCoverage.isSparse ? 'var(--color-warn, var(--color-text-secondary))' : 'var(--color-text-primary)',
-                    }}>
-                      {viewsCoverage.capturedDays} of {RANGE}{viewsCoverage.isSparse ? ' — partial' : ''}
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: 'var(--text-sm)',
+                        fontVariantNumeric: 'tabular-nums',
+                        color: viewsCoverage.isSparse
+                          ? 'var(--color-warn, var(--color-text-secondary))'
+                          : 'var(--color-text-primary)',
+                      }}
+                    >
+                      {viewsCoverage.capturedDays} of {RANGE}
+                      {viewsCoverage.isSparse ? ' — partial' : ''}
                     </div>
                   </div>
                 </div>
               ) : (
-                <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', margin: 0 }}>
+                <p
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    fontSize: 'var(--text-sm)',
+                    color: 'var(--color-text-muted)',
+                    margin: 0,
+                  }}
+                >
                   No snapshots captured yet. Run a refresh to start collecting data.
                 </p>
               )}
@@ -572,7 +916,10 @@ export default function InsightsPage() {
       {/* ── Section 2: Trend Snapshot ────────────────────────────────────── */}
       <section>
         <SectionHeading label="Trend Snapshot" />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--space-4)' }} data-testid="trend-grid">
+        <div
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--space-4)' }}
+          data-testid="trend-grid"
+        >
           <TrendCard
             label="Views"
             loading={viewsLoading}
@@ -601,45 +948,108 @@ export default function InsightsPage() {
           {uploadsLoading ? (
             <SkeletonBlock lines={2} />
           ) : uploadsError ? (
-            <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', margin: 0 }}>
+            <p
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--text-sm)',
+                color: 'var(--color-text-muted)',
+                margin: 0,
+              }}
+            >
               Upload data unavailable.
             </p>
           ) : uploadsPts.length < 2 ? (
-            <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', margin: 0 }}>
+            <p
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--text-sm)',
+                color: 'var(--color-text-muted)',
+                margin: 0,
+              }}
+            >
               Not enough snapshot data to compute upload activity.
             </p>
           ) : (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-8)' }}>
               <div>
-                <div style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' as const, marginBottom: 'var(--space-1)' }}>
+                <div
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    fontSize: 'var(--text-xs)',
+                    fontWeight: 600,
+                    color: 'var(--color-text-muted)',
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase' as const,
+                    marginBottom: 'var(--space-1)',
+                  }}
+                >
                   New videos ({RANGE}d)
                 </div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-2xl)', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--color-text-primary)' }}>
+                <div
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 'var(--text-2xl)',
+                    fontWeight: 700,
+                    fontVariantNumeric: 'tabular-nums',
+                    color: 'var(--color-text-primary)',
+                  }}
+                >
                   {totalNewUploads}
                 </div>
               </div>
               <div>
-                <div style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' as const, marginBottom: 'var(--space-1)' }}>
+                <div
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    fontSize: 'var(--text-xs)',
+                    fontWeight: 600,
+                    color: 'var(--color-text-muted)',
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase' as const,
+                    marginBottom: 'var(--space-1)',
+                  }}
+                >
                   Avg per week
                 </div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-2xl)', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--color-text-primary)' }}>
+                <div
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 'var(--text-2xl)',
+                    fontWeight: 700,
+                    fontVariantNumeric: 'tabular-nums',
+                    color: 'var(--color-text-primary)',
+                  }}
+                >
                   {uploadsPerWeek ?? '—'}
                 </div>
               </div>
               <div>
-                <div style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' as const, marginBottom: 'var(--space-1)' }}>
+                <div
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    fontSize: 'var(--text-xs)',
+                    fontWeight: 600,
+                    color: 'var(--color-text-muted)',
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase' as const,
+                    marginBottom: 'var(--space-1)',
+                  }}
+                >
                   Pace
                 </div>
-                <div style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: 'var(--text-xl)',
-                  fontWeight: 700,
-                  color: uploadPace === 'Active'
-                    ? 'var(--color-up)'
-                    : uploadPace === 'Sparse'
-                      ? 'var(--color-warn, var(--color-text-secondary))'
-                      : 'var(--color-text-primary)',
-                }}>
+                <div
+                  style={{
+                    fontFamily: 'var(--font-display)',
+                    fontSize: 'var(--text-xl)',
+                    fontWeight: 700,
+                    color:
+                      uploadPace === 'Active'
+                        ? 'var(--color-up)'
+                        : uploadPace === 'Sparse'
+                          ? 'var(--color-warn, var(--color-text-secondary))'
+                          : 'var(--color-text-primary)',
+                  }}
+                >
                   {uploadPace}
                 </div>
               </div>
@@ -652,13 +1062,29 @@ export default function InsightsPage() {
       <section>
         <SectionHeading label="Top Videos by Views" />
         {videosLoading ? (
-          <div style={CARD}><SkeletonBlock lines={5} /></div>
+          <div style={CARD}>
+            <SkeletonBlock lines={5} />
+          </div>
         ) : videosError ? (
-          <div style={{ ...CARD, fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
+          <div
+            style={{
+              ...CARD,
+              fontFamily: 'var(--font-body)',
+              fontSize: 'var(--text-sm)',
+              color: 'var(--color-text-muted)',
+            }}
+          >
             Could not load video data.
           </div>
         ) : !videosData?.items.length ? (
-          <div style={{ ...CARD, fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
+          <div
+            style={{
+              ...CARD,
+              fontFamily: 'var(--font-body)',
+              fontSize: 'var(--text-sm)',
+              color: 'var(--color-text-muted)',
+            }}
+          >
             No videos found for this channel.
           </div>
         ) : (
@@ -680,20 +1106,53 @@ export default function InsightsPage() {
             data-testid="not-connected"
           >
             {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+                marginBottom: 'var(--space-3)',
+              }}
+            >
               <Lock size={15} aria-hidden style={{ color: 'var(--accent)', flexShrink: 0 }} />
-              <p style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--color-text-primary)', margin: 0 }}>
+              <p
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 'var(--text-base)',
+                  fontWeight: 600,
+                  color: 'var(--color-text-primary)',
+                  margin: 0,
+                }}
+              >
                 Owner analytics required
               </p>
             </div>
 
             {/* Description */}
-            <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', margin: '0 0 var(--space-4)', lineHeight: 'var(--leading-relaxed)' }}>
-              Retention Diagnosis reads your YouTube Analytics retention curve and identifies where viewers stop watching — broken down by severity, timestamp, and root cause.
+            <p
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--text-sm)',
+                color: 'var(--color-text-secondary)',
+                margin: '0 0 var(--space-4)',
+                lineHeight: 'var(--leading-relaxed)',
+              }}
+            >
+              Retention Diagnosis reads your YouTube Analytics retention curve and identifies where
+              viewers stop watching — broken down by severity, timestamp, and root cause.
             </p>
 
             {/* What you get */}
-            <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+            <ul
+              style={{
+                listStyle: 'none',
+                padding: 0,
+                margin: '0 0 var(--space-4)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-2)',
+              }}
+            >
               {[
                 'Drop event detection with severity (HIGH / MEDIUM / LOW)',
                 'Root cause labels: hook weakness, pacing issues, outro length',
@@ -723,11 +1182,26 @@ export default function InsightsPage() {
 
             {/* CTA */}
             {oauthOpened ? (
-              <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', lineHeight: 'var(--leading-relaxed)', margin: 0 }}>
+              <p
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--color-text-secondary)',
+                  lineHeight: 'var(--leading-relaxed)',
+                  margin: 0,
+                }}
+              >
                 Sign-in window opened. Complete the flow — this page will update automatically.
               </p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', alignItems: 'flex-start' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 'var(--space-2)',
+                  alignItems: 'flex-start',
+                }}
+              >
                 <button
                   type="button"
                   disabled={isStartingOAuth}
@@ -753,7 +1227,14 @@ export default function InsightsPage() {
                   Connect YouTube Account
                 </button>
                 {connectError && (
-                  <p style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-xs)', color: 'var(--color-down)', margin: 0 }}>
+                  <p
+                    style={{
+                      fontFamily: 'var(--font-body)',
+                      fontSize: 'var(--text-xs)',
+                      color: 'var(--color-down)',
+                      margin: 0,
+                    }}
+                  >
                     {connectError}
                   </p>
                 )}
@@ -770,7 +1251,14 @@ export default function InsightsPage() {
               style={{ ...CARD, display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}
               data-testid="diagnosis-form"
             >
-              <label style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+              <label
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 'var(--text-sm)',
+                  fontWeight: 600,
+                  color: 'var(--color-text-primary)',
+                }}
+              >
                 Video ID or URL
               </label>
               <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
@@ -805,7 +1293,10 @@ export default function InsightsPage() {
                     fontSize: 'var(--text-sm)',
                     fontWeight: 600,
                     color: 'var(--color-text-inverse)',
-                    background: isPending || !rawInput.trim() ? 'var(--color-border-strong)' : 'var(--accent)',
+                    background:
+                      isPending || !rawInput.trim()
+                        ? 'var(--color-border-strong)'
+                        : 'var(--accent)',
                     border: 'none',
                     borderRadius: 'var(--radius-md)',
                     padding: 'var(--space-2) var(--space-4)',
@@ -819,7 +1310,15 @@ export default function InsightsPage() {
                 </button>
               </div>
               {inputError && (
-                <p role="alert" style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--text-xs)', color: 'var(--color-down)', margin: 0 }}>
+                <p
+                  role="alert"
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--color-down)',
+                    margin: 0,
+                  }}
+                >
                   {inputError}
                 </p>
               )}

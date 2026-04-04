@@ -10,8 +10,8 @@ backend/.env
 # =========================
 # Local Spring configs
 # =========================
-src/main/resources/application-local.properties
-src/main/resources/application-local.yml
+**/application-local.properties
+**/application-local.yml
 
 # =========================
 # Java / Build

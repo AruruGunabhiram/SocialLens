@@ -35,7 +35,6 @@ tags:
   - name: health
 
 paths:
-
   # ---------------------------------------------------------------------------
   # Health
   # ---------------------------------------------------------------------------
@@ -617,7 +616,6 @@ paths:
 # =============================================================================
 
 components:
-
   responses:
     NotFound:
       description: Resource not found
@@ -633,7 +631,6 @@ components:
             $ref: "#/components/schemas/ErrorResponse"
 
   schemas:
-
     ErrorResponse:
       type: object
       properties:
@@ -849,7 +846,13 @@ components:
             properties:
               label:
                 type: string
-                enum: [HOOK_WEAK_OR_MISMATCH, PACING_OR_TOPIC_SHIFT, OUTRO_TOO_LONG, STRUCTURE_DIP]
+                enum:
+                  [
+                    HOOK_WEAK_OR_MISMATCH,
+                    PACING_OR_TOPIC_SHIFT,
+                    OUTRO_TOO_LONG,
+                    STRUCTURE_DIP,
+                  ]
               severity:
                 type: string
                 enum: [LOW, MEDIUM, HIGH]

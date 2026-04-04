@@ -131,7 +131,7 @@ export function FreshnessBadge({
   const showDetailToggle = isFailed || isPartial
 
   // "has data" = at least one snapshot exists (either we have a count, or a timestamp).
-  const hasData = (snapshotDayCount != null ? snapshotDayCount > 0 : snapshotDate != null)
+  const hasData = snapshotDayCount != null ? snapshotDayCount > 0 : snapshotDate != null
 
   // Snapshot coverage line: prefer "N days captured · last X ago" when count is known.
   const snapshotLine = snapshotDate
@@ -189,8 +189,12 @@ export function FreshnessBadge({
             aria-controls="freshness-error-detail"
           >
             {errorExpanded
-              ? isFailed ? 'Hide error' : 'Hide details'
-              : isFailed ? 'View error' : 'View details'}
+              ? isFailed
+                ? 'Hide error'
+                : 'Hide details'
+              : isFailed
+                ? 'View error'
+                : 'View details'}
             {errorExpanded ? (
               <ChevronUp className="h-3 w-3" aria-hidden="true" />
             ) : (
@@ -205,9 +209,7 @@ export function FreshnessBadge({
         <div
           id="freshness-error-detail"
           className={`rounded-md border px-3 py-2 text-xs ${
-            isFailed
-              ? 'border-destructive/30 bg-destructive/5'
-              : 'border-warning/30 bg-warning/5'
+            isFailed ? 'border-destructive/30 bg-destructive/5' : 'border-warning/30 bg-warning/5'
           }`}
         >
           {lastRefreshError ? (
