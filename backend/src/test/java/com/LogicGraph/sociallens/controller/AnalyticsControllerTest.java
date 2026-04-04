@@ -53,7 +53,7 @@ class AnalyticsControllerTest {
         when(analyticsService.getChannelAnalyticsById(123L)).thenReturn(mockDto);
 
         // When: GET /analytics/channel/by-id?channelDbId=123
-        mockMvc.perform(get("/analytics/channel/by-id")
+        mockMvc.perform(get("/api/v1/analytics/channel/by-id")
                         .param("channelDbId", "123"))
                 // Then: should return 200 with channel analytics
                 .andExpect(status().isOk())
@@ -71,7 +71,7 @@ class AnalyticsControllerTest {
                 .thenThrow(new NotFoundException("Channel not found with id: 999"));
 
         // When: GET /analytics/channel/by-id?channelDbId=999
-        mockMvc.perform(get("/analytics/channel/by-id")
+        mockMvc.perform(get("/api/v1/analytics/channel/by-id")
                         .param("channelDbId", "999"))
                 // Then: should return 404 with error message
                 .andExpect(status().isNotFound())
@@ -86,7 +86,7 @@ class AnalyticsControllerTest {
         when(analyticsService.getTopVideosById(123L, 10)).thenReturn(mockDto);
 
         // When: GET /analytics/videos/by-id?channelDbId=123&limit=10
-        mockMvc.perform(get("/analytics/videos/by-id")
+        mockMvc.perform(get("/api/v1/analytics/videos/by-id")
                         .param("channelDbId", "123")
                         .param("limit", "10"))
                 // Then: should return 200 with videos
@@ -103,7 +103,7 @@ class AnalyticsControllerTest {
         when(analyticsService.getTopVideosById(eq(123L), anyInt())).thenReturn(mockDto);
 
         // When: GET /analytics/videos/by-id?channelDbId=123 (no limit param)
-        mockMvc.perform(get("/analytics/videos/by-id")
+        mockMvc.perform(get("/api/v1/analytics/videos/by-id")
                         .param("channelDbId", "123"))
                 // Then: should use default limit of 10
                 .andExpect(status().isOk())
@@ -122,7 +122,7 @@ class AnalyticsControllerTest {
         when(analyticsService.getUploadFrequencyById(123L, 12)).thenReturn(mockDto);
 
         // When: GET /analytics/upload-frequency/by-id?channelDbId=123&weeks=12
-        mockMvc.perform(get("/analytics/upload-frequency/by-id")
+        mockMvc.perform(get("/api/v1/analytics/upload-frequency/by-id")
                         .param("channelDbId", "123")
                         .param("weeks", "12"))
                 // Then: should return 200 with frequency data
@@ -139,7 +139,7 @@ class AnalyticsControllerTest {
                 .thenThrow(new NotFoundException("Channel not found with id: 999"));
 
         // When: GET /analytics/upload-frequency/by-id?channelDbId=999
-        mockMvc.perform(get("/analytics/upload-frequency/by-id")
+        mockMvc.perform(get("/api/v1/analytics/upload-frequency/by-id")
                         .param("channelDbId", "999")
                         .param("weeks", "12"))
                 // Then: should return 404
@@ -160,7 +160,7 @@ class AnalyticsControllerTest {
                 .thenReturn(mockDto);
 
         // When: GET /analytics/timeseries/by-id?channelDbId=123&metric=VIEWS&rangeDays=30
-        mockMvc.perform(get("/analytics/timeseries/by-id")
+        mockMvc.perform(get("/api/v1/analytics/timeseries/by-id")
                         .param("channelDbId", "123")
                         .param("metric", "VIEWS")
                         .param("rangeDays", "30"))
@@ -183,7 +183,7 @@ class AnalyticsControllerTest {
                 .thenThrow(new NotFoundException("Channel not found with id: 999"));
 
         // When: GET /analytics/timeseries/by-id?channelDbId=999&metric=VIEWS
-        mockMvc.perform(get("/analytics/timeseries/by-id")
+        mockMvc.perform(get("/api/v1/analytics/timeseries/by-id")
                         .param("channelDbId", "999")
                         .param("metric", "VIEWS"))
                 // Then: should return 404
@@ -200,7 +200,7 @@ class AnalyticsControllerTest {
         when(analyticsService.getChannelAnalytics("@no-such-channel"))
                 .thenThrow(new NotFoundException("Channel not found: @no-such-channel"));
 
-        mockMvc.perform(get("/analytics/channel")
+        mockMvc.perform(get("/api/v1/analytics/channel")
                         .param("identifier", "@no-such-channel"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"))
@@ -208,25 +208,17 @@ class AnalyticsControllerTest {
     }
 
     /**
-     * CURRENT BEHAVIOR: unknown metric silently defaults to VIEWS (returns 200).
-     * The service's extractMetricValue uses a default branch returning viewCount.
-     * DESIRED BEHAVIOR: return 400 with INVALID_PARAMETER.
-     *
-     * TO MAKE THIS TEST PASS: add explicit metric validation in
-     * AnalyticsServiceImpl.extractMetricValue (or getChannelTimeSeries) that
-     * throws IllegalArgumentException for unrecognised metric names, then
-     * add a handler for IllegalArgumentException -> 400 in GlobalExceptionHandler.
-     *
-     * For now the test is skipped to document the gap without failing the suite.
+     * Unknown metric strings must be rejected with 400 INVALID_PARAMETER.
+     * AnalyticsServiceImpl.extractMetricValue throws IllegalArgumentException for
+     * unrecognised names; GlobalExceptionHandler maps that to 400.
      */
     @Test
-    @org.junit.jupiter.api.Disabled("Metric validation not yet implemented: service defaults to VIEWS")
     void getTimeSeries_withInvalidMetric_returns400() throws Exception {
         when(analyticsService.getChannelTimeSeries(anyString(), eq("INVALID_METRIC")))
                 .thenThrow(new IllegalArgumentException(
                         "Unknown metric 'INVALID_METRIC'. Allowed: VIEWS, SUBSCRIBERS, UPLOADS"));
 
-        mockMvc.perform(get("/analytics/timeseries")
+        mockMvc.perform(get("/api/v1/analytics/timeseries")
                         .param("identifier", "@testchannel")
                         .param("metric", "INVALID_METRIC"))
                 .andExpect(status().isBadRequest());
@@ -239,7 +231,7 @@ class AnalyticsControllerTest {
      */
     @Test
     void getTimeSeriesById_withNegativeRangeDays_returns400() throws Exception {
-        mockMvc.perform(get("/analytics/timeseries/by-id")
+        mockMvc.perform(get("/api/v1/analytics/timeseries/by-id")
                         .param("channelDbId", "1")
                         .param("metric", "VIEWS")
                         .param("rangeDays", "0"))
@@ -252,7 +244,7 @@ class AnalyticsControllerTest {
      */
     @Test
     void getTopVideos_withLimitExceedingMax_returns400() throws Exception {
-        mockMvc.perform(get("/analytics/videos/by-id")
+        mockMvc.perform(get("/api/v1/analytics/videos/by-id")
                         .param("channelDbId", "1")
                         .param("limit", "200"))
                 .andExpect(status().isBadRequest())
@@ -280,7 +272,7 @@ class AnalyticsControllerTest {
         when(analyticsService.getChannelAnalytics("@testchannel")).thenReturn(mockDto);
 
         // When: GET /analytics/channel?identifier=@testchannel
-        mockMvc.perform(get("/analytics/channel")
+        mockMvc.perform(get("/api/v1/analytics/channel")
                         .param("identifier", "@testchannel"))
                 // Then: should return 200 with channel analytics
                 .andExpect(status().isOk())

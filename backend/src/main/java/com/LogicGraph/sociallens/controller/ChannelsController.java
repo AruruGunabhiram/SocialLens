@@ -18,7 +18,7 @@ import java.util.List;
 
 @Validated
 @RestController
-@RequestMapping("/channels")
+@RequestMapping("/api/v1/channels")
 public class ChannelsController {
 
     private final ChannelsService channelsService;

@@ -141,11 +141,7 @@ function AccountConnectionCard() {
           Public Mode
         </p>
         <p style={bodyStyle}>Could not reach the server to check account status.</p>
-        <button
-          type="button"
-          style={secondaryBtnStyle}
-          onClick={() => void refetch()}
-        >
+        <button type="button" style={secondaryBtnStyle} onClick={() => void refetch()}>
           <RefreshCw size={12} aria-hidden />
           Retry
         </button>
@@ -173,7 +169,11 @@ function AccountConnectionCard() {
               style={{ color: 'var(--color-down)', flexShrink: 0 }}
             />
           ) : (
-            <Globe size={14} aria-hidden style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
+            <Globe
+              size={14}
+              aria-hidden
+              style={{ color: 'var(--color-text-muted)', flexShrink: 0 }}
+            />
           )}
           {needsReconnect ? 'Reconnect Required' : 'Public Mode'}
         </p>
@@ -196,7 +196,16 @@ function AccountConnectionCard() {
             >
               Connect to unlock:
             </p>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-1.5)' }}>
+            <ul
+              style={{
+                listStyle: 'none',
+                padding: 0,
+                margin: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-1.5)',
+              }}
+            >
               {[
                 'Retention Diagnosis',
                 'Watch time and avg view duration',
@@ -244,11 +253,7 @@ function AccountConnectionCard() {
             >
               Sign-in window opened. Complete the flow, then check your status.
             </p>
-            <button
-              type="button"
-              style={secondaryBtnStyle}
-              onClick={() => void refetch()}
-            >
+            <button type="button" style={secondaryBtnStyle} onClick={() => void refetch()}>
               <RefreshCw size={12} aria-hidden />
               Check connection status
             </button>
@@ -293,11 +298,7 @@ function AccountConnectionCard() {
       }}
     >
       <p style={headingStyle}>
-        <CheckCircle2
-          size={14}
-          aria-hidden
-          style={{ color: 'var(--color-up)', flexShrink: 0 }}
-        />
+        <CheckCircle2 size={14} aria-hidden style={{ color: 'var(--color-up)', flexShrink: 0 }} />
         Connected
       </p>
       <ul
@@ -332,9 +333,7 @@ function AccountConnectionCard() {
           </li>
         ))}
       </ul>
-      <p style={fineStyle}>
-        Open Insights on any channel to run Retention Diagnosis.
-      </p>
+      <p style={fineStyle}>Open Insights on any channel to run Retention Diagnosis.</p>
     </div>
   )
 }

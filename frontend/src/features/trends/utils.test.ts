@@ -151,7 +151,9 @@ describe('computeSnapshotCoverage', () => {
   })
 
   it('marks isSparse false when capturedDays equals requestedRange', () => {
-    const pts = Array.from({ length: 30 }, (_, i) => pt(`2024-01-${String(i + 1).padStart(2, '0')}`, i))
+    const pts = Array.from({ length: 30 }, (_, i) =>
+      pt(`2024-01-${String(i + 1).padStart(2, '0')}`, i)
+    )
     const result = computeSnapshotCoverage(pts, 30)
     expect(result.capturedDays).toBe(30)
     expect(result.isSparse).toBe(false)

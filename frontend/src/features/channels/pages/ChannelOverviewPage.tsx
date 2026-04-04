@@ -120,7 +120,11 @@ export default function ChannelOverviewPage() {
         freshness={mapChannelItemToFreshnessProps(channelDetail)}
       />
 
-      <ChannelStats data={data} indexedVideoCount={indexedVideoCount} loading={isLoading || isFetching} />
+      <ChannelStats
+        data={data}
+        indexedVideoCount={indexedVideoCount}
+        loading={isLoading || isFetching}
+      />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <ChannelChart data={data} />

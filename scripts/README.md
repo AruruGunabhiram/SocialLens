@@ -80,16 +80,19 @@ kill <PID>
 ## Troubleshooting
 
 **"Port 8081 is already in use"**
+
 - Check if it's a previous SocialLens instance: `./scripts/dev-down.sh`
 - Force kill and restart: `./scripts/dev-up.sh --force`
 - Manually find process: `lsof -i :8081`
 
 **"Backend process died unexpectedly"**
+
 - Check logs: `cat /tmp/backend.log`
 - Verify environment variables are set (see backend/.env)
 - Check database connectivity
 
 **"Server did not start within 60 seconds"**
+
 - Process is running but port not responding
 - Check logs for errors: `tail -f /tmp/backend.log`
 - May need longer startup time (check if dependencies are downloading)
@@ -97,6 +100,7 @@ kill <PID>
 ## Environment Variables
 
 The backend requires these environment variables (typically in `backend/.env`):
+
 - `YOUTUBE_API_KEY`
 - `GOOGLE_OAUTH_CLIENT_ID`
 - `GOOGLE_OAUTH_CLIENT_SECRET`

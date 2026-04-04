@@ -286,7 +286,9 @@ describe('TrendsPage', () => {
       )
       // default range = 30D, only 2 days captured
       renderTrendsPage()
-      expect(screen.getByTestId('snapshot-coverage-banner')).toHaveTextContent('trends may not be reliable')
+      expect(screen.getByTestId('snapshot-coverage-banner')).toHaveTextContent(
+        'trends may not be reliable'
+      )
     })
 
     it('does not show "partial window" when captured days match the requested range', () => {

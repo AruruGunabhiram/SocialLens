@@ -219,21 +219,19 @@ class AnalyticsServiceGroupByDayTest {
     }
 
     /**
-     * CURRENT BEHAVIOR: unknown metric defaults to VIEWS (no exception thrown).
-     * This test documents that behaviour. Once metric validation is added to
-     * extractMetricValue, this test should be updated or replaced with a
-     * 400-response test.
+     * Unknown metric strings must throw IllegalArgumentException, not silently
+     * default to VIEWS. The exception propagates to GlobalExceptionHandler which
+     * maps it to 400 INVALID_PARAMETER at the HTTP layer.
      */
     @Test
-    void getChannelTimeSeries_unknownMetric_defaultsToViews() {
+    void getChannelTimeSeries_unknownMetric_throwsIllegalArgument() {
         ChannelMetricsSnapshot s = snapshotFull(LocalDate.of(2026, 3, 1), "2026-03-01T10:00:00Z",
                 9999L, 42L, 7L);
 
-        List<DailyMetricPointDto> result = service.groupAndMapToDaily(List.of(s), "UNKNOWN_METRIC");
-
-        // Falls back to viewCount
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).value).isEqualTo(9999L);
+        assertThatThrownBy(() -> service.groupAndMapToDaily(List.of(s), "UNKNOWN_METRIC"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("UNKNOWN_METRIC")
+                .hasMessageContaining("VIEWS, SUBSCRIBERS, UPLOADS");
     }
 
     // -------------------------------------------------------------------------

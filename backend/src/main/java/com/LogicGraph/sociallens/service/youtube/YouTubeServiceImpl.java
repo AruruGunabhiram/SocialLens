@@ -1,6 +1,6 @@
 package com.LogicGraph.sociallens.service.youtube;
 
-import com.LogicGraph.sociallens.config.YouTubeConfig;
+import com.LogicGraph.sociallens.config.YouTubeApiConfig;
 import com.LogicGraph.sociallens.dto.youtube.VideoDto;
 import com.LogicGraph.sociallens.dto.youtube.YouTubeChannelResponse;
 import com.LogicGraph.sociallens.dto.youtube.YouTubePlaylistItemsResponse;
@@ -55,7 +55,7 @@ public class YouTubeServiceImpl implements YouTubeService {
         log.debug("fetchChannelByChannelId channelId={}", channelId);
 
         String url = UriComponentsBuilder
-                .fromHttpUrl(YouTubeConfig.BASE_URL + "/channels")
+                .fromHttpUrl(YouTubeApiConfig.BASE_URL + "/channels")
                 .queryParam("part", CHANNEL_PARTS)
                 .queryParam("id", channelId)
                 .queryParam("key", apiKey)
@@ -80,7 +80,7 @@ public class YouTubeServiceImpl implements YouTubeService {
         log.debug("fetchChannelByHandle handle={}", handle);
 
         String url = UriComponentsBuilder
-                .fromHttpUrl(YouTubeConfig.BASE_URL + "/channels")
+                .fromHttpUrl(YouTubeApiConfig.BASE_URL + "/channels")
                 .queryParam("part", CHANNEL_PARTS)
                 .queryParam("forHandle", handle)
                 .queryParam("key", apiKey)
@@ -105,7 +105,7 @@ public class YouTubeServiceImpl implements YouTubeService {
         log.debug("fetchChannelByCustomUrl customUrl={}", customUrl);
 
         String url = UriComponentsBuilder
-                .fromHttpUrl(YouTubeConfig.BASE_URL + "/channels")
+                .fromHttpUrl(YouTubeApiConfig.BASE_URL + "/channels")
                 .queryParam("part", CHANNEL_PARTS)
                 .queryParam("forUsername", customUrl)
                 .queryParam("key", apiKey)
@@ -164,7 +164,7 @@ public class YouTubeServiceImpl implements YouTubeService {
         log.debug("fetchVideoById videoId={}", videoId);
 
         String url = UriComponentsBuilder
-                .fromHttpUrl(YouTubeConfig.BASE_URL + "/videos")
+                .fromHttpUrl(YouTubeApiConfig.BASE_URL + "/videos")
                 .queryParam("part", "snippet,contentDetails,statistics")
                 .queryParam("id", videoId)
                 .queryParam("key", apiKey)
@@ -194,7 +194,7 @@ public class YouTubeServiceImpl implements YouTubeService {
     /** Resolves the uploads playlist ID for a given channel ID (no budget charge). */
     private String resolveUploadsPlaylistId(String channelId) {
         String url = UriComponentsBuilder
-                .fromHttpUrl(YouTubeConfig.BASE_URL + "/channels")
+                .fromHttpUrl(YouTubeApiConfig.BASE_URL + "/channels")
                 .queryParam("part", "contentDetails")
                 .queryParam("id", channelId)
                 .queryParam("key", apiKey)
@@ -241,7 +241,7 @@ public class YouTubeServiceImpl implements YouTubeService {
     private List<VideoDto> fetchVideoDetailsBatch(List<String> videoIds) {
         String ids = String.join(",", videoIds);
         String url = UriComponentsBuilder
-                .fromHttpUrl(YouTubeConfig.BASE_URL + "/videos")
+                .fromHttpUrl(YouTubeApiConfig.BASE_URL + "/videos")
                 .queryParam("part", "snippet,contentDetails,statistics")
                 .queryParam("id", ids)
                 .queryParam("key", apiKey)

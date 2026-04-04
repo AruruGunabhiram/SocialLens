@@ -1,20 +1,25 @@
 package com.LogicGraph.sociallens.config;
 
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
 @Configuration
 public class SecurityConfig {
 
     private final CorsConfigurationSource corsConfigurationSource;
+    private final ApiKeyAuthFilter apiKeyAuthFilter;
 
-    public SecurityConfig(CorsConfigurationSource corsConfigurationSource) {
+    public SecurityConfig(CorsConfigurationSource corsConfigurationSource,
+                          ApiKeyAuthFilter apiKeyAuthFilter) {
         this.corsConfigurationSource = corsConfigurationSource;
+        this.apiKeyAuthFilter = apiKeyAuthFilter;
     }
 
     @Bean
@@ -26,13 +31,32 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .headers(headers ->
                         headers.frameOptions(frame -> frame.disable()))
+                .addFilterBefore(apiKeyAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
-                        // TODO(auth): Replace with JWT filter chain before first external user.
-                        // All routes are intentionally open until JWT is wired.
-                        // Protected routes will be: /api/v1/yt-analytics/**, /api/v1/connected-accounts/**,
-                        // /creator/**, and any route that touches user-specific OAuth tokens.
+                        // API-key-protected admin routes — ApiKeyAuthFilter enforces the key
+                        // and sets a PreAuthenticatedAuthenticationToken on valid requests.
+                        .requestMatchers(
+                                "/api/v1/jobs/**",
+                                "/api/v1/connected-accounts/**",
+                                "/api/v1/creator/**")
+                            .authenticated()
+                        // Public routes: analytics, channels, youtube ingestion, health, OAuth
+                        // TODO(auth): migrate to JWT before onboarding external users.
                         .anyRequest().permitAll());
 
         return http.build();
+    }
+
+    /**
+     * Prevents the Servlet container from registering ApiKeyAuthFilter as a plain
+     * servlet filter in addition to its role in the Spring Security filter chain.
+     * Without this, the filter would execute twice on every request.
+     */
+    @Bean
+    public FilterRegistrationBean<ApiKeyAuthFilter> apiKeyFilterRegistration() {
+        FilterRegistrationBean<ApiKeyAuthFilter> registration =
+                new FilterRegistrationBean<>(apiKeyAuthFilter);
+        registration.setEnabled(false);
+        return registration;
     }
 }

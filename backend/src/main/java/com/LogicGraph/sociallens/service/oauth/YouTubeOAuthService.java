@@ -11,6 +11,7 @@ import com.LogicGraph.sociallens.exception.OAuthStateInvalidException;
 import com.LogicGraph.sociallens.exception.TokenRefreshFailedException;
 import com.LogicGraph.sociallens.repository.OAuthStateRepository;
 import com.LogicGraph.sociallens.service.ConnectedAccountService;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -30,7 +31,7 @@ public class YouTubeOAuthService {
 
     private final OAuthStateRepository oAuthStateRepository;
     private final ConnectedAccountService connectedAccountService;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
     @Value("${google.oauth.client-id}")
     private String clientId;
@@ -52,10 +53,12 @@ public class YouTubeOAuthService {
 
     public YouTubeOAuthService(
             OAuthStateRepository oAuthStateRepository,
-            ConnectedAccountService connectedAccountService
+            ConnectedAccountService connectedAccountService,
+            @Qualifier("oauthRestTemplate") RestTemplate restTemplate
     ) {
         this.oAuthStateRepository = oAuthStateRepository;
         this.connectedAccountService = connectedAccountService;
+        this.restTemplate = restTemplate;
     }
 
     public OAuthStartResponse startOAuth(Long userId) {

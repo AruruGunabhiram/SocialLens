@@ -7,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/creator")
+@RequestMapping("/api/v1/creator")
 public class CreatorIntelligenceController {
 
     private final RetentionDiagnosisService retentionDiagnosisService;
