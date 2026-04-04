@@ -10,6 +10,7 @@ import com.LogicGraph.sociallens.exception.RateLimitException;
 import com.LogicGraph.sociallens.jobs.ApiCallBudget;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
@@ -39,10 +40,12 @@ public class YouTubeServiceImpl implements YouTubeService {
     private String apiKey;
 
     private final ApiCallBudget budget;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
-    public YouTubeServiceImpl(ApiCallBudget budget) {
+    public YouTubeServiceImpl(ApiCallBudget budget,
+                              @Qualifier("youTubeDataClient") RestTemplate restTemplate) {
         this.budget = budget;
+        this.restTemplate = restTemplate;
     }
 
     // -------------------------------------------------------------------------

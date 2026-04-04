@@ -156,6 +156,15 @@ The dev server starts on **port 5173**.
 
 ### 6. Sync a channel
 
+**Option A — automatic seed (recommended for local dev)**
+
+Set `sociallens.seed.enabled=true` in `backend/src/main/resources/application-local.properties`.
+On the next startup, if the `youtube_channel` table is empty, the backend automatically calls
+`syncChannel("@mkbhd")` and logs the result. The seed is a no-op on subsequent restarts once
+the table has rows, so it is safe to leave the flag enabled.
+
+**Option B — manual sync via curl**
+
 ```bash
 curl -X POST "http://localhost:8081/api/v1/youtube/sync" \
   -H "Content-Type: application/json" \

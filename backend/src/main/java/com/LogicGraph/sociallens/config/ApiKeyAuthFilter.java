@@ -55,6 +55,19 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
             "/api/v1/creator/**"
     );
 
+    /**
+     * Paths that match a PROTECTED_PATTERN but must be accessible without an API key.
+     * These are user-initiated actions, not admin operations.
+     * <ul>
+     *   <li>{@code /api/v1/connected-accounts/status} — read-only account connection check</li>
+     *   <li>{@code /api/v1/jobs/refresh/channel} — per-channel refresh triggered from the UI</li>
+     * </ul>
+     */
+    static final List<String> BYPASS_PATTERNS = List.of(
+            "/api/v1/connected-accounts/status",
+            "/api/v1/jobs/refresh/channel"
+    );
+
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
     private final ObjectMapper objectMapper;
 
@@ -71,7 +84,7 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         String path = request.getRequestURI();
 
-        if (!isProtected(path)) {
+        if (!isProtected(path) || isBypassed(path)) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -101,6 +114,10 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
 
     private boolean isProtected(String path) {
         return PROTECTED_PATTERNS.stream().anyMatch(p -> pathMatcher.match(p, path));
+    }
+
+    private boolean isBypassed(String path) {
+        return BYPASS_PATTERNS.stream().anyMatch(p -> pathMatcher.match(p, path));
     }
 
     private void rejectWith(HttpServletResponse response, int status,

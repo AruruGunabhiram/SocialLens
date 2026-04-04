@@ -23,3 +23,7 @@ spring.jpa.open-in-view=false
 spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.format_sql=true
 spring.jpa.properties.hibernate.jdbc.time_zone=UTC
+
+# Seed demo data — syncs @mkbhd on first startup when youtube_channel table is empty.
+# Safe to leave enabled; it is a no-op once the table has rows.
+sociallens.seed.enabled=true
