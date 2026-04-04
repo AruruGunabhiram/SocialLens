@@ -2,7 +2,9 @@ package com.LogicGraph.sociallens.controller;
 
 import com.LogicGraph.sociallens.dto.youtube.YouTubeSyncRequestDto;
 import com.LogicGraph.sociallens.dto.youtube.YouTubeSyncResponseDto;
+import com.LogicGraph.sociallens.service.YouTubeService;
 import com.LogicGraph.sociallens.service.YouTubeSyncService;
+import com.LogicGraph.sociallens.service.resolver.ChannelResolver;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -25,6 +27,12 @@ class YouTubeSyncControllerTest {
 
     @MockBean
     private YouTubeSyncService syncService;
+
+    @MockBean
+    private YouTubeService youTubeService;
+
+    @MockBean
+    private ChannelResolver channelResolver;
 
     @Test
     void syncShouldReturnChannelDbIdAndMetadata() throws Exception {
