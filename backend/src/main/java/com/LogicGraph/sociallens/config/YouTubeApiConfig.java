@@ -6,12 +6,28 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
 
 /**
- * Centralises YouTube API credentials and exposes typed client beans.
- * Credentials are loaded from properties / environment variables only —
- * never logged or returned in any response.
+ * Central configuration for the YouTube Data API v3 and YouTube Analytics API.
+ *
+ * <p>Responsibilities:
+ * <ul>
+ *   <li>Exposes API base URL and default resource-part constants used when building requests.</li>
+ *   <li>Binds API key and OAuth credentials from Spring properties / environment variables.
+ *       Credentials are never logged or included in any HTTP response.</li>
+ *   <li>Registers named {@link RestTemplate} beans for the Data API and Analytics API so
+ *       injection sites can {@code @Qualifier}-select the right client.</li>
+ * </ul>
  */
 @Configuration
 public class YouTubeApiConfig {
+
+    /** Base URL for all YouTube Data API v3 requests. */
+    public static final String BASE_URL = "https://www.googleapis.com/youtube/v3";
+
+    /**
+     * Comma-separated resource parts requested when fetching channel details.
+     * Includes {@code contentDetails} which is required to resolve the uploads playlist ID.
+     */
+    public static final String CHANNEL_PARTS = "snippet,statistics,contentDetails";
 
     @Value("${youtube.api.key:}")
     private String apiKey;

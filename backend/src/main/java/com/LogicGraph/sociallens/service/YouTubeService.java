@@ -1,6 +1,6 @@
 package com.LogicGraph.sociallens.service;
 
-import com.LogicGraph.sociallens.config.YouTubeConfig;
+import com.LogicGraph.sociallens.config.YouTubeApiConfig;
 import com.LogicGraph.sociallens.dto.youtube.ChannelSummaryDto;
 import com.LogicGraph.sociallens.dto.youtube.YouTubeChannelResponse;
 import com.LogicGraph.sociallens.dto.youtube.YouTubePlaylistItemsResponse;
@@ -69,7 +69,7 @@ public class YouTubeService {
         validateApiKey();
 
         String url = UriComponentsBuilder
-                .fromHttpUrl(YouTubeConfig.BASE_URL + "/channels")
+                .fromHttpUrl(YouTubeApiConfig.BASE_URL + "/channels")
                 .queryParam("part", "snippet,statistics,contentDetails")
                 .queryParam("forHandle", handle)
                 .queryParam("key", apiKey)
@@ -89,7 +89,7 @@ public class YouTubeService {
         validateApiKey();
 
         String url = UriComponentsBuilder
-                .fromHttpUrl(YouTubeConfig.BASE_URL + "/channels")
+                .fromHttpUrl(YouTubeApiConfig.BASE_URL + "/channels")
                 .queryParam("part", "snippet,statistics,contentDetails")
                 .queryParam("id", channelId)
                 .queryParam("key", apiKey)
@@ -106,8 +106,8 @@ public class YouTubeService {
         validateApiKey();
 
         String url = UriComponentsBuilder
-                .fromHttpUrl(YouTubeConfig.BASE_URL + "/channels")
-                .queryParam("part", YouTubeConfig.CHANNEL_PARTS) // must include contentDetails
+                .fromHttpUrl(YouTubeApiConfig.BASE_URL + "/channels")
+                .queryParam("part", YouTubeApiConfig.CHANNEL_PARTS) // must include contentDetails
                 .queryParam("id", channelId)
                 .queryParam("key", apiKey)
                 .toUriString();
@@ -245,7 +245,7 @@ public class YouTubeService {
         validateApiKey();
 
         String url = UriComponentsBuilder
-                .fromHttpUrl(YouTubeConfig.BASE_URL + "/channels")
+                .fromHttpUrl(YouTubeApiConfig.BASE_URL + "/channels")
                 .queryParam("part", "snippet,statistics,contentDetails")
                 .queryParam("forUsername", username)
                 .queryParam("key", apiKey)
@@ -262,7 +262,7 @@ public class YouTubeService {
         validateApiKey();
 
         String videoUrl = UriComponentsBuilder
-                .fromHttpUrl(YouTubeConfig.BASE_URL + "/videos")
+                .fromHttpUrl(YouTubeApiConfig.BASE_URL + "/videos")
                 .queryParam("part", "snippet")
                 .queryParam("id", videoId)
                 .queryParam("key", apiKey)
@@ -386,7 +386,7 @@ public class YouTubeService {
             // so commas in the "id" value are passed through literally.  toUriString() would
             // re-encode them to %2C, which YouTube's videos.list rejects with HTTP 400.
             URI uri = UriComponentsBuilder
-                    .fromHttpUrl(YouTubeConfig.BASE_URL + "/videos")
+                    .fromHttpUrl(YouTubeApiConfig.BASE_URL + "/videos")
                     .queryParam("part", "snippet,contentDetails,statistics")
                     .queryParam("id", ids)
                     .queryParam("key", apiKey)
