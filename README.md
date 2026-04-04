@@ -29,31 +29,31 @@ Start the backend and frontend (see Getting Started below), then open `http://lo
 
 ### Backend
 
-| Layer | Technology |
-|---|---|
-| Framework | Spring Boot 3.3.0, Java 17 |
-| Data | Spring Data JPA / Hibernate, Flyway, H2 (dev) / PostgreSQL (prod) |
-| API integration | YouTube Data API v3 (REST, key-based) |
-| OAuth | Google OAuth 2.0 — authorization code flow |
-| Scheduling | Spring `@Scheduled` with configurable CRON expressions |
-| Build | Gradle |
-| Testing | JUnit 5, Mockito, `@AutoConfigureMockMvc` |
-| Docs | springdoc-openapi (Swagger UI at `/swagger-ui.html`) |
+| Layer           | Technology                                                        |
+| --------------- | ----------------------------------------------------------------- |
+| Framework       | Spring Boot 3.3.0, Java 17                                        |
+| Data            | Spring Data JPA / Hibernate, Flyway, H2 (dev) / PostgreSQL (prod) |
+| API integration | YouTube Data API v3 (REST, key-based)                             |
+| OAuth           | Google OAuth 2.0 — authorization code flow                        |
+| Scheduling      | Spring `@Scheduled` with configurable CRON expressions            |
+| Build           | Gradle                                                            |
+| Testing         | JUnit 5, Mockito, `@AutoConfigureMockMvc`                         |
+| Docs            | springdoc-openapi (Swagger UI at `/swagger-ui.html`)              |
 
 ### Frontend
 
-| Layer | Technology |
-|---|---|
-| Framework | React 18 + TypeScript (strict mode), Vite |
-| Server state | TanStack Query v5 |
-| HTTP | Axios |
-| Validation | Zod (schemas → inferred TypeScript types) |
-| Charts | Recharts |
-| UI | shadcn/ui (Radix primitives) + Tailwind CSS + CSS variable token system |
-| Motion | Framer Motion (page/panel transitions only) |
-| Icons | Lucide React |
-| Fonts | Syne (display) + Instrument Sans (body) + DM Mono (all numerics) |
-| Testing | Vitest + @testing-library/react |
+| Layer        | Technology                                                              |
+| ------------ | ----------------------------------------------------------------------- |
+| Framework    | React 18 + TypeScript (strict mode), Vite                               |
+| Server state | TanStack Query v5                                                       |
+| HTTP         | Axios                                                                   |
+| Validation   | Zod (schemas → inferred TypeScript types)                               |
+| Charts       | Recharts                                                                |
+| UI           | shadcn/ui (Radix primitives) + Tailwind CSS + CSS variable token system |
+| Motion       | Framer Motion (page/panel transitions only)                             |
+| Icons        | Lucide React                                                            |
+| Fonts        | Syne (display) + Instrument Sans (body) + DM Mono (all numerics)        |
+| Testing      | Vitest + @testing-library/react                                         |
 
 ---
 
@@ -95,7 +95,7 @@ See [docs/architecture.md](docs/architecture.md) for the full design.
 ### 1. Clone
 
 ```bash
-git clone https://github.com/your-username/sociallens.git
+git clone https://github.com/AruruGunabhiram/SocialLens.git
 cd sociallens
 ```
 
@@ -133,11 +133,13 @@ cd backend
 The API starts on **port 8081**.
 
 **Start on an alternate port:**
+
 ```bash
 ./gradlew bootRun --args='--spring.profiles.active=local --server.port=8082'
 ```
 
 **View logs:**
+
 ```bash
 tail -f /tmp/backend.log
 ```
@@ -198,40 +200,40 @@ Full interactive docs: `http://localhost:8081/swagger-ui.html`
 
 ### Channels
 
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/channels` | List all tracked channels |
-| `GET` | `/channels/{channelDbId}` | Channel detail + metadata |
-| `GET` | `/channels/{channelDbId}/videos?page=0&size=20` | Paginated videos |
+| Method | Path                                            | Description               |
+| ------ | ----------------------------------------------- | ------------------------- |
+| `GET`  | `/channels`                                     | List all tracked channels |
+| `GET`  | `/channels/{channelDbId}`                       | Channel detail + metadata |
+| `GET`  | `/channels/{channelDbId}/videos?page=0&size=20` | Paginated videos          |
 
 ### Analytics
 
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/analytics/channel/by-id?channelDbId=` | Current metrics (subs, views, videos) |
-| `GET` | `/analytics/timeseries/by-id?channelDbId=&metric=VIEWS&rangeDays=30` | Timeseries points (`metric`: `VIEWS` \| `SUBSCRIBERS` \| `UPLOADS`) |
-| `GET` | `/analytics/videos/by-id?channelDbId=&limit=10` | Top videos by view count |
-| `GET` | `/analytics/upload-frequency/by-id?channelDbId=&weeks=12` | Upload frequency breakdown |
+| Method | Path                                                                 | Description                                                         |
+| ------ | -------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `GET`  | `/analytics/channel/by-id?channelDbId=`                              | Current metrics (subs, views, videos)                               |
+| `GET`  | `/analytics/timeseries/by-id?channelDbId=&metric=VIEWS&rangeDays=30` | Timeseries points (`metric`: `VIEWS` \| `SUBSCRIBERS` \| `UPLOADS`) |
+| `GET`  | `/analytics/videos/by-id?channelDbId=&limit=10`                      | Top videos by view count                                            |
+| `GET`  | `/analytics/upload-frequency/by-id?channelDbId=&weeks=12`            | Upload frequency breakdown                                          |
 
 > Identifier-based variants (`?identifier=UCxxx` or `?identifier=@handle`) are also supported for all analytics endpoints.
 
 ### OAuth
 
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/v1/oauth/youtube/start?userId=` | Returns Google OAuth consent URL |
-| `GET` | `/api/v1/oauth/youtube/callback?code=&state=` | Exchange code for tokens (Google redirects here) |
+| Method | Path                                          | Description                                      |
+| ------ | --------------------------------------------- | ------------------------------------------------ |
+| `GET`  | `/api/v1/oauth/youtube/start?userId=`         | Returns Google OAuth consent URL                 |
+| `GET`  | `/api/v1/oauth/youtube/callback?code=&state=` | Exchange code for tokens (Google redirects here) |
 
 ### Jobs
 
-| Method | Path | Description |
-|---|---|---|
+| Method | Path                                        | Description                    |
+| ------ | ------------------------------------------- | ------------------------------ |
 | `POST` | `/api/v1/jobs/refresh/channel?channelDbId=` | Trigger manual channel refresh |
 
 ### YouTube (channel add / re-sync)
 
-| Method | Path | Description |
-|---|---|---|
+| Method | Path                   | Description                            |
+| ------ | ---------------------- | -------------------------------------- |
 | `POST` | `/api/v1/youtube/sync` | Add or re-sync a channel by identifier |
 
 ---
