@@ -211,7 +211,8 @@ describe('YouTubeSyncResponseSchema', () => {
 
   it('rejects when channelDbId is missing', () => {
     expect(() => YouTubeSyncResponseSchema.parse({
-      channel: valid.channel,
+      identifier: valid.identifier,
+      channelId: valid.channelId,
       result: valid.result,
       timing: valid.timing,
     })).toThrow()
