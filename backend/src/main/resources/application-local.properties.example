@@ -3,6 +3,9 @@
 
 server.port=8081
 
+# Admin API key — required in X-API-Key header for /api/v1/jobs/**, /api/v1/connected-accounts/**, /api/v1/creator/**
+sociallens.admin.api-key=YOUR_ADMIN_API_KEY
+
 youtube.api.key=YOUR_YOUTUBE_API_KEY
 google.oauth.client-id=YOUR_GOOGLE_CLIENT_ID
 google.oauth.client-secret=YOUR_GOOGLE_CLIENT_SECRET
