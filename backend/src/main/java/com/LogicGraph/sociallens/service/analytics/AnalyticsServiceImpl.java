@@ -242,9 +242,11 @@ public class AnalyticsServiceImpl implements AnalyticsService {
 
     private Long extractMetricValue(ChannelMetricsSnapshot snap, String metric) {
         return switch (metric.toUpperCase()) {
+            case "VIEWS"       -> snap.getViewCount()       != null ? snap.getViewCount()       : 0L;
             case "SUBSCRIBERS" -> snap.getSubscriberCount() != null ? snap.getSubscriberCount() : 0L;
             case "UPLOADS"     -> snap.getVideoCount()       != null ? snap.getVideoCount()       : 0L;
-            default            -> snap.getViewCount()        != null ? snap.getViewCount()        : 0L;
+            default            -> throw new IllegalArgumentException(
+                    "Unknown metric '" + metric + "'. Allowed: VIEWS, SUBSCRIBERS, UPLOADS");
         };
     }
 

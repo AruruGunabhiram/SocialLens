@@ -37,13 +37,13 @@ class ApiExceptionHandlerTest {
                 .thenThrow(new NotFoundException("Channel not found with id: 999"));
 
         // When: GET request
-        mockMvc.perform(get("/analytics/channel/by-id")
+        mockMvc.perform(get("/api/v1/analytics/channel/by-id")
                         .param("channelDbId", "999"))
                 // Then: should return 404 with structured error
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Channel not found with id: 999"))
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"))
-                .andExpect(jsonPath("$.details.path").value("/analytics/channel/by-id"))
+                .andExpect(jsonPath("$.details.path").value("/api/v1/analytics/channel/by-id"))
                 .andExpect(jsonPath("$.timestamp").exists());
     }
 
@@ -54,7 +54,7 @@ class ApiExceptionHandlerTest {
     @Test
     void shouldReturn400ForMissingRequiredParameter() throws Exception {
         // When: GET request without required parameter
-        mockMvc.perform(get("/analytics/channel/by-id"))
+        mockMvc.perform(get("/api/v1/analytics/channel/by-id"))
                 // Then: should return 400 with clear message
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Missing required parameter: channelDbId"))
@@ -71,7 +71,7 @@ class ApiExceptionHandlerTest {
     @Test
     void shouldReturn400ForInvalidParameterType() throws Exception {
         // When: GET request with invalid type (string instead of number)
-        mockMvc.perform(get("/analytics/channel/by-id")
+        mockMvc.perform(get("/api/v1/analytics/channel/by-id")
                         .param("channelDbId", "not-a-number"))
                 // Then: should return 400 with type error
                 .andExpect(status().isBadRequest())
@@ -94,13 +94,13 @@ class ApiExceptionHandlerTest {
                 .thenThrow(new RateLimitException("API rate limit exceeded. Please try again later."));
 
         // When: GET request
-        mockMvc.perform(get("/analytics/channel")
+        mockMvc.perform(get("/api/v1/analytics/channel")
                         .param("identifier", "@test"))
                 // Then: should return 429 with rate limit error
                 .andExpect(status().isTooManyRequests())
                 .andExpect(jsonPath("$.message").value("API rate limit exceeded. Please try again later."))
                 .andExpect(jsonPath("$.code").value("RATE_LIMIT_EXCEEDED"))
-                .andExpect(jsonPath("$.details.path").value("/analytics/channel"))
+                .andExpect(jsonPath("$.details.path").value("/api/v1/analytics/channel"))
                 .andExpect(jsonPath("$.timestamp").exists());
     }
 }

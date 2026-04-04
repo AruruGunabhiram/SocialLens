@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Validated
 @RestController
-@RequestMapping("/analytics")
+@RequestMapping("/api/v1/analytics")
 public class AnalyticsController {
 
     private final AnalyticsService analyticsService;

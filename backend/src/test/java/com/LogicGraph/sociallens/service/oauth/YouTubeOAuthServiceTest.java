@@ -31,9 +31,10 @@ import static org.mockito.Mockito.*;
 /**
  * Unit tests for YouTubeOAuthService.
  *
- * RestTemplate is injected as a mock via ReflectionTestUtils because the
- * service creates it inline with {@code new RestTemplate()}. This avoids
- * real HTTP calls while keeping production code unchanged.
+ * RestTemplate is injected as a constructor argument, so the mock is passed
+ * directly — no ReflectionTestUtils swapping required.
+ * The three {@code @Value} fields (clientId, clientSecret, redirectUri) are
+ * still set via ReflectionTestUtils because there is no Spring context here.
  */
 @ExtendWith(MockitoExtension.class)
 class YouTubeOAuthServiceTest {
@@ -46,12 +47,10 @@ class YouTubeOAuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new YouTubeOAuthService(oAuthStateRepository, connectedAccountService);
+        service = new YouTubeOAuthService(oAuthStateRepository, connectedAccountService, mockRestTemplate);
         ReflectionTestUtils.setField(service, "clientId", "test-client-id");
         ReflectionTestUtils.setField(service, "clientSecret", "test-client-secret");
         ReflectionTestUtils.setField(service, "redirectUri", "http://localhost/callback");
-        // Replace the inline-created RestTemplate with our mock
-        ReflectionTestUtils.setField(service, "restTemplate", mockRestTemplate);
     }
 
     // -------------------------------------------------------------------------

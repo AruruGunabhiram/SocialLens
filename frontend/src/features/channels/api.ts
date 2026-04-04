@@ -90,7 +90,7 @@ export async function fetchChannels(includeInactive = false): Promise<ChannelIte
 
 export async function fetchChannelById(channelDbId: number): Promise<ChannelItem> {
   try {
-    const { data } = await axiosClient.get(`/channels/${channelDbId}`)
+    const { data } = await axiosClient.get(`/api/v1/channels/${channelDbId}`)
     return ChannelItemSchema.parse(data)
   } catch (error) {
     throw normalizeHttpError(error)
@@ -106,7 +106,7 @@ export async function fetchChannelVideos(
   params: VideoQueryParams
 ): Promise<VideosPageResponse> {
   try {
-    const { data } = await axiosClient.get(`/channels/${channelDbId}/videos`, { params })
+    const { data } = await axiosClient.get(`/api/v1/channels/${channelDbId}/videos`, { params })
     return VideosPageResponseSchema.parse(data)
   } catch (error) {
     throw normalizeHttpError(error)
@@ -114,7 +114,7 @@ export async function fetchChannelVideos(
 }
 
 // ==============================================
-// Timeseries — GET /analytics/timeseries/by-id?channelDbId={id}&metric={metric}
+// Timeseries — GET /api/v1/analytics/timeseries/by-id?channelDbId={id}&metric={metric}
 // ==============================================
 
 export type TrendMetric = 'VIEWS' | 'SUBSCRIBERS' | 'UPLOADS'

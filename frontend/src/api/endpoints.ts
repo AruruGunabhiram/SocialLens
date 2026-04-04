@@ -3,15 +3,15 @@ export const endpoints = {
     sync: '/api/v1/youtube/sync',
   },
   channels: {
-    list: '/channels',
-    // Parameterized paths are built in api.ts: `/channels/${id}` etc.
+    list: '/api/v1/channels',
+    // Parameterized paths are built in api.ts: `/api/v1/channels/${id}` etc.
   },
   analytics: {
-    channel: '/analytics/channel',
-    channelById: '/analytics/channel/by-id',
-    videosById: '/analytics/videos/by-id',
-    timeseriesById: '/analytics/timeseries/by-id',
-    uploadFrequencyById: '/analytics/upload-frequency/by-id',
+    channel: '/api/v1/analytics/channel',
+    channelById: '/api/v1/analytics/channel/by-id',
+    videosById: '/api/v1/analytics/videos/by-id',
+    timeseriesById: '/api/v1/analytics/timeseries/by-id',
+    uploadFrequencyById: '/api/v1/analytics/upload-frequency/by-id',
   },
   jobs: {
     // POST /api/v1/jobs/refresh/channel?channelDbId={id}
@@ -30,8 +30,8 @@ export const endpoints = {
     youtubeStart: '/api/v1/oauth/youtube/start',
   },
   creator: {
-    // POST /creator/retention/diagnosis
-    retentionDiagnosis: '/creator/retention/diagnosis',
+    // POST /api/v1/creator/retention/diagnosis
+    retentionDiagnosis: '/api/v1/creator/retention/diagnosis',
   },
 }
 
