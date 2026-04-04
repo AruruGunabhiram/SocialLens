@@ -35,6 +35,13 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // API-key-protected admin routes — ApiKeyAuthFilter enforces the key
                         // and sets a PreAuthenticatedAuthenticationToken on valid requests.
+                        // User-facing endpoints carved out of the admin-protected namespaces.
+                        // These must be declared before the broader authenticated() rule.
+                        .requestMatchers(
+                                "/api/v1/connected-accounts/status",
+                                "/api/v1/jobs/refresh/channel")
+                            .permitAll()
+                        // Admin routes protected by ApiKeyAuthFilter
                         .requestMatchers(
                                 "/api/v1/jobs/**",
                                 "/api/v1/connected-accounts/**",

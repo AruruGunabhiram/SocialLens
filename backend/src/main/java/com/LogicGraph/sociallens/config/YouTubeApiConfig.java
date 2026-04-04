@@ -42,13 +42,19 @@ public class YouTubeApiConfig {
     /** RestTemplate wired for YouTube Data API v3 calls. */
     @Bean("youTubeDataClient")
     public RestTemplate youTubeDataClient() {
-        return new RestTemplate();
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(10_000);
+        factory.setReadTimeout(15_000);
+        return new RestTemplate(factory);
     }
 
     /** RestTemplate wired for YouTube Analytics API calls. */
     @Bean("analyticsRestTemplate")
     public RestTemplate analyticsRestTemplate() {
-        return new RestTemplate();
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(10_000);
+        factory.setReadTimeout(15_000);
+        return new RestTemplate(factory);
     }
 
     /**

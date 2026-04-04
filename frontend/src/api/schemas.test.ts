@@ -132,13 +132,11 @@ describe('PageMetaSchema', () => {
   })
 
   it('rejects when totalItems is missing', () => {
-    const { totalItems: _, ...rest } = valid
-    expect(() => PageMetaSchema.parse(rest)).toThrow()
+    expect(() => PageMetaSchema.parse({ page: 0, size: 20, totalPages: 5 })).toThrow()
   })
 
   it('rejects when totalPages is missing', () => {
-    const { totalPages: _, ...rest } = valid
-    expect(() => PageMetaSchema.parse(rest)).toThrow()
+    expect(() => PageMetaSchema.parse({ page: 0, size: 20, totalItems: 100 })).toThrow()
   })
 })
 
@@ -212,8 +210,11 @@ describe('YouTubeSyncResponseSchema', () => {
   })
 
   it('rejects when channelDbId is missing', () => {
-    const { channelDbId: _, ...rest } = valid
-    expect(() => YouTubeSyncResponseSchema.parse(rest)).toThrow()
+    expect(() => YouTubeSyncResponseSchema.parse({
+      channel: valid.channel,
+      result: valid.result,
+      timing: valid.timing,
+    })).toThrow()
   })
 })
 
@@ -356,8 +357,12 @@ describe('RetentionDropEventSchema', () => {
   })
 
   it('rejects when slope is missing', () => {
-    const { slope: _, ...rest } = valid
-    expect(() => RetentionDropEventSchema.parse(rest)).toThrow()
+    expect(() => RetentionDropEventSchema.parse({
+      startProgress: 0.1,
+      endProgress: 0.3,
+      dropMagnitude: 0.2,
+      severity: 'HIGH' as const,
+    })).toThrow()
   })
 })
 
@@ -376,8 +381,11 @@ describe('DiagnosisItemSchema', () => {
   })
 
   it('rejects when recommendation is missing', () => {
-    const { recommendation: _, ...rest } = valid
-    expect(() => DiagnosisItemSchema.parse(rest)).toThrow()
+    expect(() => DiagnosisItemSchema.parse({
+      label: 'Hook drop',
+      severity: 'MEDIUM' as const,
+      evidence: 'Viewers leave at 0:30',
+    })).toThrow()
   })
 })
 
@@ -398,8 +406,11 @@ describe('RetentionDiagnosisResponseSchema', () => {
   })
 
   it('rejects when summary is missing', () => {
-    const { summary: _, ...rest } = valid
-    expect(() => RetentionDiagnosisResponseSchema.parse(rest)).toThrow()
+    expect(() => RetentionDiagnosisResponseSchema.parse({
+      videoId: 'dQw4w9WgXcQ',
+      dropEvents: [],
+      diagnoses: [],
+    })).toThrow()
   })
 })
 

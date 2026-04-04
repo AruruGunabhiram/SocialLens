@@ -13,6 +13,7 @@ import com.LogicGraph.sociallens.exception.RateLimitException;
 import com.LogicGraph.sociallens.exception.RateLimitExceededException;
 import com.LogicGraph.sociallens.repository.ChannelMetricsSnapshotRepository;
 import com.LogicGraph.sociallens.repository.VideoMetricsSnapshotRepository;
+import com.LogicGraph.sociallens.repository.YouTubeChannelRepository;
 import com.LogicGraph.sociallens.repository.YouTubeVideoRepository;
 import com.LogicGraph.sociallens.service.resolver.ChannelResolver;
 import org.slf4j.Logger;
@@ -41,6 +42,7 @@ public class YouTubeSyncServiceImpl implements YouTubeSyncService {
 
     private final YouTubeService youTubeService;
     private final ChannelResolver channelResolver;
+    private final YouTubeChannelRepository channelRepo;
     private final YouTubeVideoRepository videoRepo;
     private final ChannelMetricsSnapshotRepository channelSnapshotRepo;
     private final VideoMetricsSnapshotRepository videoSnapshotRepo;
@@ -48,11 +50,13 @@ public class YouTubeSyncServiceImpl implements YouTubeSyncService {
     public YouTubeSyncServiceImpl(
             YouTubeService youTubeService,
             ChannelResolver channelResolver,
+            YouTubeChannelRepository channelRepo,
             YouTubeVideoRepository videoRepo,
             ChannelMetricsSnapshotRepository channelSnapshotRepo,
             VideoMetricsSnapshotRepository videoSnapshotRepo) {
         this.youTubeService = youTubeService;
         this.channelResolver = channelResolver;
+        this.channelRepo = channelRepo;
         this.videoRepo = videoRepo;
         this.channelSnapshotRepo = channelSnapshotRepo;
         this.videoSnapshotRepo = videoSnapshotRepo;
@@ -85,6 +89,7 @@ public class YouTubeSyncServiceImpl implements YouTubeSyncService {
             log.warn("Sync PARTIAL for {} — rate limited or quota exhausted: {}", channelId, e.getMessage());
             channel.setLastRefreshStatus(RefreshStatus.FAILED);
             channel.setLastRefreshError(e.getMessage());
+            channelRepo.save(channel);
             return new SyncResultDto(channelId, 0, apiCallsUsed, now, "PARTIAL");
         }
 
@@ -103,10 +108,13 @@ public class YouTubeSyncServiceImpl implements YouTubeSyncService {
         // Step 4: write channel-level snapshot (INSERT only — skip if today's row exists)
         writeChannelSnapshot(channel, now, today);
 
-        // Update channel refresh observability fields
+        // Update channel refresh observability fields and persist explicitly.
+        // The channel entity was saved mid-transaction by the resolver (locking in the prior
+        // status), so dirty-checking alone is not reliable — we save directly here.
         channel.setLastSuccessfulRefreshAt(now);
         channel.setLastRefreshStatus(RefreshStatus.SUCCESS);
         channel.setLastRefreshError(null);
+        channelRepo.save(channel);
 
         log.info("Sync complete for {}: {} videos, {} API calls", channelId, videosProcessed, apiCallsUsed);
         return new SyncResultDto(channelId, videosProcessed, apiCallsUsed, now, "OK");
