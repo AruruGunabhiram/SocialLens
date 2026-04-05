@@ -7,14 +7,18 @@ import type { ChannelItem, VideoRow, VideosPageResponse } from '@/api/types'
 
 // ─── Module mocks ────────────────────────────────────────────────────────────
 
-vi.mock('@/features/channels/queries', () => ({
-  useChannelQuery: vi.fn(),
-  useVideosQuery: vi.fn(),
-  useChannelRefreshByIdMutation: vi.fn(() => ({
-    mutate: vi.fn(),
-    isPending: false,
-  })),
-}))
+vi.mock('@/features/channels/queries', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/features/channels/queries')>()
+  return {
+    ...actual,
+    useChannelQuery: vi.fn(),
+    useVideosQuery: vi.fn(),
+    useChannelRefreshByIdMutation: vi.fn(() => ({
+      mutate: vi.fn(),
+      isPending: false,
+    })),
+  }
+})
 
 vi.mock('@/lib/toast', () => ({
   toastError: vi.fn(),
@@ -150,6 +154,10 @@ describe('ChannelVideosPage', () => {
   beforeEach(() => {
     vi.mocked(useChannelQuery).mockReturnValue({ data: makeChannel(), isLoading: false } as any)
     vi.mocked(useVideosQuery).mockReturnValue(success(makeVideosResponse([])) as any)
+    vi.mocked(useChannelRefreshByIdMutation).mockReturnValue({
+      mutate: vi.fn(),
+      isPending: false,
+    } as any)
   })
 
   afterEach(() => {
@@ -201,7 +209,7 @@ describe('ChannelVideosPage', () => {
   describe('empty states', () => {
     it('shows "No videos yet" when there are no videos and no active search', () => {
       renderPage()
-      expect(screen.getByText('No videos yet')).toBeInTheDocument()
+      expect(screen.getByText('No videos indexed yet')).toBeInTheDocument()
     })
 
     it('shows "No results" when the URL q param matches no videos', () => {
@@ -295,7 +303,9 @@ describe('ChannelVideosPage', () => {
       const videos = [
         makeVideo({ id: 1, title: 'A' }),
         makeVideo({ id: 2, title: 'B', videoId: 'v2' }),
-        makeVideo({ id: 3, title: null, videoId: 'v3' }),
+        makeVideo({ id: 3, title: 'C', videoId: 'v3' }),
+        makeVideo({ id: 4, title: 'D', videoId: 'v4' }),
+        makeVideo({ id: 5, title: null, videoId: 'v5' }),
       ]
       vi.mocked(useVideosQuery).mockReturnValue(success(makeVideosResponse(videos)) as any)
       renderPage()

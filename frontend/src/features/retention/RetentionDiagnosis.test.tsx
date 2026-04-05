@@ -12,10 +12,15 @@ import type { RetentionDiagnosisResponse, ChannelItem } from '@/api/types'
 
 // ─── Module mocks ─────────────────────────────────────────────────────────────
 
-vi.mock('@/features/channels/queries', () => ({
-  useChannelQuery: vi.fn(),
-  useVideosQuery: vi.fn(),
-}))
+vi.mock('@/features/channels/queries', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/features/channels/queries')>()
+  return {
+    ...actual,
+    useChannelsQuery: vi.fn(),
+    useChannelQuery: vi.fn(),
+    useVideosQuery: vi.fn(),
+  }
+})
 
 vi.mock('@/features/account/queries', () => ({
   useAccountStatus: vi.fn(),
@@ -30,7 +35,7 @@ vi.mock('@/features/trends/queries', () => ({
   useTimeSeries: vi.fn(),
 }))
 
-import { useChannelQuery, useVideosQuery } from '@/features/channels/queries'
+import { useChannelsQuery, useChannelQuery, useVideosQuery } from '@/features/channels/queries'
 import { useAccountStatus, useCurrentUser } from '@/features/account/queries'
 import { useRetentionDiagnosis } from '@/features/retention/queries'
 import { useTimeSeries } from '@/features/trends/queries'
@@ -88,9 +93,9 @@ function makeMutation(overrides: {
 
 function renderPage(channelDbId = '1') {
   return render(
-    <MemoryRouter initialEntries={[`/channels/${channelDbId}/insights`]}>
+    <MemoryRouter initialEntries={[`/insights?channelId=${channelDbId}`]}>
       <Routes>
-        <Route path="/channels/:channelDbId/insights" element={<InsightsPage />} />
+        <Route path="/insights" element={<InsightsPage />} />
       </Routes>
     </MemoryRouter>
   )
@@ -100,6 +105,11 @@ function renderPage(channelDbId = '1') {
 
 describe('InsightsPage — Retention Diagnosis', () => {
   beforeEach(() => {
+    vi.mocked(useChannelsQuery).mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+    } as unknown as ReturnType<typeof useChannelsQuery>)
     vi.mocked(useChannelQuery).mockReturnValue({ data: makeChannel() } as ReturnType<
       typeof useChannelQuery
     >)

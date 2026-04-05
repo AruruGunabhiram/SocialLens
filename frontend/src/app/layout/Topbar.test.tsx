@@ -6,13 +6,17 @@ import { ModeProvider } from '@/lib/ModeContext'
 
 // useChannelSyncMutation depends on React Query context + network; stub it out.
 const mockMutate = vi.fn()
-vi.mock('@/features/channels/queries', () => ({
-  useChannelSyncMutation: () => ({
-    mutate: mockMutate,
-    isPending: false,
-    isError: false,
-  }),
-}))
+vi.mock('@/features/channels/queries', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/features/channels/queries')>()
+  return {
+    ...actual,
+    useChannelSyncMutation: () => ({
+      mutate: mockMutate,
+      isPending: false,
+      isError: false,
+    }),
+  }
+})
 
 // useAccountStatus and useCurrentUser hit the network; stub them out.
 vi.mock('@/features/account/queries', () => ({
@@ -40,9 +44,9 @@ describe('Topbar search', () => {
     expect(screen.getByRole('searchbox')).toBeInTheDocument()
   })
 
-  it('renders a Load button', () => {
+  it('renders a Track Channel button', () => {
     renderTopbar()
-    expect(screen.getByRole('button', { name: /load/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /track channel/i })).toBeInTheDocument()
   })
 
   it('accepts typed text', () => {

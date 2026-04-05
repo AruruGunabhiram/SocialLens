@@ -7,10 +7,15 @@ import type { ChannelItem, VideoRow, VideosPageResponse, TimeSeriesResponse } fr
 
 // ─── Module mocks ─────────────────────────────────────────────────────────────
 
-vi.mock('@/features/channels/queries', () => ({
-  useChannelQuery: vi.fn(),
-  useVideosQuery: vi.fn(),
-}))
+vi.mock('@/features/channels/queries', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/features/channels/queries')>()
+  return {
+    ...actual,
+    useChannelsQuery: vi.fn(),
+    useChannelQuery: vi.fn(),
+    useVideosQuery: vi.fn(),
+  }
+})
 
 vi.mock('@/features/trends/queries', () => ({
   useTimeSeries: vi.fn(),
@@ -41,7 +46,7 @@ vi.mock('@/lib/toast', () => ({
 
 // ─── Import mocked modules ────────────────────────────────────────────────────
 
-import { useChannelQuery, useVideosQuery } from '@/features/channels/queries'
+import { useChannelsQuery, useChannelQuery, useVideosQuery } from '@/features/channels/queries'
 import { useTimeSeries } from '@/features/trends/queries'
 import { useAccountStatus, useCurrentUser } from '@/features/account/queries'
 import { useRetentionDiagnosis } from '@/features/retention/queries'
@@ -126,9 +131,9 @@ function renderPage(channelDbId: string | null = '1') {
     )
   }
   return render(
-    <MemoryRouter initialEntries={[`/channels/${channelDbId}/insights`]}>
+    <MemoryRouter initialEntries={[`/insights?channelId=${channelDbId}`]}>
       <Routes>
-        <Route path="/channels/:channelDbId/insights" element={<InsightsPage />} />
+        <Route path="/insights" element={<InsightsPage />} />
       </Routes>
     </MemoryRouter>
   )
@@ -138,6 +143,7 @@ function renderPage(channelDbId: string | null = '1') {
 
 describe('InsightsPage', () => {
   beforeEach(() => {
+    vi.mocked(useChannelsQuery).mockReturnValue(success([]) as any)
     vi.mocked(useChannelQuery).mockReturnValue(idle() as any)
     vi.mocked(useVideosQuery).mockReturnValue(idle() as any)
     vi.mocked(useTimeSeries).mockReturnValue(idle() as any)

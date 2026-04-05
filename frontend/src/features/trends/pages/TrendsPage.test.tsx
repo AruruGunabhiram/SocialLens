@@ -17,6 +17,9 @@ import type { ChannelItem, TimeSeriesResponse } from '@/api/types'
 vi.mock('recharts', () => ({
   ResponsiveContainer: ({ children }: any) => <>{children}</>,
   LineChart: ({ children }: any) => <div data-testid="line-chart">{children}</div>,
+  BarChart: ({ children }: any) => <div data-testid="bar-chart">{children}</div>,
+  Bar: ({ children }: any) => <>{children}</>,
+  Cell: () => null,
   CartesianGrid: () => null,
   Line: () => null,
   XAxis: () => null,
@@ -25,10 +28,14 @@ vi.mock('recharts', () => ({
   ReferenceLine: () => null,
 }))
 
-vi.mock('@/features/channels/queries', () => ({
-  useChannelQuery: vi.fn(),
-  useChannelRefreshByIdMutation: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
-}))
+vi.mock('@/features/channels/queries', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/features/channels/queries')>()
+  return {
+    ...actual,
+    useChannelQuery: vi.fn(),
+    useChannelRefreshByIdMutation: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+  }
+})
 
 vi.mock('@/features/trends/queries', () => ({
   useTimeSeries: vi.fn(),
@@ -164,7 +171,7 @@ describe('TrendsPage', () => {
   describe('insufficient data — total mode (default)', () => {
     it('shows "No snapshot history yet" for 0 data points', () => {
       vi.mocked(useTimeSeries).mockReturnValue(tsSuccess(makeTimeSeriesResponse([])) as any)
-      renderTrendsPage()
+      renderTrendsPage('1', 'mode=total')
       expect(screen.getByText('No snapshot history yet')).toBeInTheDocument()
     })
 
@@ -172,7 +179,7 @@ describe('TrendsPage', () => {
       vi.mocked(useTimeSeries).mockReturnValue(
         tsSuccess(makeTimeSeriesResponse([{ date: '2024-01-01', value: 100 }])) as any
       )
-      renderTrendsPage()
+      renderTrendsPage('1', 'mode=total')
       expect(screen.getByText('Only 1 snapshot captured — need at least 2')).toBeInTheDocument()
     })
 
@@ -185,7 +192,7 @@ describe('TrendsPage', () => {
           ])
         ) as any
       )
-      renderTrendsPage()
+      renderTrendsPage('1', 'mode=total')
       expect(screen.queryByText('Need at least 2 snapshots — run refresh')).not.toBeInTheDocument()
     })
   })
@@ -223,19 +230,19 @@ describe('TrendsPage', () => {
     })
 
     it('renders the chart area', () => {
-      renderTrendsPage()
+      renderTrendsPage('1', 'mode=total')
       expect(screen.getByTestId('line-chart')).toBeInTheDocument()
     })
 
     it('renders all three insight cards', () => {
-      renderTrendsPage()
+      renderTrendsPage('1', 'mode=total')
       expect(screen.getByText('Growth / Day')).toBeInTheDocument()
       expect(screen.getByText('Peak Day')).toBeInTheDocument()
       expect(screen.getByText('Trend')).toBeInTheDocument()
     })
 
     it('shows the channel name in the breadcrumb', () => {
-      renderTrendsPage()
+      renderTrendsPage('1', 'mode=total')
       expect(screen.getByText('Test Channel')).toBeInTheDocument()
     })
   })
@@ -257,7 +264,7 @@ describe('TrendsPage', () => {
       const banner = screen.getByTestId('snapshot-coverage-banner')
       expect(banner).toBeInTheDocument()
       expect(banner).toHaveTextContent('1')
-      expect(banner).toHaveTextContent('of 30d captured')
+      expect(banner).toHaveTextContent('of 30 days captured')
     })
 
     it('renders the banner with correct count for 2 captured days', () => {
@@ -272,7 +279,7 @@ describe('TrendsPage', () => {
       renderTrendsPage()
       const banner = screen.getByTestId('snapshot-coverage-banner')
       expect(banner).toHaveTextContent('2')
-      expect(banner).toHaveTextContent('of 30d captured')
+      expect(banner).toHaveTextContent('of 30 days captured')
     })
 
     it('shows "partial window" notice when captured days are fewer than requested range', () => {
@@ -309,7 +316,7 @@ describe('TrendsPage', () => {
   describe('sparse history copy', () => {
     it('shows "No snapshot history yet" for 0 points', () => {
       vi.mocked(useTimeSeries).mockReturnValue(tsSuccess(makeTimeSeriesResponse([])) as any)
-      renderTrendsPage()
+      renderTrendsPage('1', 'mode=total')
       expect(screen.getByText('No snapshot history yet')).toBeInTheDocument()
     })
 
@@ -317,13 +324,13 @@ describe('TrendsPage', () => {
       vi.mocked(useTimeSeries).mockReturnValue(
         tsSuccess(makeTimeSeriesResponse([{ date: '2024-03-21', value: 100 }])) as any
       )
-      renderTrendsPage()
+      renderTrendsPage('1', 'mode=total')
       expect(screen.getByText('Only 1 snapshot captured — need at least 2')).toBeInTheDocument()
     })
 
     it('shows correct description for 0 points', () => {
       vi.mocked(useTimeSeries).mockReturnValue(tsSuccess(makeTimeSeriesResponse([])) as any)
-      renderTrendsPage()
+      renderTrendsPage('1', 'mode=total')
       expect(
         screen.getByText(/No snapshots have been captured for this channel yet/)
       ).toBeInTheDocument()
@@ -333,7 +340,7 @@ describe('TrendsPage', () => {
       vi.mocked(useTimeSeries).mockReturnValue(
         tsSuccess(makeTimeSeriesResponse([{ date: '2024-03-21', value: 100 }])) as any
       )
-      renderTrendsPage()
+      renderTrendsPage('1', 'mode=total')
       expect(screen.getByText(/Only 1 day of data captured so far/)).toBeInTheDocument()
     })
 
@@ -346,7 +353,7 @@ describe('TrendsPage', () => {
           ])
         ) as any
       )
-      renderTrendsPage()
+      renderTrendsPage('1', 'mode=total')
       // isSparse = true (2 < 30), so sub should say "across 2 captured days"
       expect(screen.getByText(/across 2 captured days/)).toBeInTheDocument()
     })

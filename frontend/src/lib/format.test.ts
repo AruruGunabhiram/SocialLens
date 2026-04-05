@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { fmtNum, fmtCompact, fmtDelta, fmtDate, fmtDateShort } from './format'
 
 describe('fmtNum', () => {
-  it('formats millions to one decimal place', () => {
+  it('formats millions and trims trailing .0', () => {
     expect(fmtNum(1_200_000)).toBe('1.2M')
-    expect(fmtNum(1_000_000)).toBe('1.0M')
-    expect(fmtNum(10_000_000)).toBe('10.0M')
+    expect(fmtNum(1_000_000)).toBe('1M')
+    expect(fmtNum(10_000_000)).toBe('10M')
   })
 
   it('formats thousands to zero decimal places', () => {
@@ -23,7 +23,7 @@ describe('fmtNum', () => {
   it('applies the million threshold strictly (>= 1_000_000 → M branch)', () => {
     // 999_999 hits the K branch: (999_999 / 1000).toFixed(0) = '1000'
     expect(fmtNum(999_999)).toBe('1000K')
-    expect(fmtNum(1_000_000)).toBe('1.0M')
+    expect(fmtNum(1_000_000)).toBe('1M')
   })
 })
 
