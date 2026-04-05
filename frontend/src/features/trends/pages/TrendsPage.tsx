@@ -2,7 +2,10 @@ import { useEffect, useMemo, useRef } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { format, parseISO, subDays } from 'date-fns'
 import {
+  Bar,
+  BarChart,
   CartesianGrid,
+  Cell,
   Line,
   LineChart,
   ReferenceLine,
@@ -15,6 +18,7 @@ import {
   AlertTriangle,
   BarChart2,
   Calendar,
+  CheckCircle2,
   ChevronRight,
   Info,
   Minus,
@@ -103,22 +107,89 @@ function ToggleGroup<T extends string | number>({
   label: (v: T) => string
 }) {
   return (
-    <div className="flex rounded-lg border bg-muted p-0.5">
-      {options.map((opt) => (
-        <button
-          key={String(opt)}
-          onClick={() => onChange(opt)}
-          className={cn(
-            'rounded-md px-3 py-1 text-sm font-medium transition-colors',
-            value === opt
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-          )}
-        >
-          {label(opt)}
-        </button>
-      ))}
+    <div
+      role="group"
+      aria-label={label(options[0])}
+      className="flex rounded-lg border bg-muted p-0.5"
+    >
+      {options.map((opt) => {
+        const active = value === opt
+        return (
+          <button
+            key={String(opt)}
+            type="button"
+            onClick={() => onChange(opt)}
+            aria-pressed={active}
+            style={
+              active
+                ? {
+                    fontWeight: 700,
+                    color: 'var(--accent)',
+                    borderBottom: '2px solid var(--accent)',
+                  }
+                : undefined
+            }
+            className={cn(
+              'rounded-md px-3 py-1 text-sm font-medium transition-colors',
+              active
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            {label(opt)}
+          </button>
+        )
+      })}
     </div>
+  )
+}
+
+type ConfidenceLevel = 'low' | 'medium' | 'high'
+
+function ConfidenceBadge({ level }: { level: ConfidenceLevel }) {
+  const cfg = {
+    low: {
+      bg: 'var(--color-warn-muted)',
+      border: 'color-mix(in srgb, var(--color-warn) 30%, transparent)',
+      color: 'var(--color-warn)',
+      text: 'Low confidence',
+      icon: <AlertTriangle size={10} aria-hidden style={{ flexShrink: 0 }} />,
+    },
+    medium: {
+      bg: 'var(--color-neutral-muted)',
+      border: 'color-mix(in srgb, var(--color-neutral) 30%, transparent)',
+      color: 'var(--color-neutral)',
+      text: 'Moderate confidence',
+      icon: <Info size={10} aria-hidden style={{ flexShrink: 0 }} />,
+    },
+    high: {
+      bg: 'var(--color-up-muted)',
+      border: 'color-mix(in srgb, var(--color-up) 30%, transparent)',
+      color: 'var(--color-up)',
+      text: 'High confidence',
+      icon: <CheckCircle2 size={10} aria-hidden style={{ flexShrink: 0 }} />,
+    },
+  }[level]
+
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 3,
+        padding: '2px 6px',
+        borderRadius: 'var(--radius-sm)',
+        background: cfg.bg,
+        border: `1px solid ${cfg.border}`,
+        fontFamily: 'var(--font-body)',
+        fontSize: 'var(--text-xs)',
+        fontWeight: 500,
+        color: cfg.color,
+      }}
+    >
+      {cfg.icon}
+      {cfg.text}
+    </span>
   )
 }
 
@@ -132,19 +203,19 @@ function InsightCard({
   icon: React.ReactNode
   label: string
   value: string
-  sub?: string
+  sub?: React.ReactNode
   valueStyle?: React.CSSProperties
 }) {
   return (
     <Card>
       <CardContent className="flex items-start gap-3 pt-5">
         <span className="mt-0.5 text-muted-foreground">{icon}</span>
-        <div>
+        <div className="flex flex-col gap-1">
           <p className="text-xs text-muted-foreground">{label}</p>
           <p className="text-2xl font-semibold tracking-tight" style={valueStyle}>
             {value}
           </p>
-          {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+          {sub && <div className="text-xs text-muted-foreground">{sub}</div>}
         </div>
       </CardContent>
     </Card>
@@ -192,7 +263,8 @@ function SnapshotCoverageBanner({
             <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
               {capturedDays}
             </span>{' '}
-            of <span style={{ fontFamily: 'var(--font-mono)' }}>{requestedRange}</span>d captured
+            of <span style={{ fontFamily: 'var(--font-mono)' }}>{requestedRange}</span> days
+            captured
             {dateRange && <span> · {dateRange}</span>}
           </span>
           <p className="mt-0.5" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-warn)' }}>
@@ -214,7 +286,7 @@ function SnapshotCoverageBanner({
         <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
           {capturedDays}
         </span>{' '}
-        of <span style={{ fontFamily: 'var(--font-mono)' }}>{requestedRange}</span>d captured
+        of <span style={{ fontFamily: 'var(--font-mono)' }}>{requestedRange}</span> days captured
         {dateRange && (
           <span style={{ color: 'var(--color-muted-foreground)', opacity: 0.75 }}>
             {' '}
@@ -271,7 +343,7 @@ export default function TrendsPage() {
   const range: Range = (RANGES as number[]).includes(rangeRaw) ? (rangeRaw as Range) : 30
 
   const modeRaw = searchParams.get('mode')
-  const seriesMode: SeriesMode = modeRaw === 'total' || modeRaw === 'delta' ? modeRaw : 'total'
+  const seriesMode: SeriesMode = modeRaw === 'total' || modeRaw === 'delta' ? modeRaw : 'delta'
 
   function setMetric(m: TrendMetric) {
     setSearchParams(
@@ -369,14 +441,29 @@ export default function TrendsPage() {
 
   // ── Data window: prefer real series bounds; fallback to requested range ──
   const dataWindowLabel = useMemo(() => {
+    function hd(iso: string): string {
+      try {
+        return format(parseISO(iso), 'MMM d')
+      } catch {
+        return iso
+      }
+    }
     if (normalizedPoints.length >= 1) {
       const first = normalizedPoints[0].date
       const last = normalizedPoints[normalizedPoints.length - 1].date
-      return first === last ? first : `${first} → ${last}`
+      if (first === last) {
+        try {
+          return format(parseISO(first), 'MMM d, yyyy')
+        } catch {
+          return first
+        }
+      }
+      const year = format(parseISO(last), 'yyyy')
+      return `${hd(first)} – ${hd(last)}, ${year}`
     }
-    const end = format(new Date(), 'yyyy-MM-dd')
-    const start = format(subDays(new Date(), range - 1), 'yyyy-MM-dd')
-    return `${start} → ${end}`
+    const end = new Date()
+    const start = subDays(end, range - 1)
+    return `${format(start, 'MMM d')} – ${format(end, 'MMM d, yyyy')}`
   }, [normalizedPoints, range])
 
   // ── No channel selected ──────────────────────────────────────────────────
@@ -452,11 +539,11 @@ export default function TrendsPage() {
   const chartTitle =
     seriesMode === 'delta'
       ? `Daily Change in ${config.label} — ${windowLabel}`
-      : `${config.label} — ${windowLabel}`
+      : `Cumulative ${config.label} — ${windowLabel}`
 
   const chartDescription =
     seriesMode === 'delta'
-      ? 'Change between consecutive daily snapshots'
+      ? 'Daily change between captured snapshots'
       : `Daily ${config.label.toLowerCase()} snapshots`
 
   // Title + description for the insufficient-data empty state.
@@ -532,52 +619,90 @@ export default function TrendsPage() {
       >
         {sufficient ? (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={displayPoints} margin={{ left: 8, right: 16, top: 12, bottom: 12 }}>
-              <CartesianGrid {...CHART_STYLES.grid} vertical={false} />
-              {seriesMode === 'delta' && (
+            {seriesMode === 'delta' ? (
+              <BarChart data={displayPoints} margin={{ left: 8, right: 16, top: 12, bottom: 12 }}>
+                <CartesianGrid {...CHART_STYLES.grid} vertical={false} />
                 <ReferenceLine y={0} stroke="var(--color-border-strong)" strokeDasharray="3 3" />
-              )}
-              <XAxis
-                dataKey="date"
-                tickFormatter={fmtDateShort}
-                tickLine={false}
-                axisLine={false}
-                tick={CHART_STYLES.axisTick}
-              />
-              <YAxis
-                tickFormatter={seriesMode === 'delta' ? fmtDelta : fmtNum}
-                tickLine={false}
-                axisLine={false}
-                tick={CHART_STYLES.axisTick}
-                width={56}
-              />
-              <Tooltip
-                contentStyle={CHART_STYLES.tooltip.contentStyle}
-                labelStyle={CHART_STYLES.tooltip.labelStyle}
-                cursor={CHART_STYLES.tooltip.cursor}
-                formatter={(value: number) =>
-                  seriesMode === 'delta'
-                    ? [fmtDelta(value), `Δ ${config.label}`]
-                    : [fmtNum(value), config.label]
-                }
-                labelFormatter={(label: string) => {
-                  try {
-                    return format(parseISO(label), 'MMM d, yyyy')
-                  } catch {
-                    return label
-                  }
-                }}
-                itemStyle={{ padding: 0 }}
-              />
-              <Line
-                type="monotone"
-                dataKey="value"
-                stroke={config.color}
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 4, strokeWidth: 0 }}
-              />
-            </LineChart>
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={fmtDateShort}
+                  tickLine={false}
+                  axisLine={false}
+                  tick={CHART_STYLES.axisTick}
+                />
+                <YAxis
+                  tickFormatter={fmtDelta}
+                  tickLine={false}
+                  axisLine={false}
+                  tick={CHART_STYLES.axisTick}
+                  width={60}
+                />
+                <Tooltip
+                  contentStyle={CHART_STYLES.tooltip.contentStyle}
+                  labelStyle={CHART_STYLES.tooltip.labelStyle}
+                  cursor={{ fill: 'var(--color-surface-2)', opacity: 0.6 }}
+                  formatter={(value: number) => [fmtDelta(Math.round(value)), config.label]}
+                  labelFormatter={(label: string) => {
+                    try {
+                      return format(parseISO(label), 'MMM d, yyyy')
+                    } catch {
+                      return label
+                    }
+                  }}
+                  itemStyle={{ padding: 0 }}
+                />
+                <Bar
+                  dataKey="value"
+                  maxBarSize={28}
+                  radius={[2, 2, 0, 0]}
+                  isAnimationActive={false}
+                >
+                  {displayPoints.map((entry, i) => (
+                    <Cell key={i} fill={entry.value >= 0 ? config.color : 'var(--color-down)'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            ) : (
+              <LineChart data={displayPoints} margin={{ left: 8, right: 16, top: 12, bottom: 12 }}>
+                <CartesianGrid {...CHART_STYLES.grid} vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={fmtDateShort}
+                  tickLine={false}
+                  axisLine={false}
+                  tick={CHART_STYLES.axisTick}
+                />
+                <YAxis
+                  tickFormatter={fmtNum}
+                  tickLine={false}
+                  axisLine={false}
+                  tick={CHART_STYLES.axisTick}
+                  width={56}
+                />
+                <Tooltip
+                  contentStyle={CHART_STYLES.tooltip.contentStyle}
+                  labelStyle={CHART_STYLES.tooltip.labelStyle}
+                  cursor={CHART_STYLES.tooltip.cursor}
+                  formatter={(value: number) => [fmtNum(value), config.label]}
+                  labelFormatter={(label: string) => {
+                    try {
+                      return format(parseISO(label), 'MMM d, yyyy')
+                    } catch {
+                      return label
+                    }
+                  }}
+                  itemStyle={{ padding: 0 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke={config.color}
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4, strokeWidth: 0 }}
+                />
+              </LineChart>
+            )}
           </ResponsiveContainer>
         ) : (
           <EmptyState
@@ -593,24 +718,35 @@ export default function TrendsPage() {
       {/* ── Insights ───────────────────────────────────────────────────── */}
       {insights && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <InsightCard
-            icon={<BarChart2 className="h-4 w-4" />}
-            label={seriesMode === 'delta' ? 'Avg Change / Day' : 'Growth / Day'}
-            value={
-              seriesMode === 'delta'
-                ? fmtDelta(Math.round(insights.avgPerDay))
-                : insights.slopeUnavailable
-                  ? '—'
-                  : `${insights.avgPerDay >= 0 ? '+' : ''}${fmtNum(Math.round(insights.avgPerDay))}`
-            }
-            sub={
-              isLowConfidenceCoverage(coverage.capturedDays)
-                ? `across ${coverage.capturedDays} captured ${coverage.capturedDays === 1 ? 'day' : 'days'} — low confidence`
-                : coverage.isSparse
-                  ? `across ${coverage.capturedDays} captured ${coverage.capturedDays === 1 ? 'day' : 'days'}`
-                  : `over last ${range} days`
-            }
-          />
+          {(() => {
+            const confidenceLevel: ConfidenceLevel = isLowConfidenceCoverage(coverage.capturedDays)
+              ? 'low'
+              : coverage.isSparse
+                ? 'medium'
+                : 'high'
+            const contextStr = coverage.isSparse
+              ? `across ${coverage.capturedDays} captured ${coverage.capturedDays === 1 ? 'day' : 'days'}`
+              : `over last ${range} days`
+            return (
+              <InsightCard
+                icon={<BarChart2 className="h-4 w-4" />}
+                label={seriesMode === 'delta' ? 'Avg Change / Day' : 'Growth / Day'}
+                value={
+                  seriesMode === 'delta'
+                    ? fmtDelta(Math.round(insights.avgPerDay))
+                    : insights.slopeUnavailable
+                      ? '—'
+                      : `${insights.avgPerDay >= 0 ? '+' : ''}${fmtNum(Math.round(insights.avgPerDay))}`
+                }
+                sub={
+                  <>
+                    <span>{contextStr}</span>
+                    <ConfidenceBadge level={confidenceLevel} />
+                  </>
+                }
+              />
+            )
+          })()}
           <InsightCard
             icon={<Calendar className="h-4 w-4" />}
             label={seriesMode === 'delta' ? 'Best Day' : 'Peak Day'}
@@ -621,40 +757,58 @@ export default function TrendsPage() {
             }
             sub={insights.peakDate ? fmtDateShort(insights.peakDate) : '—'}
           />
-          <InsightCard
-            icon={
-              insights.trendLabel === 'Up' ? (
-                <TrendingUp className="h-4 w-4" style={{ color: 'var(--color-up)' }} aria-hidden />
-              ) : insights.trendLabel === 'Down' ? (
-                <TrendingDown
-                  className="h-4 w-4"
-                  style={{ color: 'var(--color-down)' }}
-                  aria-hidden
-                />
-              ) : (
-                <Minus className="h-4 w-4 text-muted-foreground" aria-hidden />
-              )
-            }
-            label="Trend"
-            value={insights.trendLabel === 'N/A' ? '—' : insights.trendLabel}
-            sub={(() => {
-              if (insights.slopeUnavailable) return 'Not enough date range'
-              const slopeStr =
-                seriesMode === 'delta'
-                  ? `${fmtDelta(Math.round(insights.slope))} / day avg`
-                  : `${insights.slope >= 0 ? '+' : ''}${fmtNum(Math.round(Math.abs(insights.slope)))} / day`
-              return isLowConfidenceCoverage(coverage.capturedDays)
-                ? `${slopeStr} · low coverage`
-                : slopeStr
-            })()}
-            valueStyle={
-              insights.trendLabel === 'Up'
-                ? { color: 'var(--color-up)' }
-                : insights.trendLabel === 'Down'
-                  ? { color: 'var(--color-down)' }
-                  : undefined
-            }
-          />
+          {(() => {
+            const confidenceLevel: ConfidenceLevel = isLowConfidenceCoverage(coverage.capturedDays)
+              ? 'low'
+              : coverage.isSparse
+                ? 'medium'
+                : 'high'
+            const slopeStr = insights.slopeUnavailable
+              ? 'Not enough date range'
+              : seriesMode === 'delta'
+                ? `${fmtDelta(Math.round(insights.slope))} / day avg`
+                : `${insights.slope >= 0 ? '+' : ''}${fmtNum(Math.round(Math.abs(insights.slope)))} / day`
+            return (
+              <InsightCard
+                icon={
+                  insights.trendLabel === 'Up' ? (
+                    <TrendingUp
+                      className="h-4 w-4"
+                      style={{ color: 'var(--color-up)' }}
+                      aria-hidden
+                    />
+                  ) : insights.trendLabel === 'Down' ? (
+                    <TrendingDown
+                      className="h-4 w-4"
+                      style={{ color: 'var(--color-down)' }}
+                      aria-hidden
+                    />
+                  ) : (
+                    <Minus className="h-4 w-4 text-muted-foreground" aria-hidden />
+                  )
+                }
+                label="Trend"
+                value={insights.trendLabel === 'N/A' ? '—' : insights.trendLabel}
+                sub={
+                  insights.slopeUnavailable ? (
+                    slopeStr
+                  ) : (
+                    <>
+                      <span>{slopeStr}</span>
+                      <ConfidenceBadge level={confidenceLevel} />
+                    </>
+                  )
+                }
+                valueStyle={
+                  insights.trendLabel === 'Up'
+                    ? { color: 'var(--color-up)' }
+                    : insights.trendLabel === 'Down'
+                      ? { color: 'var(--color-down)' }
+                      : undefined
+                }
+              />
+            )
+          })()}
         </div>
       )}
     </div>

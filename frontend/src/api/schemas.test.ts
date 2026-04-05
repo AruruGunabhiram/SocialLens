@@ -210,12 +210,14 @@ describe('YouTubeSyncResponseSchema', () => {
   })
 
   it('rejects when channelDbId is missing', () => {
-    expect(() => YouTubeSyncResponseSchema.parse({
-      identifier: valid.identifier,
-      channelId: valid.channelId,
-      result: valid.result,
-      timing: valid.timing,
-    })).toThrow()
+    expect(() =>
+      YouTubeSyncResponseSchema.parse({
+        identifier: valid.identifier,
+        channelId: valid.channelId,
+        result: valid.result,
+        timing: valid.timing,
+      })
+    ).toThrow()
   })
 })
 
@@ -358,12 +360,14 @@ describe('RetentionDropEventSchema', () => {
   })
 
   it('rejects when slope is missing', () => {
-    expect(() => RetentionDropEventSchema.parse({
-      startProgress: 0.1,
-      endProgress: 0.3,
-      dropMagnitude: 0.2,
-      severity: 'HIGH' as const,
-    })).toThrow()
+    expect(() =>
+      RetentionDropEventSchema.parse({
+        startProgress: 0.1,
+        endProgress: 0.3,
+        dropMagnitude: 0.2,
+        severity: 'HIGH' as const,
+      })
+    ).toThrow()
   })
 })
 
@@ -382,11 +386,13 @@ describe('DiagnosisItemSchema', () => {
   })
 
   it('rejects when recommendation is missing', () => {
-    expect(() => DiagnosisItemSchema.parse({
-      label: 'Hook drop',
-      severity: 'MEDIUM' as const,
-      evidence: 'Viewers leave at 0:30',
-    })).toThrow()
+    expect(() =>
+      DiagnosisItemSchema.parse({
+        label: 'Hook drop',
+        severity: 'MEDIUM' as const,
+        evidence: 'Viewers leave at 0:30',
+      })
+    ).toThrow()
   })
 })
 
@@ -407,11 +413,13 @@ describe('RetentionDiagnosisResponseSchema', () => {
   })
 
   it('rejects when summary is missing', () => {
-    expect(() => RetentionDiagnosisResponseSchema.parse({
-      videoId: 'dQw4w9WgXcQ',
-      dropEvents: [],
-      diagnoses: [],
-    })).toThrow()
+    expect(() =>
+      RetentionDiagnosisResponseSchema.parse({
+        videoId: 'dQw4w9WgXcQ',
+        dropEvents: [],
+        diagnoses: [],
+      })
+    ).toThrow()
   })
 })
 

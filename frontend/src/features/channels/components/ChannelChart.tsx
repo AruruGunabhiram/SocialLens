@@ -1,20 +1,24 @@
 import { useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import {
+  Bar,
+  BarChart,
   CartesianGrid,
-  Line,
-  LineChart,
+  Cell,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
   XAxis,
   YAxis,
 } from 'recharts'
 
-import { cn } from '@/lib/utils'
-import { fmtNum, fmtDateShort } from '@/lib/format'
+import { fmtDelta, fmtNum, fmtDateShort } from '@/lib/format'
 import { ChartCard, CHART_STYLES } from '@/components/common/ChartCard'
 import { EmptyState } from '@/components/common/EmptyState'
 import type { ChannelAnalytics } from '../schemas'
+import type { ChannelMetricPoint } from '@/api/types'
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type ActiveMetric = 'views' | 'subscribers'
 
@@ -23,32 +27,62 @@ const METRIC_CONFIG: Record<ActiveMetric, { label: string; color: string }> = {
   subscribers: { label: 'Subscribers', color: 'var(--chart-3)' },
 }
 
+// ─── Delta computation ────────────────────────────────────────────────────────
+
+type DeltaPoint = { date: string; value: number }
+
+function computeDeltas(points: ChannelMetricPoint[], metric: ActiveMetric): DeltaPoint[] {
+  const sorted = [...points].sort((a, b) => a.date.localeCompare(b.date))
+  if (sorted.length < 2) return []
+  return sorted.slice(1).map((pt, i) => {
+    const curr = metric === 'views' ? (pt.views ?? 0) : (pt.subscribers ?? 0)
+    const prev = metric === 'views' ? (sorted[i].views ?? 0) : (sorted[i].subscribers ?? 0)
+    return { date: pt.date.slice(0, 10), value: curr - prev }
+  })
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 type ChannelChartProps = {
   data?: ChannelAnalytics
 }
 
 export function ChannelChart({ data }: ChannelChartProps) {
   const [activeMetric, setActiveMetric] = useState<ActiveMetric>('views')
-  const points = data?.timeseries ?? []
+
+  const cumPoints = data?.timeseries ?? []
+  const deltaPoints = computeDeltas(cumPoints, activeMetric)
   const config = METRIC_CONFIG[activeMetric]
+
+  // Average delta → reference line so viewers can spot above/below-average days
+  const avg =
+    deltaPoints.length > 0 ? deltaPoints.reduce((s, p) => s + p.value, 0) / deltaPoints.length : 0
+
+  const isEmpty = deltaPoints.length === 0
+  const emptyTitle = cumPoints.length < 2 ? 'Not enough snapshot data' : 'No chart data'
+  const emptyDescription =
+    cumPoints.length < 2
+      ? 'SocialLens needs at least 2 snapshots to compute daily changes. Run a refresh to record more data points.'
+      : 'Could not compute daily changes from the available snapshots.'
 
   return (
     <ChartCard
-      title="Performance"
-      description={`${config.label} over indexed history`}
-      className="col-span-2"
+      title={`Daily ${config.label}`}
+      subtitle="New per day between captured snapshots"
       controls={
         <div className="flex rounded-lg border bg-muted p-0.5">
           {(Object.keys(METRIC_CONFIG) as ActiveMetric[]).map((m) => (
             <button
               key={m}
+              type="button"
+              aria-pressed={activeMetric === m}
               onClick={() => setActiveMetric(m)}
-              className={cn(
-                'rounded-md px-3 py-1 text-sm font-medium transition-colors',
+              style={activeMetric === m ? { fontWeight: 700, color: 'var(--accent)' } : undefined}
+              className={
                 activeMetric === m
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
+                  ? 'rounded-md px-3 py-1 text-sm font-medium bg-background text-foreground shadow-sm transition-colors'
+                  : 'rounded-md px-3 py-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors'
+              }
             >
               {METRIC_CONFIG[m].label}
             </button>
@@ -56,12 +90,29 @@ export function ChannelChart({ data }: ChannelChartProps) {
         </div>
       }
     >
-      {points.length === 0 ? (
-        <EmptyState title="No chart data" description="We could not find time-series data yet." />
+      {isEmpty ? (
+        <EmptyState title={emptyTitle} description={emptyDescription} />
       ) : (
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={points} margin={{ left: 8, right: 16, top: 12, bottom: 12 }}>
+          <BarChart data={deltaPoints} margin={{ left: 8, right: 16, top: 12, bottom: 12 }}>
             <CartesianGrid {...CHART_STYLES.grid} vertical={false} />
+            <ReferenceLine y={0} stroke="var(--color-border-strong)" strokeDasharray="3 3" />
+            {/* Average reference line */}
+            <ReferenceLine
+              y={avg}
+              stroke="var(--color-text-muted)"
+              strokeDasharray="4 2"
+              strokeWidth={1}
+              label={{
+                value: `avg ${fmtNum(Math.round(avg))}`,
+                position: 'insideTopRight',
+                style: {
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 10,
+                  fill: 'var(--color-text-muted)',
+                },
+              }}
+            />
             <XAxis
               dataKey="date"
               tickLine={false}
@@ -79,8 +130,8 @@ export function ChannelChart({ data }: ChannelChartProps) {
             <RechartsTooltip
               contentStyle={CHART_STYLES.tooltip.contentStyle}
               labelStyle={CHART_STYLES.tooltip.labelStyle}
-              cursor={CHART_STYLES.tooltip.cursor}
-              formatter={(value: number | string) => [fmtNum(Number(value)), config.label]}
+              cursor={{ fill: 'var(--color-surface-2)', opacity: 0.6 }}
+              formatter={(value: number) => [fmtDelta(Math.round(value)), `Daily ${config.label}`]}
               labelFormatter={(label: string) => {
                 try {
                   return format(parseISO(label), 'MMM d, yyyy')
@@ -90,15 +141,21 @@ export function ChannelChart({ data }: ChannelChartProps) {
               }}
               itemStyle={{ padding: 0 }}
             />
-            <Line
-              type="monotone"
-              dataKey={activeMetric}
-              stroke={config.color}
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 4, strokeWidth: 0 }}
-            />
-          </LineChart>
+            <Bar dataKey="value" maxBarSize={28} radius={[2, 2, 0, 0]} isAnimationActive={false}>
+              {deltaPoints.map((entry, i) => (
+                <Cell
+                  key={i}
+                  fill={
+                    activeMetric === 'subscribers'
+                      ? entry.value >= 0
+                        ? 'var(--chart-3)'
+                        : 'var(--color-down)'
+                      : 'var(--chart-1)'
+                  }
+                />
+              ))}
+            </Bar>
+          </BarChart>
         </ResponsiveContainer>
       )}
     </ChartCard>

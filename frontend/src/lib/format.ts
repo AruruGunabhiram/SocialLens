@@ -2,11 +2,18 @@ import { format, isValid, parseISO } from 'date-fns'
 
 /**
  * Compact notation for chart axis labels: 1.2M, 340K, 999.
- * Rounds to one decimal for millions, zero decimals for thousands.
+ * Only shows a decimal when it's non-zero (e.g. "2.1M" not "2.0M").
+ * Handles B (billions) for very large subscriber/view counts.
  */
 export function fmtNum(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`
+  function compact(val: number, suffix: string): string {
+    const fixed = val.toFixed(1)
+    return (fixed.endsWith('.0') ? String(Math.round(val)) : fixed) + suffix
+  }
+  const abs = Math.abs(n)
+  if (abs >= 1_000_000_000) return compact(n / 1_000_000_000, 'B')
+  if (abs >= 1_000_000) return compact(n / 1_000_000, 'M')
+  if (abs >= 1_000) return `${Math.round(n / 1_000)}K`
   return n.toLocaleString()
 }
 
@@ -63,4 +70,23 @@ export function fmtDateShort(date: string): string {
   } catch {
     return date
   }
+}
+
+/**
+ * Format a subscriber count with correct singular/plural label.
+ * Returns `{ value, label }` so the number can be styled in DM Mono
+ * while the label uses the body font.
+ *
+ * Examples: 1 → { value: "1", label: "subscriber" }
+ *           1500 → { value: "1.5K", label: "subscribers" }
+ *           2_500_000 → { value: "2.5M", label: "subscribers" }
+ */
+export function fmtSubscribers(n: number | null | undefined): { value: string; label: string } {
+  if (n == null) return { value: '—', label: 'subscribers' }
+  const label = n === 1 ? 'subscriber' : 'subscribers'
+  const value = new Intl.NumberFormat('en', {
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(n)
+  return { value, label }
 }
