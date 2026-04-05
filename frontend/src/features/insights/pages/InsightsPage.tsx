@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   AlertCircle,
   CheckCircle2,
@@ -12,7 +12,7 @@ import {
   TrendingUp,
 } from 'lucide-react'
 
-import { useChannelQuery, useVideosQuery } from '@/features/channels/queries'
+import { useChannelQuery, useChannelsQuery, useVideosQuery } from '@/features/channels/queries'
 import { useTimeSeries } from '@/features/trends/queries'
 import { useAccountStatus, useCurrentUser } from '@/features/account/queries'
 import { fetchOAuthStartUrl } from '@/features/account/api'
@@ -43,8 +43,8 @@ import type {
 
 const CARD = {
   padding: 'var(--space-5)',
-  background: 'var(--color-surface-raised)',
-  border: '1px solid var(--color-border)',
+  background: 'var(--color-surface-1)',
+  border: '1px solid var(--color-border-base)',
   borderRadius: 'var(--radius-md)',
 }
 
@@ -80,8 +80,8 @@ function SeverityBadge({ severity }: { severity: string }) {
         fontWeight: 600,
         fontVariantNumeric: 'tabular-nums',
         color: SEVERITY_COLOR[severity] ?? 'var(--color-text-secondary)',
-        background: 'var(--color-surface-raised)',
-        border: '1px solid var(--color-border)',
+        background: 'var(--color-surface-1)',
+        border: '1px solid var(--color-border-base)',
         borderRadius: 'var(--radius-sm)',
         padding: '1px var(--space-2)',
         letterSpacing: '0.05em',
@@ -125,7 +125,7 @@ function DropEventsTable({ drops }: { drops: RetentionDropEvent[] }) {
                 style={{
                   textAlign: 'left',
                   padding: 'var(--space-2) var(--space-3)',
-                  borderBottom: '1px solid var(--color-border)',
+                  borderBottom: '1px solid var(--color-border-base)',
                   fontWeight: 600,
                   color: 'var(--color-text-secondary)',
                   whiteSpace: 'nowrap',
@@ -140,7 +140,9 @@ function DropEventsTable({ drops }: { drops: RetentionDropEvent[] }) {
           {drops.map((d, i) => (
             <tr
               key={i}
-              style={{ borderBottom: '1px solid var(--color-border-subtle, var(--color-border))' }}
+              style={{
+                borderBottom: '1px solid var(--color-border-subtle, var(--color-border-base))',
+              }}
             >
               <td style={{ padding: 'var(--space-2) var(--space-3)' }}>
                 <SeverityBadge severity={d.severity} />
@@ -208,9 +210,9 @@ function DiagnosesList({ diagnoses }: { diagnoses: DiagnosisItem[] }) {
           key={i}
           style={{
             padding: 'var(--space-4)',
-            background: 'var(--color-surface-raised)',
-            border: '1px solid var(--color-border)',
-            borderLeft: `3px solid ${SEVERITY_COLOR[d.severity] ?? 'var(--color-border)'}`,
+            background: 'var(--color-surface-1)',
+            border: '1px solid var(--color-border-base)',
+            borderLeft: `3px solid ${SEVERITY_COLOR[d.severity] ?? 'var(--color-border-base)'}`,
             borderRadius: 'var(--radius-md)',
             display: 'flex',
             flexDirection: 'column',
@@ -538,7 +540,7 @@ function TopVideosTable({ videos }: { videos: VideoRow[] }) {
                 style={{
                   textAlign: h === 'Title' ? 'left' : h === '#' ? 'center' : 'right',
                   padding: 'var(--space-2) var(--space-3)',
-                  borderBottom: '1px solid var(--color-border)',
+                  borderBottom: '1px solid var(--color-border-base)',
                   fontWeight: 600,
                   color: 'var(--color-text-secondary)',
                   whiteSpace: 'nowrap',
@@ -553,7 +555,9 @@ function TopVideosTable({ videos }: { videos: VideoRow[] }) {
           {videos.map((v, i) => (
             <tr
               key={v.id}
-              style={{ borderBottom: '1px solid var(--color-border-subtle, var(--color-border))' }}
+              style={{
+                borderBottom: '1px solid var(--color-border-subtle, var(--color-border-base))',
+              }}
             >
               <td
                 style={{
@@ -622,11 +626,18 @@ function TopVideosTable({ videos }: { videos: VideoRow[] }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function InsightsPage() {
-  const { channelDbId: channelDbIdStr } = useParams<{ channelDbId: string }>()
-  const channelDbId =
-    channelDbIdStr != null && /^\d+$/.test(channelDbIdStr) ? Number(channelDbIdStr) : undefined
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const paramId = searchParams.get('channelId')
+  const channelDbId = paramId && /^\d+$/.test(paramId) ? Number(paramId) : undefined
+
+  function handleChannelChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const val = e.target.value
+    navigate(val ? `/insights?channelId=${val}` : '/insights', { replace: true })
+  }
 
   // ── Queries ──────────────────────────────────────────────────────────────────
+  const { data: channels } = useChannelsQuery()
   const { data: channel, isLoading: channelLoading } = useChannelQuery(channelDbId)
   const channelName = channel?.title ?? (channel?.handle ? `@${channel.handle}` : undefined)
 
@@ -728,18 +739,123 @@ export default function InsightsPage() {
 
   const normalizedDiagError = diagError ? normalizeHttpError(diagError) : null
 
-  // ── No channel ───────────────────────────────────────────────────────────────
-  if (!channelDbId) {
-    return (
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--space-8)',
+        maxWidth: 900,
+      }}
+    >
+      {/* ── Page header + channel selector ───────────────────────────────── */}
       <div
         style={{
           display: 'flex',
-          flexDirection: 'column',
-          gap: 'var(--space-6)',
-          padding: 'var(--space-4)',
-          maxWidth: 900,
+          flexWrap: 'wrap',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: 'var(--space-4)',
         }}
       >
+        <div>
+          <h1
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'var(--text-2xl)',
+              fontWeight: 700,
+              color: 'var(--color-text-primary)',
+              letterSpacing: 'var(--tracking-tight)',
+              lineHeight: 'var(--leading-tight)',
+              margin: '0 0 var(--space-1)',
+            }}
+          >
+            Insights
+          </h1>
+          <p
+            style={{
+              fontFamily: 'var(--font-body)',
+              fontSize: 'var(--text-sm)',
+              color: 'var(--color-text-secondary)',
+              margin: 0,
+            }}
+          >
+            Creator intelligence and retention analysis
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+          <label
+            htmlFor="insights-channel-select"
+            style={{
+              fontFamily: 'var(--font-body)',
+              fontSize: '11px',
+              fontWeight: 600,
+              color: 'var(--color-text-secondary)',
+            }}
+          >
+            Analyzing
+          </label>
+          <select
+            id="insights-channel-select"
+            value={channelDbId ?? ''}
+            onChange={handleChannelChange}
+            style={{
+              minWidth: 220,
+              padding: 'var(--space-2) var(--space-3)',
+              background: 'var(--color-surface-0)',
+              border: '1px solid var(--color-border-base)',
+              borderRadius: 'var(--radius-md)',
+              fontFamily: 'var(--font-body)',
+              fontSize: 'var(--text-sm)',
+              color: channelDbId ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
+              cursor: 'pointer',
+            }}
+          >
+            <option value="">Select a channel…</option>
+            {channels?.map((ch) => (
+              <option key={ch.id} value={ch.id}>
+                {ch.title ?? ch.channelId}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Breadcrumb — only when a channel is selected */}
+      {channelDbId && (
+        <nav
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-1)',
+            fontFamily: 'var(--font-body)',
+            fontSize: 'var(--text-sm)',
+            color: 'var(--color-text-secondary)',
+            marginTop: 'calc(-1 * var(--space-4))',
+          }}
+        >
+          <Link to="/channels" style={{ color: 'inherit', textDecoration: 'none' }}>
+            Channels
+          </Link>
+          {channelName && (
+            <>
+              <ChevronRight size={12} aria-hidden />
+              <Link
+                to={`/channels/${channelDbId}`}
+                style={{ color: 'inherit', textDecoration: 'none' }}
+              >
+                {channelName}
+              </Link>
+            </>
+          )}
+          <ChevronRight size={12} aria-hidden />
+          <span style={{ color: 'var(--color-text-primary)', fontWeight: 500 }}>Insights</span>
+        </nav>
+      )}
+
+      {/* ── No channel selected ───────────────────────────────────────────── */}
+      {!channelDbId && (
         <div
           style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-3)', ...CARD }}
           data-testid="no-channel"
@@ -757,91 +873,160 @@ export default function InsightsPage() {
               margin: 0,
             }}
           >
-            No channel loaded. Navigate to a channel page and open Insights from there.
+            Select a channel above to view insights.
           </p>
         </div>
-      </div>
-    )
-  }
+      )}
 
-  return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--space-8)',
-        padding: 'var(--space-4)',
-        maxWidth: 900,
-      }}
-    >
-      {/* Breadcrumb */}
-      <nav
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--space-1)',
-          fontFamily: 'var(--font-body)',
-          fontSize: 'var(--text-sm)',
-          color: 'var(--color-text-secondary)',
-        }}
-      >
-        <Link to="/channels" style={{ color: 'inherit', textDecoration: 'none' }}>
-          Channels
-        </Link>
-        {channelName && (
-          <>
-            <ChevronRight size={12} aria-hidden />
-            <Link
-              to={`/channels/${channelDbId}`}
-              style={{ color: 'inherit', textDecoration: 'none' }}
+      {/* ── Channel sections (gated on selection) ───────────────────────── */}
+      {channelDbId && (
+        <>
+          {/* ── Section 1: Data Coverage ─────────────────────────────────────── */}
+          <section>
+            <SectionHeading label="Data Coverage" />
+            <div style={CARD} data-testid="coverage-card">
+              {channelLoading ? (
+                <SkeletonBlock lines={2} />
+              ) : channel ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                  <FreshnessBadge {...mapChannelItemToFreshnessProps(channel)} />
+                  {viewsLoading ? (
+                    <SkeletonBlock lines={1} lastLineWidth="50%" />
+                  ) : viewsPts.length > 0 ? (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-6)' }}>
+                      <div>
+                        <div
+                          style={{
+                            fontFamily: 'var(--font-body)',
+                            fontSize: 'var(--text-xs)',
+                            fontWeight: 600,
+                            color: 'var(--color-text-muted)',
+                            letterSpacing: '0.06em',
+                            textTransform: 'uppercase' as const,
+                            marginBottom: 'var(--space-1)',
+                          }}
+                        >
+                          Snapshot range
+                        </div>
+                        <div
+                          style={{
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: 'var(--text-sm)',
+                            fontVariantNumeric: 'tabular-nums',
+                            color: 'var(--color-text-primary)',
+                          }}
+                        >
+                          {fmtDate(viewsCoverage.firstDate)} — {fmtDate(viewsCoverage.lastDate)}
+                        </div>
+                      </div>
+                      <div>
+                        <div
+                          style={{
+                            fontFamily: 'var(--font-body)',
+                            fontSize: 'var(--text-xs)',
+                            fontWeight: 600,
+                            color: 'var(--color-text-muted)',
+                            letterSpacing: '0.06em',
+                            textTransform: 'uppercase' as const,
+                            marginBottom: 'var(--space-1)',
+                          }}
+                        >
+                          Days captured
+                        </div>
+                        <div
+                          style={{
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: 'var(--text-sm)',
+                            fontVariantNumeric: 'tabular-nums',
+                            color: viewsCoverage.isSparse
+                              ? 'var(--color-warn, var(--color-text-secondary))'
+                              : 'var(--color-text-primary)',
+                          }}
+                        >
+                          {viewsCoverage.capturedDays} of {RANGE}
+                          {viewsCoverage.isSparse ? ' — partial' : ''}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p
+                      style={{
+                        fontFamily: 'var(--font-body)',
+                        fontSize: 'var(--text-sm)',
+                        color: 'var(--color-text-muted)',
+                        margin: 0,
+                      }}
+                    >
+                      No snapshots captured yet. Run a refresh to start collecting data.
+                    </p>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          </section>
+
+          {/* ── Section 2: Trend Snapshot ────────────────────────────────────── */}
+          <section>
+            <SectionHeading label="Trend Snapshot" />
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: 'var(--space-4)',
+              }}
+              data-testid="trend-grid"
             >
-              {channelName}
-            </Link>
-          </>
-        )}
-        <ChevronRight size={12} aria-hidden />
-        <span style={{ color: 'var(--color-text-primary)', fontWeight: 500 }}>Insights</span>
-      </nav>
+              <TrendCard
+                label="Views"
+                loading={viewsLoading}
+                hasError={viewsError}
+                trendLabel={viewsInsights?.trendLabel}
+                avgPerDay={viewsInsights?.avgPerDay}
+                capturedDays={viewsCoverage.capturedDays}
+                unit="views"
+              />
+              <TrendCard
+                label="Subscribers"
+                loading={subsLoading}
+                hasError={subsError}
+                trendLabel={subsInsights?.trendLabel}
+                avgPerDay={subsInsights?.avgPerDay}
+                capturedDays={subsPts.length}
+                unit="subs"
+              />
+            </div>
+          </section>
 
-      {/* Page heading */}
-      <div>
-        <h1
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'var(--text-2xl)',
-            fontWeight: 700,
-            color: 'var(--color-text-primary)',
-            margin: '0 0 var(--space-1)',
-          }}
-        >
-          Insights
-        </h1>
-        <p
-          style={{
-            fontFamily: 'var(--font-body)',
-            fontSize: 'var(--text-sm)',
-            color: 'var(--color-text-secondary)',
-            margin: 0,
-            lineHeight: 'var(--leading-relaxed)',
-          }}
-        >
-          Performance analysis for {channelName ?? 'this channel'} based on captured snapshots.
-        </p>
-      </div>
-
-      {/* ── Section 1: Data Coverage ─────────────────────────────────────── */}
-      <section>
-        <SectionHeading label="Data Coverage" />
-        <div style={CARD} data-testid="coverage-card">
-          {channelLoading ? (
-            <SkeletonBlock lines={2} />
-          ) : channel ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-              <FreshnessBadge {...mapChannelItemToFreshnessProps(channel)} />
-              {viewsLoading ? (
-                <SkeletonBlock lines={1} lastLineWidth="50%" />
-              ) : viewsPts.length > 0 ? (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-6)' }}>
+          {/* ── Section 3: Upload Activity ───────────────────────────────────── */}
+          <section>
+            <SectionHeading label="Upload Activity" />
+            <div style={CARD} data-testid="upload-activity-card">
+              {uploadsLoading ? (
+                <SkeletonBlock lines={2} />
+              ) : uploadsError ? (
+                <p
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    fontSize: 'var(--text-sm)',
+                    color: 'var(--color-text-muted)',
+                    margin: 0,
+                  }}
+                >
+                  Upload data unavailable.
+                </p>
+              ) : uploadsPts.length < 2 ? (
+                <p
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    fontSize: 'var(--text-sm)',
+                    color: 'var(--color-text-muted)',
+                    margin: 0,
+                  }}
+                >
+                  Not enough snapshot data to compute upload activity.
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-8)' }}>
                   <div>
                     <div
                       style={{
@@ -854,17 +1039,18 @@ export default function InsightsPage() {
                         marginBottom: 'var(--space-1)',
                       }}
                     >
-                      Snapshot range
+                      New videos ({RANGE}d)
                     </div>
                     <div
                       style={{
                         fontFamily: 'var(--font-mono)',
-                        fontSize: 'var(--text-sm)',
+                        fontSize: 'var(--text-2xl)',
+                        fontWeight: 700,
                         fontVariantNumeric: 'tabular-nums',
                         color: 'var(--color-text-primary)',
                       }}
                     >
-                      {fmtDate(viewsCoverage.firstDate)} — {fmtDate(viewsCoverage.lastDate)}
+                      {totalNewUploads}
                     </div>
                   </div>
                   <div>
@@ -879,471 +1065,447 @@ export default function InsightsPage() {
                         marginBottom: 'var(--space-1)',
                       }}
                     >
-                      Days captured
+                      Avg per week
                     </div>
                     <div
                       style={{
                         fontFamily: 'var(--font-mono)',
-                        fontSize: 'var(--text-sm)',
+                        fontSize: 'var(--text-2xl)',
+                        fontWeight: 700,
                         fontVariantNumeric: 'tabular-nums',
-                        color: viewsCoverage.isSparse
-                          ? 'var(--color-warn, var(--color-text-secondary))'
-                          : 'var(--color-text-primary)',
+                        color: 'var(--color-text-primary)',
                       }}
                     >
-                      {viewsCoverage.capturedDays} of {RANGE}
-                      {viewsCoverage.isSparse ? ' — partial' : ''}
+                      {uploadsPerWeek ?? '—'}
+                    </div>
+                  </div>
+                  <div>
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-body)',
+                        fontSize: 'var(--text-xs)',
+                        fontWeight: 600,
+                        color: 'var(--color-text-muted)',
+                        letterSpacing: '0.06em',
+                        textTransform: 'uppercase' as const,
+                        marginBottom: 'var(--space-1)',
+                      }}
+                    >
+                      Pace
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-display)',
+                        fontSize: 'var(--text-xl)',
+                        fontWeight: 700,
+                        color:
+                          uploadPace === 'Active'
+                            ? 'var(--color-up)'
+                            : uploadPace === 'Sparse'
+                              ? 'var(--color-warn, var(--color-text-secondary))'
+                              : 'var(--color-text-primary)',
+                      }}
+                    >
+                      {uploadPace}
                     </div>
                   </div>
                 </div>
-              ) : (
+              )}
+            </div>
+          </section>
+
+          {/* ── Section 4: Top Videos ────────────────────────────────────────── */}
+          <section>
+            <SectionHeading label="Top Videos by Views" />
+            {videosLoading ? (
+              <div style={CARD}>
+                <SkeletonBlock lines={5} />
+              </div>
+            ) : videosError ? (
+              <div
+                style={{
+                  ...CARD,
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--color-text-muted)',
+                }}
+              >
+                Could not load video data.
+              </div>
+            ) : !videosData?.items.length ? (
+              <div
+                style={{
+                  ...CARD,
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 'var(--text-sm)',
+                  color: 'var(--color-text-muted)',
+                }}
+              >
+                No videos found for this channel.
+              </div>
+            ) : (
+              <TopVideosTable videos={videosData.items} />
+            )}
+          </section>
+
+          {/* ── Section 5: Owner Insights ────────────────────────────────────── */}
+          <section>
+            <SectionHeading label="Retention Diagnosis" badge={<OwnerBadge />} />
+
+            {/* Not-connected gate */}
+            {!accountLoading && !isConnected && (
+              <div
+                style={{
+                  ...CARD,
+                  borderColor: 'color-mix(in srgb, var(--accent) 25%, var(--color-border-base))',
+                }}
+                data-testid="not-connected"
+              >
+                {/* Header */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--space-2)',
+                    marginBottom: 'var(--space-3)',
+                  }}
+                >
+                  <Lock size={15} aria-hidden style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                  <p
+                    style={{
+                      fontFamily: 'var(--font-display)',
+                      fontSize: 'var(--text-base)',
+                      fontWeight: 600,
+                      color: 'var(--color-text-primary)',
+                      margin: 0,
+                    }}
+                  >
+                    Owner analytics required
+                  </p>
+                </div>
+
+                {/* Description */}
                 <p
                   style={{
                     fontFamily: 'var(--font-body)',
                     fontSize: 'var(--text-sm)',
-                    color: 'var(--color-text-muted)',
-                    margin: 0,
-                  }}
-                >
-                  No snapshots captured yet. Run a refresh to start collecting data.
-                </p>
-              )}
-            </div>
-          ) : null}
-        </div>
-      </section>
-
-      {/* ── Section 2: Trend Snapshot ────────────────────────────────────── */}
-      <section>
-        <SectionHeading label="Trend Snapshot" />
-        <div
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--space-4)' }}
-          data-testid="trend-grid"
-        >
-          <TrendCard
-            label="Views"
-            loading={viewsLoading}
-            hasError={viewsError}
-            trendLabel={viewsInsights?.trendLabel}
-            avgPerDay={viewsInsights?.avgPerDay}
-            capturedDays={viewsCoverage.capturedDays}
-            unit="views"
-          />
-          <TrendCard
-            label="Subscribers"
-            loading={subsLoading}
-            hasError={subsError}
-            trendLabel={subsInsights?.trendLabel}
-            avgPerDay={subsInsights?.avgPerDay}
-            capturedDays={subsPts.length}
-            unit="subs"
-          />
-        </div>
-      </section>
-
-      {/* ── Section 3: Upload Activity ───────────────────────────────────── */}
-      <section>
-        <SectionHeading label="Upload Activity" />
-        <div style={CARD} data-testid="upload-activity-card">
-          {uploadsLoading ? (
-            <SkeletonBlock lines={2} />
-          ) : uploadsError ? (
-            <p
-              style={{
-                fontFamily: 'var(--font-body)',
-                fontSize: 'var(--text-sm)',
-                color: 'var(--color-text-muted)',
-                margin: 0,
-              }}
-            >
-              Upload data unavailable.
-            </p>
-          ) : uploadsPts.length < 2 ? (
-            <p
-              style={{
-                fontFamily: 'var(--font-body)',
-                fontSize: 'var(--text-sm)',
-                color: 'var(--color-text-muted)',
-                margin: 0,
-              }}
-            >
-              Not enough snapshot data to compute upload activity.
-            </p>
-          ) : (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-8)' }}>
-              <div>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-body)',
-                    fontSize: 'var(--text-xs)',
-                    fontWeight: 600,
-                    color: 'var(--color-text-muted)',
-                    letterSpacing: '0.06em',
-                    textTransform: 'uppercase' as const,
-                    marginBottom: 'var(--space-1)',
-                  }}
-                >
-                  New videos ({RANGE}d)
-                </div>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 'var(--text-2xl)',
-                    fontWeight: 700,
-                    fontVariantNumeric: 'tabular-nums',
-                    color: 'var(--color-text-primary)',
-                  }}
-                >
-                  {totalNewUploads}
-                </div>
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-body)',
-                    fontSize: 'var(--text-xs)',
-                    fontWeight: 600,
-                    color: 'var(--color-text-muted)',
-                    letterSpacing: '0.06em',
-                    textTransform: 'uppercase' as const,
-                    marginBottom: 'var(--space-1)',
-                  }}
-                >
-                  Avg per week
-                </div>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 'var(--text-2xl)',
-                    fontWeight: 700,
-                    fontVariantNumeric: 'tabular-nums',
-                    color: 'var(--color-text-primary)',
-                  }}
-                >
-                  {uploadsPerWeek ?? '—'}
-                </div>
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-body)',
-                    fontSize: 'var(--text-xs)',
-                    fontWeight: 600,
-                    color: 'var(--color-text-muted)',
-                    letterSpacing: '0.06em',
-                    textTransform: 'uppercase' as const,
-                    marginBottom: 'var(--space-1)',
-                  }}
-                >
-                  Pace
-                </div>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-display)',
-                    fontSize: 'var(--text-xl)',
-                    fontWeight: 700,
-                    color:
-                      uploadPace === 'Active'
-                        ? 'var(--color-up)'
-                        : uploadPace === 'Sparse'
-                          ? 'var(--color-warn, var(--color-text-secondary))'
-                          : 'var(--color-text-primary)',
-                  }}
-                >
-                  {uploadPace}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* ── Section 4: Top Videos ────────────────────────────────────────── */}
-      <section>
-        <SectionHeading label="Top Videos by Views" />
-        {videosLoading ? (
-          <div style={CARD}>
-            <SkeletonBlock lines={5} />
-          </div>
-        ) : videosError ? (
-          <div
-            style={{
-              ...CARD,
-              fontFamily: 'var(--font-body)',
-              fontSize: 'var(--text-sm)',
-              color: 'var(--color-text-muted)',
-            }}
-          >
-            Could not load video data.
-          </div>
-        ) : !videosData?.items.length ? (
-          <div
-            style={{
-              ...CARD,
-              fontFamily: 'var(--font-body)',
-              fontSize: 'var(--text-sm)',
-              color: 'var(--color-text-muted)',
-            }}
-          >
-            No videos found for this channel.
-          </div>
-        ) : (
-          <TopVideosTable videos={videosData.items} />
-        )}
-      </section>
-
-      {/* ── Section 5: Owner Insights ────────────────────────────────────── */}
-      <section>
-        <SectionHeading label="Retention Diagnosis" badge={<OwnerBadge />} />
-
-        {/* Not-connected gate */}
-        {!accountLoading && !isConnected && (
-          <div
-            style={{
-              ...CARD,
-              borderColor: 'color-mix(in srgb, var(--accent) 25%, var(--color-border))',
-            }}
-            data-testid="not-connected"
-          >
-            {/* Header */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--space-2)',
-                marginBottom: 'var(--space-3)',
-              }}
-            >
-              <Lock size={15} aria-hidden style={{ color: 'var(--accent)', flexShrink: 0 }} />
-              <p
-                style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: 'var(--text-base)',
-                  fontWeight: 600,
-                  color: 'var(--color-text-primary)',
-                  margin: 0,
-                }}
-              >
-                Owner analytics required
-              </p>
-            </div>
-
-            {/* Description */}
-            <p
-              style={{
-                fontFamily: 'var(--font-body)',
-                fontSize: 'var(--text-sm)',
-                color: 'var(--color-text-secondary)',
-                margin: '0 0 var(--space-4)',
-                lineHeight: 'var(--leading-relaxed)',
-              }}
-            >
-              Retention Diagnosis reads your YouTube Analytics retention curve and identifies where
-              viewers stop watching — broken down by severity, timestamp, and root cause.
-            </p>
-
-            {/* What you get */}
-            <ul
-              style={{
-                listStyle: 'none',
-                padding: 0,
-                margin: '0 0 var(--space-4)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 'var(--space-2)',
-              }}
-            >
-              {[
-                'Drop event detection with severity (HIGH / MEDIUM / LOW)',
-                'Root cause labels: hook weakness, pacing issues, outro length',
-                'Exact video timestamps and viewer retention percentages',
-              ].map((item) => (
-                <li
-                  key={item}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 'var(--space-2)',
-                    fontFamily: 'var(--font-body)',
-                    fontSize: 'var(--text-sm)',
                     color: 'var(--color-text-secondary)',
+                    margin: '0 0 var(--space-4)',
                     lineHeight: 'var(--leading-relaxed)',
                   }}
                 >
-                  <CheckCircle2
-                    size={13}
-                    aria-hidden
-                    style={{ color: 'var(--accent)', flexShrink: 0, marginTop: '3px' }}
-                  />
-                  {item}
-                </li>
-              ))}
-            </ul>
+                  Retention Diagnosis reads your YouTube Analytics retention curve and identifies
+                  where viewers stop watching — broken down by severity, timestamp, and root cause.
+                </p>
 
-            {/* CTA */}
-            {oauthOpened ? (
-              <p
-                style={{
-                  fontFamily: 'var(--font-body)',
-                  fontSize: 'var(--text-xs)',
-                  color: 'var(--color-text-secondary)',
-                  lineHeight: 'var(--leading-relaxed)',
-                  margin: 0,
-                }}
-              >
-                Sign-in window opened. Complete the flow — this page will update automatically.
-              </p>
-            ) : (
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 'var(--space-2)',
-                  alignItems: 'flex-start',
-                }}
-              >
-                <button
-                  type="button"
-                  disabled={isStartingOAuth}
-                  onClick={() => void handleConnectFromInsights()}
+                {/* What you get */}
+                <ul
                   style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
+                    listStyle: 'none',
+                    padding: 0,
+                    margin: '0 0 var(--space-4)',
+                    display: 'flex',
+                    flexDirection: 'column',
                     gap: 'var(--space-2)',
-                    background: 'var(--accent)',
-                    color: 'var(--color-text-inverse)',
-                    fontFamily: 'var(--font-body)',
-                    fontSize: 'var(--text-sm)',
-                    fontWeight: 600,
-                    border: 'none',
-                    borderRadius: 'var(--radius-md)',
-                    padding: 'var(--space-2) var(--space-4)',
-                    cursor: isStartingOAuth ? 'not-allowed' : 'pointer',
-                    opacity: isStartingOAuth ? 0.7 : 1,
-                    transition: 'opacity var(--duration-base) var(--ease-standard)',
                   }}
                 >
-                  {isStartingOAuth && <Loader2 size={13} className="animate-spin" aria-hidden />}
-                  Connect YouTube Account
-                </button>
-                {connectError && (
+                  {[
+                    'Drop event detection with severity (HIGH / MEDIUM / LOW)',
+                    'Root cause labels: hook weakness, pacing issues, outro length',
+                    'Exact video timestamps and viewer retention percentages',
+                  ].map((item) => (
+                    <li
+                      key={item}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 'var(--space-2)',
+                        fontFamily: 'var(--font-body)',
+                        fontSize: 'var(--text-sm)',
+                        color: 'var(--color-text-secondary)',
+                        lineHeight: 'var(--leading-relaxed)',
+                      }}
+                    >
+                      <CheckCircle2
+                        size={13}
+                        aria-hidden
+                        style={{ color: 'var(--accent)', flexShrink: 0, marginTop: '3px' }}
+                      />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+
+                {/* CTA */}
+                {oauthOpened ? (
                   <p
                     style={{
                       fontFamily: 'var(--font-body)',
                       fontSize: 'var(--text-xs)',
-                      color: 'var(--color-down)',
+                      color: 'var(--color-text-secondary)',
+                      lineHeight: 'var(--leading-relaxed)',
                       margin: 0,
                     }}
                   >
-                    {connectError}
+                    Sign-in window opened. Complete the flow — this page will update automatically.
                   </p>
+                ) : (
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 'var(--space-2)',
+                      alignItems: 'flex-start',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      disabled={isStartingOAuth}
+                      onClick={() => void handleConnectFromInsights()}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 'var(--space-2)',
+                        background: 'var(--accent)',
+                        color: 'var(--color-text-inverse)',
+                        fontFamily: 'var(--font-body)',
+                        fontSize: 'var(--text-sm)',
+                        fontWeight: 600,
+                        border: 'none',
+                        borderRadius: 'var(--radius-md)',
+                        padding: 'var(--space-2) var(--space-4)',
+                        cursor: isStartingOAuth ? 'not-allowed' : 'pointer',
+                        opacity: isStartingOAuth ? 0.7 : 1,
+                        transition: 'opacity var(--duration-base) var(--ease-standard)',
+                      }}
+                    >
+                      {isStartingOAuth && (
+                        <Loader2 size={13} className="animate-spin" aria-hidden />
+                      )}
+                      Connect YouTube Account
+                    </button>
+                    {connectError && (
+                      <p
+                        style={{
+                          fontFamily: 'var(--font-body)',
+                          fontSize: 'var(--text-xs)',
+                          color: 'var(--color-down)',
+                          margin: 0,
+                        }}
+                      >
+                        {connectError}
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             )}
-          </div>
-        )}
 
-        {/* Diagnosis form */}
-        {isConnected && channel && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-            <form
-              onSubmit={handleSubmit}
-              style={{ ...CARD, display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}
-              data-testid="diagnosis-form"
-            >
-              <label
+            {/* Diagnosis form */}
+            {isConnected && channel && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <form
+                  onSubmit={handleSubmit}
+                  style={{
+                    ...CARD,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 'var(--space-3)',
+                  }}
+                  data-testid="diagnosis-form"
+                >
+                  <label
+                    style={{
+                      fontFamily: 'var(--font-body)',
+                      fontSize: 'var(--text-sm)',
+                      fontWeight: 600,
+                      color: 'var(--color-text-primary)',
+                    }}
+                  >
+                    Video ID or URL
+                  </label>
+                  <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                    <input
+                      type="text"
+                      value={rawInput}
+                      onChange={(e) => handleInputChange(e.target.value)}
+                      placeholder="dQw4w9WgXcQ or https://youtube.com/watch?v=..."
+                      aria-label="Video ID or URL"
+                      data-testid="video-input"
+                      style={{
+                        flex: 1,
+                        fontFamily: 'var(--font-body)',
+                        fontSize: 'var(--text-sm)',
+                        color: 'var(--color-text-primary)',
+                        background: 'var(--color-surface)',
+                        border: `1px solid ${inputError ? 'var(--color-down)' : 'var(--color-border-base)'}`,
+                        borderRadius: 'var(--radius-md)',
+                        padding: 'var(--space-2) var(--space-3)',
+                        outline: 'none',
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      disabled={isPending || !rawInput.trim()}
+                      data-testid="analyze-button"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 'var(--space-1)',
+                        fontFamily: 'var(--font-body)',
+                        fontSize: 'var(--text-sm)',
+                        fontWeight: 600,
+                        color: 'var(--color-text-inverse)',
+                        background:
+                          isPending || !rawInput.trim()
+                            ? 'var(--color-border-strong)'
+                            : 'var(--accent)',
+                        border: 'none',
+                        borderRadius: 'var(--radius-md)',
+                        padding: 'var(--space-2) var(--space-4)',
+                        cursor: isPending || !rawInput.trim() ? 'not-allowed' : 'pointer',
+                        transition: 'opacity var(--duration-base) var(--ease-standard)',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      <Search size={14} aria-hidden />
+                      {isPending ? 'Analyzing...' : 'Analyze'}
+                    </button>
+                  </div>
+                  {inputError && (
+                    <p
+                      role="alert"
+                      style={{
+                        fontFamily: 'var(--font-body)',
+                        fontSize: 'var(--text-xs)',
+                        color: 'var(--color-down)',
+                        margin: 0,
+                      }}
+                    >
+                      {inputError}
+                    </p>
+                  )}
+                </form>
+
+                {isPending && (
+                  <div data-testid="loading-state">
+                    <SkeletonBlock lines={6} />
+                  </div>
+                )}
+
+                {normalizedDiagError && !isPending && (
+                  <ErrorState
+                    title="Diagnosis failed"
+                    description={normalizedDiagError.message}
+                    actionLabel="Dismiss"
+                    onAction={reset}
+                    status={normalizedDiagError.status}
+                    code={normalizedDiagError.code}
+                  />
+                )}
+
+                {diagResult && !isPending && <DiagnosisResults result={diagResult} />}
+              </div>
+            )}
+          </section>
+        </>
+      )}
+
+      {/* ── Coming Soon ──────────────────────────────────────────────────── */}
+      <section>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+            marginBottom: 'var(--space-4)',
+          }}
+        >
+          <h2
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'var(--text-lg)',
+              fontWeight: 600,
+              color: 'var(--color-text-muted)',
+              margin: 0,
+            }}
+          >
+            More Insights
+          </h2>
+        </div>
+        <div
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--space-4)' }}
+        >
+          {[
+            {
+              label: 'Watch Time Analysis',
+              desc: 'Average view duration trends and watch time by upload day.',
+            },
+            {
+              label: 'Subscriber Velocity',
+              desc: 'Subscriber gain/loss rate and churn patterns over time.',
+            },
+            {
+              label: 'Content Performance by Category',
+              desc: 'Which topics and formats drive the most views.',
+            },
+            {
+              label: 'Audience Retention Curves',
+              desc: 'Aggregate retention across all indexed videos.',
+            },
+          ].map(({ label, desc }) => (
+            <div key={label} style={{ ...CARD, opacity: 0.5 }}>
+              <div
                 style={{
-                  fontFamily: 'var(--font-body)',
-                  fontSize: 'var(--text-sm)',
-                  fontWeight: 600,
-                  color: 'var(--color-text-primary)',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  gap: 'var(--space-3)',
                 }}
               >
-                Video ID or URL
-              </label>
-              <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                <input
-                  type="text"
-                  value={rawInput}
-                  onChange={(e) => handleInputChange(e.target.value)}
-                  placeholder="dQw4w9WgXcQ or https://youtube.com/watch?v=..."
-                  aria-label="Video ID or URL"
-                  data-testid="video-input"
+                <div>
+                  <p
+                    style={{
+                      fontFamily: 'var(--font-body)',
+                      fontSize: 'var(--text-sm)',
+                      fontWeight: 600,
+                      color: 'var(--color-text-primary)',
+                      margin: '0 0 var(--space-1)',
+                    }}
+                  >
+                    {label}
+                  </p>
+                  <p
+                    style={{
+                      fontFamily: 'var(--font-body)',
+                      fontSize: 'var(--text-sm)',
+                      color: 'var(--color-text-muted)',
+                      margin: 0,
+                    }}
+                  >
+                    {desc}
+                  </p>
+                </div>
+                <span
                   style={{
-                    flex: 1,
+                    flexShrink: 0,
                     fontFamily: 'var(--font-body)',
-                    fontSize: 'var(--text-sm)',
-                    color: 'var(--color-text-primary)',
-                    background: 'var(--color-surface)',
-                    border: `1px solid ${inputError ? 'var(--color-down)' : 'var(--color-border)'}`,
-                    borderRadius: 'var(--radius-md)',
-                    padding: 'var(--space-2) var(--space-3)',
-                    outline: 'none',
-                  }}
-                />
-                <button
-                  type="submit"
-                  disabled={isPending || !rawInput.trim()}
-                  data-testid="analyze-button"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 'var(--space-1)',
-                    fontFamily: 'var(--font-body)',
-                    fontSize: 'var(--text-sm)',
-                    fontWeight: 600,
-                    color: 'var(--color-text-inverse)',
-                    background:
-                      isPending || !rawInput.trim()
-                        ? 'var(--color-border-strong)'
-                        : 'var(--accent)',
-                    border: 'none',
-                    borderRadius: 'var(--radius-md)',
-                    padding: 'var(--space-2) var(--space-4)',
-                    cursor: isPending || !rawInput.trim() ? 'not-allowed' : 'pointer',
-                    transition: 'opacity var(--duration-base) var(--ease-standard)',
-                    whiteSpace: 'nowrap',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    color: 'var(--color-text-muted)',
+                    background: 'var(--color-surface-2)',
+                    border: '1px solid var(--color-border-base)',
+                    borderRadius: 'var(--radius-full)',
+                    padding: '2px 8px',
+                    whiteSpace: 'nowrap' as const,
                   }}
                 >
-                  <Search size={14} aria-hidden />
-                  {isPending ? 'Analyzing...' : 'Analyze'}
-                </button>
+                  Coming Soon
+                </span>
               </div>
-              {inputError && (
-                <p
-                  role="alert"
-                  style={{
-                    fontFamily: 'var(--font-body)',
-                    fontSize: 'var(--text-xs)',
-                    color: 'var(--color-down)',
-                    margin: 0,
-                  }}
-                >
-                  {inputError}
-                </p>
-              )}
-            </form>
-
-            {isPending && (
-              <div data-testid="loading-state">
-                <SkeletonBlock lines={6} />
-              </div>
-            )}
-
-            {normalizedDiagError && !isPending && (
-              <ErrorState
-                title="Diagnosis failed"
-                description={normalizedDiagError.message}
-                actionLabel="Dismiss"
-                onAction={reset}
-                status={normalizedDiagError.status}
-                code={normalizedDiagError.code}
-              />
-            )}
-
-            {diagResult && !isPending && <DiagnosisResults result={diagResult} />}
-          </div>
-        )}
+            </div>
+          ))}
+        </div>
       </section>
     </div>
   )

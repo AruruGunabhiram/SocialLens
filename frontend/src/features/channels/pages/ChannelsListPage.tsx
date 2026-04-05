@@ -10,6 +10,26 @@ import { fmtCompact, fmtSubscribers } from '@/lib/format'
 import { toastError } from '@/lib/toast'
 import { useChannelRefreshByIdMutation, useChannelsQuery } from '../queries'
 
+// ─── Error helpers ────────────────────────────────────────────────────────────
+
+function humanizeError(raw: string | null | undefined): string {
+  if (!raw) return 'Sync failed — no error details available.'
+  const lower = raw.toLowerCase()
+  if (
+    lower.includes('i/o error') ||
+    lower.includes('connection refused') ||
+    lower.includes('timed out') ||
+    lower.includes('unknown host') ||
+    lower.includes('connection reset')
+  ) {
+    return 'Network error: Could not reach the YouTube API.'
+  }
+  if (lower.includes('403')) return 'API quota exceeded or access denied (HTTP 403).'
+  if (lower.includes('404')) return 'Channel not found on YouTube (HTTP 404).'
+  if (lower.includes('401')) return 'Authentication failed — credentials may be invalid.'
+  return raw
+}
+
 // ─── Avatar ──────────────────────────────────────────────────────────────────
 
 // Deterministic color per channel so the placeholder circle is visually distinct
@@ -191,15 +211,23 @@ function ChannelCard({ channel }: { channel: ChannelItem }) {
       ? `${snapshotCount} day${snapshotCount !== 1 ? 's' : ''} of data`
       : 'No snapshot data'
 
-  // Truncated error preview (first 80 chars)
-  const errorPreview = channel.lastRefreshError
-    ? channel.lastRefreshError.length > 80
-      ? channel.lastRefreshError.slice(0, 80).trimEnd() + '…'
-      : channel.lastRefreshError
+  // Human-friendly error, truncated to 60 chars for the card
+  const humanMsg = isFailed ? humanizeError(channel.lastRefreshError) : null
+  const errorPreview = humanMsg
+    ? humanMsg.length > 60
+      ? humanMsg.slice(0, 60).trimEnd() + '…'
+      : humanMsg
     : null
 
   return (
-    <Card className="flex flex-col" style={{ padding: 'var(--space-5)', gap: 0 }}>
+    <Card
+      className="flex flex-col"
+      style={{
+        padding: 'var(--space-5)',
+        gap: 0,
+        borderLeft: isFailed ? '3px solid var(--color-down)' : undefined,
+      }}
+    >
       {/* ── Header: avatar + identity + status ── */}
       <div className="flex items-start gap-3">
         <ChannelAvatar channel={channel} />
@@ -338,32 +366,17 @@ function ChannelCard({ channel }: { channel: ChannelItem }) {
             borderRadius: 'var(--radius-md)',
           }}
         >
-          {errorPreview && (
-            <p
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 'var(--text-xs)',
-                color: 'var(--color-down)',
-                lineHeight: 'var(--leading-relaxed)',
-                marginBottom: 'var(--space-2)',
-                wordBreak: 'break-all',
-              }}
-            >
-              {errorPreview}
-            </p>
-          )}
-          {!errorPreview && (
-            <p
-              style={{
-                fontFamily: 'var(--font-body)',
-                fontSize: 'var(--text-xs)',
-                color: 'var(--color-down)',
-                marginBottom: 'var(--space-2)',
-              }}
-            >
-              Last sync failed — no error details available.
-            </p>
-          )}
+          <p
+            style={{
+              fontFamily: 'var(--font-body)',
+              fontSize: 'var(--text-xs)',
+              color: 'var(--color-down)',
+              lineHeight: 'var(--leading-relaxed)',
+              marginBottom: 'var(--space-2)',
+            }}
+          >
+            {errorPreview}
+          </p>
           <button
             type="button"
             disabled={refresh.isPending}

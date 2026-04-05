@@ -1,55 +1,274 @@
+import { differenceInDays, isValid, parseISO } from 'date-fns'
+import {
+  AlertTriangle,
+  BarChart2,
+  Lightbulb,
+  Loader2,
+  RefreshCw,
+  TrendingUp,
+  Video,
+} from 'lucide-react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 
-import { DataTable } from '@/components/common/DataTable'
+// ─── Error helpers ────────────────────────────────────────────────────────────
+
+type HumanizedError = { message: string; isRaw: boolean }
+
+function humanizeError(raw: string | null | undefined): HumanizedError {
+  if (!raw) return { message: 'An unknown error occurred.', isRaw: false }
+  const lower = raw.toLowerCase()
+  if (
+    lower.includes('i/o error') ||
+    lower.includes('connection refused') ||
+    lower.includes('timed out') ||
+    lower.includes('unknown host') ||
+    lower.includes('connection reset')
+  ) {
+    return {
+      message:
+        'Network error: Could not reach the YouTube API. This may be a temporary connectivity issue.',
+      isRaw: false,
+    }
+  }
+  if (lower.includes('403'))
+    return { message: 'API quota exceeded or access denied (HTTP 403).', isRaw: false }
+  if (lower.includes('404'))
+    return { message: 'Channel not found on YouTube (HTTP 404).', isRaw: false }
+  if (lower.includes('401'))
+    return {
+      message: 'Authentication failed — API credentials may be invalid (HTTP 401).',
+      isRaw: false,
+    }
+  return { message: raw, isRaw: true }
+}
+
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
-import { SkeletonBlock } from '@/components/common/SkeletonBlock'
-import { Separator } from '@/components/ui/separator'
-
-import { ChannelHeader } from '../components/ChannelHeader'
-import { mapChannelItemToFreshnessProps, humanRefreshStatus } from '../components/FreshnessBadge'
-import { fmtDate, fmtDateTime } from '@/lib/format'
-import { ChannelStats } from '../components/ChannelStats'
-import { ChannelChart } from '../components/ChannelChart'
-import { toastError } from '@/lib/toast'
+import { InfoTooltip } from '@/components/common/InfoTooltip'
+import { StatCard } from '@/components/common/StatCard'
 import { normalizeHttpError } from '@/api/httpError'
-import { useChannelAnalyticsByIdQuery, useChannelQuery, useVideosQuery } from '../queries'
+import { fmtCompact, fmtDate, fmtDateTime, fmtSubscribers } from '@/lib/format'
+import { toastError } from '@/lib/toast'
+
+import { ChannelChart } from '../components/ChannelChart'
+import { FreshnessBadge, mapChannelItemToFreshnessProps } from '../components/FreshnessBadge'
+import {
+  useChannelAnalyticsByIdQuery,
+  useChannelQuery,
+  useChannelRefreshByIdMutation,
+  useVideosQuery,
+} from '../queries'
+
+// ─── Avatar ───────────────────────────────────────────────────────────────────
+
+const AVATAR_BG = [
+  'var(--chart-1)',
+  'var(--chart-2)',
+  'var(--chart-3)',
+  'var(--chart-4)',
+  'var(--chart-5)',
+  'var(--chart-6)',
+]
+
+function ChannelAvatar({
+  thumbnailUrl,
+  title,
+  id,
+}: {
+  thumbnailUrl?: string | null
+  title?: string | null
+  id: number
+}) {
+  const initial = (title ?? '?')[0].toUpperCase()
+  const bg = AVATAR_BG[id % AVATAR_BG.length]
+
+  if (thumbnailUrl) {
+    return (
+      <img
+        src={thumbnailUrl}
+        alt={title ?? 'Channel avatar'}
+        className="rounded-full object-cover shrink-0"
+        style={{ width: 64, height: 64 }}
+        onError={(e) => {
+          const target = e.currentTarget
+          target.style.display = 'none'
+          const sibling = target.nextElementSibling as HTMLElement | null
+          if (sibling) sibling.style.display = 'flex'
+        }}
+      />
+    )
+  }
+
+  return (
+    <div
+      className="shrink-0 rounded-full flex items-center justify-center"
+      style={{
+        width: 64,
+        height: 64,
+        background: bg,
+        color: 'var(--color-surface-1, #fff)',
+        fontSize: 26,
+        fontFamily: 'var(--font-display)',
+        fontWeight: 700,
+      }}
+      aria-hidden="true"
+    >
+      {initial}
+    </div>
+  )
+}
+
+// ─── Upload frequency ─────────────────────────────────────────────────────────
+
+function computeUploadFreq(
+  publishedAt: string | null | undefined,
+  videoCount: number | null | undefined
+): string {
+  if (!publishedAt || videoCount == null) return '—'
+  const created = parseISO(publishedAt)
+  if (!isValid(created)) return '—'
+  const days = Math.max(1, differenceInDays(new Date(), created))
+  const perWeek = videoCount / (days / 7)
+  if (perWeek >= 1) return `${perWeek.toFixed(1).replace(/\.0$/, '')} / week`
+  const perMonth = videoCount / (days / 30.44)
+  if (perMonth >= 1) return `${perMonth.toFixed(1).replace(/\.0$/, '')} / month`
+  return `${videoCount} total`
+}
+
+// ─── Recent video row ─────────────────────────────────────────────────────────
+
+const YT_WATCH = 'https://youtube.com/watch?v='
+
+function RecentVideoRow({
+  videoId,
+  title,
+  thumbnailUrl,
+  publishedAt,
+  viewCount,
+}: {
+  videoId: string
+  title?: string | null
+  thumbnailUrl?: string | null
+  publishedAt?: string | null
+  viewCount?: number | null
+}) {
+  const ytUrl = `${YT_WATCH}${videoId}`
+  const displayTitle = title ?? `youtube.com/watch?v=${videoId}`
+
+  return (
+    <div className="flex items-center gap-3 py-2">
+      {/* Thumbnail */}
+      <a href={ytUrl} target="_blank" rel="noopener noreferrer" className="shrink-0">
+        {thumbnailUrl ? (
+          <img
+            src={thumbnailUrl}
+            alt={title ?? ''}
+            className="rounded object-cover"
+            style={{ width: 64, height: 36 }}
+          />
+        ) : (
+          <div
+            className="rounded flex items-center justify-center"
+            style={{
+              width: 64,
+              height: 36,
+              background: 'var(--color-surface-2, #1a1a1a)',
+            }}
+          >
+            <Video size={14} style={{ color: 'var(--color-text-muted)' }} aria-hidden="true" />
+          </div>
+        )}
+      </a>
+
+      {/* Title + meta */}
+      <div className="min-w-0 flex-1">
+        <a
+          href={ytUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block truncate text-sm font-medium leading-snug hover:underline"
+          style={!title ? { color: 'var(--color-text-muted)', fontStyle: 'italic' } : undefined}
+        >
+          {displayTitle}
+        </a>
+        <div className="flex items-center gap-3 mt-0.5" style={{ fontSize: 11 }}>
+          {publishedAt && (
+            <span style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
+              {fmtDate(publishedAt)}
+            </span>
+          )}
+          {viewCount != null && (
+            <span style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
+              {fmtCompact(viewCount)} views
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ChannelOverviewPage() {
-  // Support both /channels/:channelDbId (path param) and /channel?channelDbId= (legacy)
   const { channelDbId: channelDbIdParam } = useParams<{ channelDbId?: string }>()
   const [searchParams] = useSearchParams()
   const channelDbIdStr = channelDbIdParam ?? searchParams.get('channelDbId')
   const channelDbId = channelDbIdStr ? Number(channelDbIdStr) : undefined
 
-  // Analytics data (chart, stats, video list details)
   const { data, isLoading, isFetching, isError, error, refetch } =
     useChannelAnalyticsByIdQuery(channelDbId)
-
-  // Channel detail from /channels/:id — provides authoritative freshness timestamps
   const { data: channelDetail } = useChannelQuery(channelDbId)
-
-  // Fetch page metadata (size=1) to cheaply obtain the SocialLens indexed video count.
   const { data: videosPage } = useVideosQuery(channelDbId ?? 0, {
     page: 0,
-    size: 1,
+    size: 5,
     sort: 'publishedAt',
     dir: 'desc',
   })
-  const indexedVideoCount = videosPage?.page.totalItems
+
+  const refresh = useChannelRefreshByIdMutation()
+  const isRefreshing = refresh.isPending
 
   const legacyChannelId = searchParams.get('channelId') ?? ''
+  const title = data?.title ?? channelDetail?.title
+  const channelId = data?.channelId ?? channelDetail?.channelId ?? legacyChannelId
+  const isFailed = channelDetail?.lastRefreshStatus === 'FAILED'
 
+  // Days since last successful sync — used for stale data warning
+  const staleDays = (() => {
+    if (!channelDetail?.lastSuccessfulRefreshAt) return 0
+    const d = parseISO(channelDetail.lastSuccessfulRefreshAt)
+    return isValid(d) ? Math.max(0, differenceInDays(new Date(), d)) : 0
+  })()
+
+  const humanErr = humanizeError(channelDetail?.lastRefreshError)
+
+  const indexedVideoCount = videosPage?.page.totalItems
+  const recentVideos = videosPage?.items ?? []
+
+  // Subscribers
+  const subCount = data?.subscriberCount ?? channelDetail?.subscriberCount
+  const { value: subValue, label: subLabel } = fmtSubscribers(subCount)
+
+  // Upload frequency
+  const uploadFreq = computeUploadFreq(channelDetail?.publishedAt, channelDetail?.videoCount)
+
+  // Technical details rows
   const detailsRows =
     data && channelDbId
       ? [
           { label: 'Database ID', value: String(channelDbId) },
-          { label: 'Channel ID', value: data.channelId ?? legacyChannelId ?? '—' },
-          { label: 'Title', value: data.title ?? '—' },
-          { label: 'Videos', value: data.videoCount ?? '—' },
+          { label: 'Channel ID', value: channelId || '—' },
+          { label: 'Title', value: title ?? '—' },
+          {
+            label: 'Published at',
+            value: channelDetail?.publishedAt ? fmtDate(channelDetail.publishedAt) : '—',
+          },
+          { label: 'Videos (YouTube)', value: data.videoCount ?? channelDetail?.videoCount ?? '—' },
+          { label: 'Videos (indexed)', value: indexedVideoCount ?? '—' },
           {
             label: 'Sync status',
-            value: humanRefreshStatus(channelDetail?.lastRefreshStatus),
+            value: channelDetail?.lastRefreshStatus ?? '—',
           },
           {
             label: 'Last synced',
@@ -61,9 +280,6 @@ export default function ChannelOverviewPage() {
           },
           ...(channelDetail?.snapshotDayCount != null
             ? [{ label: 'Snapshot days', value: String(channelDetail.snapshotDayCount) }]
-            : []),
-          ...(channelDetail?.lastRefreshStatus === 'FAILED' && channelDetail?.lastRefreshError
-            ? [{ label: 'Last error', value: channelDetail.lastRefreshError }]
             : []),
         ]
       : []
@@ -101,71 +317,376 @@ export default function ChannelOverviewPage() {
 
   return (
     <div className="space-y-6">
+      {/* Breadcrumb */}
       {channelDbIdParam && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div
+          className="flex items-center gap-2 text-sm"
+          style={{ color: 'var(--color-text-muted)' }}
+        >
           <Link to="/channels" className="hover:text-foreground transition-colors">
             Channels
           </Link>
           <span>/</span>
-          <span className="text-foreground font-medium truncate">
-            {data?.title ?? channelDetail?.title ?? channelDbIdStr}
-          </span>
+          <span className="text-foreground font-medium truncate">{title ?? channelDbIdStr}</span>
         </div>
       )}
 
-      {/* ChannelHeader reads freshness from /channels/:id via the strict mapper */}
-      <ChannelHeader
-        title={data?.title ?? channelDetail?.title ?? 'Channel overview'}
-        channelId={data?.channelId ?? channelDetail?.channelId ?? legacyChannelId}
-        freshness={mapChannelItemToFreshnessProps(channelDetail)}
-      />
+      {/* ── SECTION 1: Channel Hero ─────────────────────────────────────── */}
+      <div className="rounded-lg border bg-card/60 p-5 shadow-sm space-y-4">
+        {/* Top row: avatar + name + status */}
+        <div className="flex flex-wrap items-start gap-4">
+          <ChannelAvatar
+            thumbnailUrl={channelDetail?.thumbnailUrl}
+            title={title}
+            id={channelDbId}
+          />
+          <div className="min-w-0 flex-1 space-y-1">
+            {isLoading ? (
+              <div
+                className="rounded"
+                style={{ height: 28, width: 240, background: 'var(--color-surface-2)' }}
+              />
+            ) : (
+              <h1
+                className="text-2xl font-bold leading-tight truncate"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                {title ?? 'Channel overview'}
+              </h1>
+            )}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1" style={{ fontSize: 13 }}>
+              {channelDetail?.handle && (
+                <a
+                  href={`https://youtube.com/${channelDetail.handle}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline"
+                  style={{ color: 'var(--color-text-muted)' }}
+                >
+                  {channelDetail.handle}
+                </a>
+              )}
+              {channelId && (
+                <span
+                  className="font-mono"
+                  style={{ color: 'var(--color-text-muted)', fontSize: 11 }}
+                >
+                  {channelId}
+                </span>
+              )}
+            </div>
+            <div className="pt-1">
+              <FreshnessBadge {...mapChannelItemToFreshnessProps(channelDetail)} />
+            </div>
+          </div>
+        </div>
 
-      <ChannelStats
-        data={data}
-        indexedVideoCount={indexedVideoCount}
-        loading={isLoading || isFetching}
-      />
+        {/* Action buttons */}
+        {channelDbIdParam && (
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={isRefreshing}
+              onClick={() => refresh.mutate({ channelDbId: channelDbId! })}
+              className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
+              {isRefreshing ? (
+                <Loader2 size={13} className="animate-spin" aria-hidden="true" />
+              ) : (
+                <RefreshCw size={13} aria-hidden="true" />
+              )}
+              {isRefreshing ? 'Refreshing…' : 'Refresh'}
+            </button>
+            <Link
+              to={`/channels/${channelDbId}/trends`}
+              className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
+              <TrendingUp size={13} aria-hidden="true" />
+              View Trends
+            </Link>
+            <Link
+              to={`/channels/${channelDbId}/videos`}
+              className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
+              <Video size={13} aria-hidden="true" />
+              View Videos
+            </Link>
+            <Link
+              to={`/insights?channelId=${channelDbId}`}
+              className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors"
+              style={{ color: 'var(--accent)' }}
+            >
+              <Lightbulb size={13} aria-hidden="true" />
+              Open Insights
+            </Link>
+          </div>
+        )}
+      </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      {/* ── FAILED STATUS BANNER ────────────────────────────────────────── */}
+      {isFailed && channelDetail && (
+        <div
+          role="alert"
+          className="rounded-lg border p-4 space-y-0"
+          style={{
+            borderColor: 'color-mix(in srgb, var(--color-down) 35%, transparent)',
+            background: 'color-mix(in srgb, var(--color-down) 6%, var(--color-surface-1))',
+            borderLeft: '4px solid var(--color-down)',
+          }}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-2.5 min-w-0 flex-1">
+              <AlertTriangle
+                size={16}
+                className="shrink-0"
+                style={{ color: 'var(--color-down)', marginTop: 2 }}
+                aria-hidden="true"
+              />
+              <div className="space-y-1 min-w-0">
+                <p className="font-semibold text-sm" style={{ color: 'var(--color-down)' }}>
+                  Last sync failed
+                </p>
+                {humanErr.isRaw ? (
+                  <code
+                    className="block text-xs break-all"
+                    style={{
+                      color: 'var(--color-down)',
+                      opacity: 0.85,
+                      fontFamily: 'var(--font-mono)',
+                    }}
+                  >
+                    {humanErr.message}
+                  </code>
+                ) : (
+                  <p className="text-sm" style={{ color: 'var(--color-down)', opacity: 0.9 }}>
+                    {humanErr.message}
+                  </p>
+                )}
+                {channelDetail.lastSuccessfulRefreshAt && (
+                  <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                    Last successful sync: {fmtDateTime(channelDetail.lastSuccessfulRefreshAt)}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              disabled={isRefreshing}
+              onClick={() => refresh.mutate({ channelDbId: channelDbId! })}
+              className="shrink-0 flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold transition-opacity"
+              style={{
+                background: 'var(--color-down)',
+                color: '#fff',
+                border: 'none',
+                opacity: isRefreshing ? 0.6 : 1,
+                cursor: isRefreshing ? 'default' : 'pointer',
+              }}
+            >
+              {isRefreshing ? (
+                <Loader2 size={13} className="animate-spin" aria-hidden="true" />
+              ) : (
+                <RefreshCw size={13} aria-hidden="true" />
+              )}
+              {isRefreshing ? 'Retrying…' : 'Retry Sync'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── STALE DATA WARNING ───────────────────────────────────────────── */}
+      {isFailed && staleDays > 0 && channelDetail?.lastSuccessfulRefreshAt && (
+        <div
+          role="status"
+          className="flex items-start gap-2.5 rounded-lg border p-4"
+          style={{
+            borderColor: 'color-mix(in srgb, var(--color-warn) 35%, transparent)',
+            background: 'color-mix(in srgb, var(--color-warn) 6%, var(--color-surface-1))',
+            borderLeft: '4px solid var(--color-warn)',
+          }}
+        >
+          <AlertTriangle
+            size={15}
+            className="shrink-0"
+            style={{ color: 'var(--color-warn)', marginTop: 1 }}
+            aria-hidden="true"
+          />
+          <p className="text-sm" style={{ color: 'var(--color-warn)' }}>
+            Data is {staleDays} day{staleDays !== 1 ? 's' : ''} old. Charts and metrics reflect the
+            last successful sync on {fmtDate(channelDetail.lastSuccessfulRefreshAt)}.
+          </p>
+        </div>
+      )}
+
+      {/* ── SECTION 2: Key Metrics ──────────────────────────────────────── */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Subscribers */}
+        <StatCard
+          label="Subscribers"
+          value={
+            <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+              {subValue}
+            </span>
+          }
+          description={subCount != null ? subLabel : undefined}
+          loading={isLoading || isFetching}
+        />
+
+        {/* Total Views */}
+        <StatCard
+          label="Total Views"
+          value={
+            <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+              {fmtCompact(data?.totalViews)}
+            </span>
+          }
+          icon={<BarChart2 className="h-4 w-4 text-muted-foreground" />}
+          loading={isLoading || isFetching}
+        />
+
+        {/* Videos */}
+        <StatCard
+          label="Videos"
+          labelExtra={
+            <InfoTooltip text="YouTube total · SocialLens indexed (enriched with full metadata)" />
+          }
+          value={
+            <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+              {data?.videoCount ?? channelDetail?.videoCount ?? '—'}
+            </span>
+          }
+          description={
+            indexedVideoCount != null ? `${indexedVideoCount.toLocaleString()} indexed` : undefined
+          }
+          loading={isLoading || isFetching}
+        />
+
+        {/* Upload Frequency */}
+        <StatCard
+          label="Upload Frequency"
+          value={
+            <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+              {uploadFreq}
+            </span>
+          }
+          description={
+            channelDetail?.publishedAt
+              ? `Channel since ${fmtDate(channelDetail.publishedAt)}`
+              : undefined
+          }
+          loading={isLoading}
+        />
+      </div>
+
+      {/* ── SECTION 3: Performance Chart ────────────────────────────────── */}
+      <div style={{ height: 320 }}>
         <ChannelChart data={data} />
-        <div className="space-y-3 rounded-lg border bg-card/60 p-4 shadow-sm">
-          <div className="flex items-start justify-between gap-2">
-            <div className="space-y-1">
-              <h2 className="text-lg font-semibold">Channel details</h2>
-              <p className="text-sm text-muted-foreground">Basic metadata and freshness state.</p>
+      </div>
+
+      {/* ── SECTION 4: Recent Videos Preview ───────────────────────────── */}
+      {(recentVideos.length > 0 || isLoading) && (
+        <div className="rounded-lg border bg-card/60 p-5 shadow-sm space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="space-y-0.5">
+              <h2 className="text-base font-semibold">Recent Videos</h2>
+              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                5 most recently published
+              </p>
             </div>
             {channelDbIdParam && (
-              <div className="flex shrink-0 gap-2">
-                <Link
-                  to={`/channels/${channelDbId}/trends`}
-                  className="rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                >
-                  View trends →
-                </Link>
-                <Link
-                  to={`/channels/${channelDbId}/videos`}
-                  className="rounded-md border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                >
-                  View videos →
-                </Link>
-              </div>
+              <Link
+                to={`/channels/${channelDbId}/videos`}
+                className="text-sm font-medium hover:underline"
+                style={{ color: 'var(--accent)' }}
+              >
+                View all videos →
+              </Link>
             )}
           </div>
-          <Separator />
+
           {isLoading ? (
-            <SkeletonBlock lines={5} />
+            <div className="space-y-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 py-2">
+                  <div
+                    className="shrink-0 rounded"
+                    style={{ width: 64, height: 36, background: 'var(--color-surface-2)' }}
+                  />
+                  <div className="flex-1 space-y-1.5">
+                    <div
+                      className="rounded"
+                      style={{ height: 13, width: '60%', background: 'var(--color-surface-2)' }}
+                    />
+                    <div
+                      className="rounded"
+                      style={{ height: 11, width: '30%', background: 'var(--color-surface-2)' }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
-            <DataTable
-              columns={[
-                { header: 'Field', accessor: (row) => row.label },
-                { header: 'Value', accessor: (row) => row.value },
-              ]}
-              data={detailsRows}
-              emptyMessage="No details available."
-            />
+            <div className="divide-y">
+              {recentVideos.map((v) => (
+                <RecentVideoRow
+                  key={v.id}
+                  videoId={v.videoId}
+                  title={v.title}
+                  thumbnailUrl={v.thumbnailUrl}
+                  publishedAt={v.publishedAt}
+                  viewCount={v.viewCount}
+                />
+              ))}
+            </div>
           )}
         </div>
-      </div>
+      )}
+
+      {/* ── SECTION 5: Technical Details (collapsible) ──────────────────── */}
+      {detailsRows.length > 0 && (
+        <details className="rounded-lg border bg-card/60 shadow-sm">
+          <summary
+            className="flex cursor-pointer select-none items-center gap-2 p-5 text-sm font-medium"
+            style={{ color: 'var(--color-text-muted)', listStyle: 'none' }}
+          >
+            <span
+              className="text-xs"
+              style={{
+                display: 'inline-block',
+                transition: 'transform 0.15s',
+              }}
+            >
+              ▶
+            </span>
+            Technical Details
+          </summary>
+          <div className="px-5 pb-5">
+            <table className="w-full text-sm border-collapse">
+              <tbody>
+                {detailsRows.map((row) => (
+                  <tr key={row.label} className="border-t">
+                    <td
+                      className="py-1.5 pr-4 align-top font-medium"
+                      style={{ color: 'var(--color-text-muted)', width: '35%' }}
+                    >
+                      {row.label}
+                    </td>
+                    <td
+                      className="py-1.5 break-all align-top font-mono text-xs"
+                      style={{ color: 'var(--foreground)' }}
+                    >
+                      {row.value}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      )}
     </div>
   )
 }
