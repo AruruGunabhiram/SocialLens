@@ -6,6 +6,9 @@ import {
   ChevronUp,
   ChevronDown,
   Database,
+  ExternalLink,
+  Loader2,
+  Play,
   PlaySquare,
   Search,
   Video,
@@ -32,6 +35,8 @@ import { FreshnessBadge, mapChannelItemToFreshnessProps } from '../components/Fr
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
+
+const YT_WATCH = 'https://youtube.com/watch?v='
 
 const VALID_SORT_KEYS = ['publishedAt', 'views', 'likes', 'comments', 'title'] as const
 type SortKey = (typeof VALID_SORT_KEYS)[number]
@@ -136,23 +141,27 @@ function SkeletonRows({ count = 5 }: { count?: number }) {
     <>
       {Array.from({ length: count }).map((_, i) => (
         <tr key={i}>
+          {/* 48×27 = 16:9 */}
           <td className="py-2 pl-4 pr-4">
-            <Skeleton className="h-10 w-16 rounded" />
+            <Skeleton className="rounded" style={{ width: 48, height: 27 }} />
           </td>
           <td className="py-2 pr-4">
-            <Skeleton className="h-4 w-48" />
+            <div className="flex flex-col gap-1.5">
+              <Skeleton className="h-3.5 w-56" />
+              <Skeleton className="h-3 w-32" />
+            </div>
           </td>
           <td className="py-2 pr-4">
-            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-3.5 w-20" />
           </td>
           <td className="py-2 pr-4">
-            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-3.5 w-10" />
           </td>
           <td className="py-2 pr-4">
-            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-3.5 w-10" />
           </td>
           <td className="py-2 pr-4">
-            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-3.5 w-10" />
           </td>
         </tr>
       ))}
@@ -164,44 +173,141 @@ function SkeletonRows({ count = 5 }: { count?: number }) {
 // Video row
 // ---------------------------------------------------------------------------
 
+// Small pill shown when likes/comments haven't been enriched yet.
+// Uses native title= for tooltip — keeps the table cell uncluttered.
+function NaBadge() {
+  return (
+    <span
+      title="Available after metadata enrichment"
+      style={{
+        fontFamily: 'var(--font-body)',
+        fontSize: 'var(--text-xs)',
+        color: 'var(--color-text-muted)',
+        background: 'var(--color-surface-2)',
+        border: '1px solid var(--color-border-subtle)',
+        borderRadius: 'var(--radius-sm)',
+        padding: '1px 5px',
+        cursor: 'help',
+      }}
+    >
+      N/A
+    </span>
+  )
+}
+
 function VideoTableRow({ video }: { video: VideoRow }) {
   const hasTitle = Boolean(video.title?.trim())
+  const ytUrl = `${YT_WATCH}${video.videoId}`
+
   return (
-    <tr className="group align-middle hover:bg-muted/40 transition-colors">
+    <tr className="group align-middle transition-colors hover:bg-muted/40">
+      {/* Thumbnail — 48×27 (16:9), always links to YouTube */}
       <td className="py-2 pl-4 pr-4">
-        {video.thumbnailUrl ? (
-          <img
-            src={video.thumbnailUrl}
-            alt=""
-            className="h-10 w-16 rounded object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <div className="flex h-10 w-16 items-center justify-center rounded bg-muted">
-            <Video className="h-4 w-4 text-muted-foreground/50" aria-hidden />
-          </div>
-        )}
+        <a
+          href={ytUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={
+            hasTitle ? `Watch "${video.title}" on YouTube` : `Watch ${video.videoId} on YouTube`
+          }
+          style={{
+            display: 'block',
+            width: 48,
+            height: 27,
+            borderRadius: 'var(--radius-sm)',
+            overflow: 'hidden',
+            flexShrink: 0,
+          }}
+        >
+          {video.thumbnailUrl ? (
+            <img
+              src={video.thumbnailUrl}
+              alt=""
+              style={{ width: 48, height: 27, objectFit: 'cover', display: 'block' }}
+              loading="lazy"
+            />
+          ) : (
+            <div
+              style={{
+                width: 48,
+                height: 27,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'var(--color-surface-2)',
+              }}
+            >
+              <Play
+                size={12}
+                aria-hidden
+                style={{ color: 'var(--color-text-muted)', flexShrink: 0 }}
+              />
+            </div>
+          )}
+        </a>
       </td>
+
+      {/* Title — or video ID link + "(title pending)" when not yet enriched */}
       <td className="max-w-xs py-2 pr-4">
         {hasTitle ? (
-          <span className="line-clamp-2 text-sm font-medium leading-snug" title={video.title!}>
+          <span
+            className="line-clamp-2 text-sm font-medium leading-snug"
+            title={video.title!.length > 60 ? video.title! : undefined}
+          >
             {video.title}
           </span>
         ) : (
-          <span
-            className="font-mono text-xs text-muted-foreground/60"
-            title="Title not yet populated — run a refresh to enrich metadata"
-          >
-            {video.videoId}
+          <span className="inline-flex flex-wrap items-center gap-1.5">
+            <a
+              href={ytUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--color-text-secondary)',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 3,
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+              onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
+            >
+              {video.videoId}
+              <ExternalLink size={10} aria-hidden style={{ flexShrink: 0 }} />
+            </a>
+            <span
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--color-text-muted)',
+                fontStyle: 'italic',
+              }}
+            >
+              (title pending)
+            </span>
           </span>
         )}
       </td>
-      <td className="py-2 pr-4 text-sm text-muted-foreground whitespace-nowrap">
+
+      {/* Published date */}
+      <td className="whitespace-nowrap py-2 pr-4 text-sm text-muted-foreground">
         {fmtDate(video.publishedAt)}
       </td>
+
+      {/* Views — "—" when null (fmtCompact handles this) */}
       <td className="py-2 pr-4 text-sm tabular-nums">{fmtCompact(video.viewCount)}</td>
-      <td className="py-2 pr-4 text-sm tabular-nums">{fmtCompact(video.likeCount)}</td>
-      <td className="py-2 pr-4 text-sm tabular-nums">{fmtCompact(video.commentCount)}</td>
+
+      {/* Likes — N/A badge when not yet enriched */}
+      <td className="py-2 pr-4 text-sm tabular-nums">
+        {video.likeCount != null ? fmtCompact(video.likeCount) : <NaBadge />}
+      </td>
+
+      {/* Comments — N/A badge when not yet enriched */}
+      <td className="py-2 pr-4 text-sm tabular-nums">
+        {video.commentCount != null ? fmtCompact(video.commentCount) : <NaBadge />}
+      </td>
     </tr>
   )
 }
@@ -373,9 +479,9 @@ export default function ChannelVideosPage() {
     ? items.filter((v) => displayTitle(v).toLowerCase().includes(clientQ))
     : items
 
-  // Warning: >80% of this page's videos have no title → sync likely incomplete.
+  // Warning: >20% of this page's videos have no title → sync likely incomplete.
   const missingTitleCount = items.filter((v) => !v.title?.trim()).length
-  const showTitleWarning = !isLoading && items.length > 0 && missingTitleCount / items.length > 0.8
+  const showTitleWarning = !isLoading && items.length > 0 && missingTitleCount / items.length > 0.2
 
   // -----------------------------------------------------------------------
   // Render
@@ -432,6 +538,9 @@ export default function ChannelVideosPage() {
             disabled={refreshMutation.isPending}
             onClick={() => refreshMutation.mutate({ channelDbId })}
             style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 'var(--space-1)',
               flexShrink: 0,
               fontFamily: 'var(--font-body)',
               fontSize: 'var(--text-sm)',
@@ -446,6 +555,9 @@ export default function ChannelVideosPage() {
               whiteSpace: 'nowrap',
             }}
           >
+            {refreshMutation.isPending && (
+              <Loader2 size={12} className="animate-spin" aria-hidden style={{ flexShrink: 0 }} />
+            )}
             {refreshMutation.isPending ? 'Refreshing...' : 'Refresh now'}
           </button>
         </div>
@@ -535,11 +647,11 @@ export default function ChannelVideosPage() {
                     <td colSpan={6} className="py-12">
                       <EmptyState
                         icon={<Video className="h-7 w-7 text-muted-foreground/50" />}
-                        title={urlQ ? 'No results' : 'No videos yet'}
+                        title={urlQ ? 'No results' : 'No videos indexed yet'}
                         description={
                           urlQ
                             ? `No videos matched "${urlQ}".`
-                            : 'Videos will appear here once the channel is synced.'
+                            : 'Run a sync to populate video data.'
                         }
                         className="border-0 shadow-none"
                       />

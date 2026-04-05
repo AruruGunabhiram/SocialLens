@@ -1,24 +1,30 @@
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { AlertTriangle, CheckCircle2, Globe, Grid2X2, Loader2, RefreshCw } from 'lucide-react'
+import {
+  AlertTriangle,
+  Bot,
+  LayoutDashboard,
+  Lightbulb,
+  Link as LinkIcon,
+  Loader2,
+  PlaySquare,
+  RefreshCw,
+  Settings,
+  TrendingUp,
+  Tv2,
+} from 'lucide-react'
 import { useAccountStatus, useCurrentUser } from '@/features/account/queries'
 import { fetchOAuthStartUrl } from '@/features/account/api'
 
-// ─── AccountConnectionCard ────────────────────────────────────────────────────
+// ─── AccountStatusStrip ───────────────────────────────────────────────────────
 //
-// Shows the current YouTube connection state and explains what each mode means.
-// Three visible states:
-//   1. loading  — query in-flight or error (fallback to "public mode" copy)
-//   2. connected = false  — public mode, with a Connect button
-//   3. connected = true   — connected, with Enter Studio button
-//
-// The OAuth flow opens a new tab. After the user completes sign-in, the
-// backend stores the token; refetchInterval:30s picks up the change silently.
-//
-// NOTE: MVP_USER_ID=1 is hardcoded because the backend has no auth middleware
-// yet. This will be replaced when real auth is added.
+// Compact bottom-of-sidebar account connection indicator.
+// Connected  → green dot + "YouTube Connected"
+// Needs reconnect → warning icon + "Reconnect required" + button
+// Not connected → "Connect YouTube" button
+// Loading/error  → subtle muted text
 
-function AccountConnectionCard() {
+function AccountStatusStrip() {
   const { data: currentUser } = useCurrentUser()
   const { data: status, isLoading, isError, refetch } = useAccountStatus(currentUser?.id)
   const [isStartingOAuth, setIsStartingOAuth] = useState(false)
@@ -27,14 +33,12 @@ function AccountConnectionCard() {
 
   const connected = status?.connected ?? false
   const accountStatus = status?.accountStatus
-  // Account exists but token is broken — show reconnect UI instead of the
-  // first-time connect UI.
   const needsReconnect =
     !connected && (accountStatus === 'REFRESH_FAILED' || accountStatus === 'EXPIRED')
 
   async function handleConnect() {
     if (!currentUser) {
-      setConnectError('Could not resolve your account. Try refreshing the page.')
+      setConnectError('Could not resolve your account.')
       return
     }
     setConnectError(null)
@@ -44,104 +48,66 @@ function AccountConnectionCard() {
       window.open(authUrl, '_blank', 'noopener,noreferrer')
       setOauthOpened(true)
     } catch {
-      setConnectError('Could not start sign-in. Check your connection.')
+      setConnectError('Could not start sign-in.')
     } finally {
       setIsStartingOAuth(false)
     }
   }
 
-  const cardStyle: React.CSSProperties = {
-    background: 'var(--color-surface-1)',
-    border: '1px solid var(--color-border-base)',
-    borderRadius: 'var(--radius-md)',
-    padding: 'var(--space-4)',
-  }
-
-  const headingStyle: React.CSSProperties = {
-    fontFamily: 'var(--font-display)',
-    fontSize: 'var(--text-sm)',
-    fontWeight: 600,
-    color: 'var(--color-text-primary)',
-    marginBottom: 'var(--space-1)',
+  const stripBase: React.CSSProperties = {
+    padding: 'var(--space-3) var(--space-4)',
+    borderTop: '1px solid var(--color-border-subtle)',
     display: 'flex',
-    alignItems: 'center',
+    flexDirection: 'column',
     gap: 'var(--space-2)',
   }
 
-  const bodyStyle: React.CSSProperties = {
+  const labelStyle: React.CSSProperties = {
     fontFamily: 'var(--font-body)',
     fontSize: 'var(--text-xs)',
     color: 'var(--color-text-secondary)',
-    lineHeight: 'var(--leading-relaxed)',
-    marginBottom: 'var(--space-3)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 'var(--space-2)',
+    lineHeight: 1,
   }
 
-  const primaryBtnStyle: React.CSSProperties = {
+  const connectBtnStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 'var(--space-2)',
     width: '100%',
-    background: 'var(--accent)',
-    color: 'var(--color-text-inverse)',
-    fontFamily: 'var(--font-body)',
-    fontSize: 'var(--text-sm)',
-    fontWeight: 600,
-    border: 'none',
+    background: 'var(--color-surface-2)',
+    border: '1px solid var(--color-border-base)',
     borderRadius: 'var(--radius-md)',
     padding: 'var(--space-2) var(--space-3)',
     cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 'var(--space-2)',
-    transition: 'opacity var(--duration-base) var(--ease-standard)',
-  }
-
-  const secondaryBtnStyle: React.CSSProperties = {
-    width: '100%',
-    background: 'transparent',
+    fontFamily: 'var(--font-body)',
+    fontSize: 'var(--text-xs)',
+    fontWeight: 600,
     color: 'var(--color-text-secondary)',
-    fontFamily: 'var(--font-body)',
-    fontSize: 'var(--text-xs)',
-    fontWeight: 500,
-    border: '1px solid var(--color-border-base)',
-    borderRadius: 'var(--radius-md)',
-    padding: 'calc(var(--space-2) - 1px) var(--space-3)',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 'var(--space-2)',
-    transition: 'border-color var(--duration-base) var(--ease-standard)',
+    transition:
+      'background var(--duration-base) var(--ease-standard), color var(--duration-base) var(--ease-standard)',
+    textAlign: 'left' as const,
   }
 
-  const fineStyle: React.CSSProperties = {
-    fontFamily: 'var(--font-body)',
-    fontSize: 'var(--text-xs)',
-    color: 'var(--color-text-muted)',
-    lineHeight: 'var(--leading-relaxed)',
-    marginTop: 'var(--space-2)',
-  }
-
-  // ── Loading / error — don't block the sidebar, show public-mode copy ──────
   if (isLoading) {
     return (
-      <div style={cardStyle}>
-        <p style={headingStyle}>
-          <Globe size={14} aria-hidden style={{ flexShrink: 0 }} />
-          Public Mode
-        </p>
-        <p style={{ ...bodyStyle, opacity: 0.5 }}>Checking connection status...</p>
+      <div style={stripBase}>
+        <span style={{ ...labelStyle, color: 'var(--color-text-muted)' }}>
+          Checking connection...
+        </span>
       </div>
     )
   }
 
   if (isError) {
     return (
-      <div style={cardStyle}>
-        <p style={headingStyle}>
-          <Globe size={14} aria-hidden style={{ flexShrink: 0 }} />
-          Public Mode
-        </p>
-        <p style={bodyStyle}>Could not reach the server to check account status.</p>
-        <button type="button" style={secondaryBtnStyle} onClick={() => void refetch()}>
+      <div style={stripBase}>
+        <span style={{ ...labelStyle, color: 'var(--color-text-muted)' }}>
+          Could not reach server
+        </span>
+        <button type="button" style={connectBtnStyle} onClick={() => void refetch()}>
           <RefreshCw size={12} aria-hidden />
           Retry
         </button>
@@ -149,210 +115,154 @@ function AccountConnectionCard() {
     )
   }
 
-  // ── Not connected — explain public mode and offer OAuth ───────────────────
-  // Also handles the reconnect case (token expired or refresh failed).
-  if (!connected) {
+  if (connected) {
     return (
-      <div
-        style={{
-          ...cardStyle,
-          ...(needsReconnect
-            ? { borderColor: 'color-mix(in srgb, var(--color-down) 35%, var(--color-border-base))' }
-            : {}),
-        }}
-      >
-        <p style={headingStyle}>
-          {needsReconnect ? (
-            <AlertTriangle
-              size={14}
-              aria-hidden
-              style={{ color: 'var(--color-down)', flexShrink: 0 }}
-            />
-          ) : (
-            <Globe
-              size={14}
-              aria-hidden
-              style={{ color: 'var(--color-text-muted)', flexShrink: 0 }}
-            />
-          )}
-          {needsReconnect ? 'Reconnect Required' : 'Public Mode'}
-        </p>
-        <p style={bodyStyle}>
-          {needsReconnect
-            ? 'Your YouTube token expired or could not be refreshed. Re-connect to restore Analytics access.'
-            : 'Public YouTube Data API — channel metrics, snapshots, and trends only.'}
-        </p>
-
-        {!needsReconnect && (
-          <div style={{ marginBottom: 'var(--space-3)' }}>
-            <p
-              style={{
-                ...fineStyle,
-                marginTop: 0,
-                marginBottom: 'var(--space-2)',
-                fontWeight: 600,
-                color: 'var(--color-text-secondary)',
-              }}
-            >
-              Connect to unlock:
-            </p>
-            <ul
-              style={{
-                listStyle: 'none',
-                padding: 0,
-                margin: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 'var(--space-1.5)',
-              }}
-            >
-              {[
-                'Retention Diagnosis',
-                'Watch time and avg view duration',
-                'Subscriber gain / loss velocity',
-              ].map((item) => (
-                <li
-                  key={item}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 'var(--space-2)',
-                    fontFamily: 'var(--font-body)',
-                    fontSize: 'var(--text-xs)',
-                    color: 'var(--color-text-secondary)',
-                    lineHeight: 'var(--leading-relaxed)',
-                  }}
-                >
-                  <span
-                    aria-hidden
-                    style={{
-                      width: '4px',
-                      height: '4px',
-                      borderRadius: '50%',
-                      background: 'var(--accent)',
-                      flexShrink: 0,
-                    }}
-                  />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {oauthOpened ? (
-          <div>
-            <p
-              style={{
-                fontFamily: 'var(--font-body)',
-                fontSize: 'var(--text-xs)',
-                color: 'var(--color-text-secondary)',
-                lineHeight: 'var(--leading-relaxed)',
-                marginBottom: 'var(--space-2)',
-              }}
-            >
-              Sign-in window opened. Complete the flow, then check your status.
-            </p>
-            <button type="button" style={secondaryBtnStyle} onClick={() => void refetch()}>
-              <RefreshCw size={12} aria-hidden />
-              Check connection status
-            </button>
-            <button
-              type="button"
-              style={{ ...secondaryBtnStyle, marginTop: 'var(--space-2)', opacity: 0.7 }}
-              onClick={() => {
-                setOauthOpened(false)
-                setConnectError(null)
-              }}
-            >
-              Back
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            style={primaryBtnStyle}
-            disabled={isStartingOAuth}
-            onClick={() => void handleConnect()}
-          >
-            {isStartingOAuth && <Loader2 size={13} className="animate-spin" aria-hidden />}
-            {needsReconnect ? 'Reconnect YouTube Account' : 'Connect YouTube Account'}
-          </button>
-        )}
-
-        {connectError && (
-          <p style={{ ...fineStyle, color: 'var(--color-down)', marginTop: 'var(--space-2)' }}>
-            {connectError}
-          </p>
-        )}
+      <div style={stripBase}>
+        <span style={labelStyle}>
+          <span
+            aria-hidden
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: '50%',
+              background: 'var(--color-up)',
+              flexShrink: 0,
+              boxShadow: '0 0 6px var(--color-up)',
+            }}
+          />
+          YouTube Connected
+        </span>
       </div>
     )
   }
 
-  // ── Connected — confirm what's unlocked ────────────────────────────────────
+  if (oauthOpened) {
+    return (
+      <div style={stripBase}>
+        <span style={{ ...labelStyle, color: 'var(--color-text-muted)' }}>
+          Complete sign-in in the new tab
+        </span>
+        <button type="button" style={connectBtnStyle} onClick={() => void refetch()}>
+          <RefreshCw size={12} aria-hidden />
+          Check status
+        </button>
+        <button
+          type="button"
+          style={{ ...connectBtnStyle, opacity: 0.6 }}
+          onClick={() => {
+            setOauthOpened(false)
+            setConnectError(null)
+          }}
+        >
+          Cancel
+        </button>
+      </div>
+    )
+  }
+
   return (
-    <div
-      style={{
-        ...cardStyle,
-        borderColor: 'color-mix(in srgb, var(--color-up) 35%, var(--color-border-base))',
-      }}
-    >
-      <p style={headingStyle}>
-        <CheckCircle2 size={14} aria-hidden style={{ color: 'var(--color-up)', flexShrink: 0 }} />
-        Connected
-      </p>
-      <ul
-        style={{
-          listStyle: 'none',
-          padding: 0,
-          margin: '0 0 var(--space-3)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 'var(--space-1.5)',
-        }}
+    <div style={stripBase}>
+      {needsReconnect && (
+        <span style={{ ...labelStyle, color: 'var(--color-warn)' }}>
+          <AlertTriangle size={12} aria-hidden style={{ flexShrink: 0 }} />
+          Token expired
+        </span>
+      )}
+      <button
+        type="button"
+        style={connectBtnStyle}
+        disabled={isStartingOAuth}
+        onClick={() => void handleConnect()}
       >
-        {[
-          'Retention Diagnosis',
-          'Watch time and avg view duration',
-          'Subscriber gain / loss velocity',
-        ].map((item) => (
-          <li
-            key={item}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-2)',
-              fontFamily: 'var(--font-body)',
-              fontSize: 'var(--text-xs)',
-              color: 'var(--color-up)',
-              lineHeight: 'var(--leading-relaxed)',
-            }}
-          >
-            <CheckCircle2 size={10} aria-hidden style={{ flexShrink: 0 }} />
-            {item}
-          </li>
-        ))}
-      </ul>
-      <p style={fineStyle}>Open Insights on any channel to run Retention Diagnosis.</p>
+        {isStartingOAuth ? (
+          <Loader2 size={12} className="animate-spin" aria-hidden />
+        ) : (
+          <LinkIcon size={12} aria-hidden style={{ flexShrink: 0 }} />
+        )}
+        {needsReconnect ? 'Reconnect YouTube' : 'Connect YouTube'}
+      </button>
+      {connectError && (
+        <span
+          style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: 'var(--text-xs)',
+            color: 'var(--color-down)',
+            lineHeight: 'var(--leading-relaxed)',
+          }}
+        >
+          {connectError}
+        </span>
+      )}
     </div>
   )
 }
 
-const CHANNEL_RE = /^\/channels\/(\d+)(\/|$)/
+// ─── Nav config ───────────────────────────────────────────────────────────────
 
-function channelPath(channelDbId: string | undefined, leaf: string): string {
-  return channelDbId ? `/channels/${channelDbId}/${leaf}` : `/${leaf}`
+const PRIMARY_NAV = [
+  { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
+  { label: 'Channels', to: '/channels', icon: Tv2 },
+  { label: 'Videos', to: '/videos', icon: PlaySquare },
+  { label: 'Trends', to: '/trends', icon: TrendingUp },
+  { label: 'Insights', to: '/insights', icon: Lightbulb },
+  { label: 'Copilot', to: '/copilot', icon: Bot },
+] as const
+
+const SECONDARY_NAV = [{ label: 'Settings', to: '/settings', icon: Settings }] as const
+
+// ─── NavItem ──────────────────────────────────────────────────────────────────
+
+function NavItem({
+  to,
+  icon: Icon,
+  label,
+  end,
+}: {
+  to: string
+  icon: React.ElementType
+  label: string
+  end?: boolean
+}) {
+  return (
+    <NavLink
+      to={to}
+      end={end}
+      className="flex items-center gap-3 px-3 py-2 transition-interactive"
+      style={({ isActive }: { isActive: boolean }) => ({
+        borderRadius: 'var(--radius-md)',
+        borderLeft: isActive ? '2px solid var(--accent)' : '2px solid transparent',
+        paddingLeft: 'calc(var(--space-3) - 2px)',
+        background: isActive ? 'var(--color-surface-2)' : 'transparent',
+        color: isActive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+        fontFamily: 'var(--font-body)',
+        fontSize: 'var(--text-sm)',
+        fontWeight: isActive ? 600 : 500,
+        textDecoration: 'none',
+      })}
+    >
+      {({ isActive }: { isActive: boolean }) => (
+        <>
+          <Icon
+            size={15}
+            aria-hidden
+            style={{
+              color: isActive ? 'var(--accent)' : 'var(--color-text-muted)',
+              flexShrink: 0,
+            }}
+          />
+          {label}
+        </>
+      )}
+    </NavLink>
+  )
 }
 
-const NAV_ITEMS = [{ label: 'Channels', to: '/channels', icon: Grid2X2 }] as const
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
 
 export function Sidebar() {
-  const { pathname } = useLocation()
-  const channelId = CHANNEL_RE.exec(pathname)?.[1]
-
-  // Suppress unused-var warning — channelId will be used once channel-scoped
-  // nav items are wired in a later prompt.
-  void channelPath(channelId, '')
+  // Keep location in scope so the sidebar can react to route changes
+  // (NavLink handles active detection internally, but this prevents stale renders)
+  useLocation()
 
   return (
     <aside
@@ -367,7 +277,7 @@ export function Sidebar() {
       role="navigation"
       aria-label="Main navigation"
     >
-      {/* Logo area — matches topbar height exactly */}
+      {/* ── Wordmark ── */}
       <div
         className="flex shrink-0 items-center gap-3 px-5"
         style={{
@@ -376,15 +286,15 @@ export function Sidebar() {
         }}
       >
         <svg
-          width="28"
-          height="28"
+          width="22"
+          height="22"
           viewBox="0 0 28 28"
           fill="none"
           aria-hidden
-          style={{ color: 'var(--color-text-primary)', flexShrink: 0 }}
+          style={{ color: 'var(--accent)', flexShrink: 0 }}
         >
-          <rect x="4" y="18" width="4" height="7" rx="1" fill="currentColor" opacity="0.45" />
-          <rect x="10" y="11" width="4" height="14" rx="1" fill="currentColor" opacity="0.7" />
+          <rect x="4" y="18" width="4" height="7" rx="1" fill="currentColor" opacity="0.4" />
+          <rect x="10" y="11" width="4" height="14" rx="1" fill="currentColor" opacity="0.65" />
           <rect x="16" y="5" width="4" height="20" rx="1" fill="currentColor" />
           <path
             d="M20 5 C24 5 24 9 24 12"
@@ -397,55 +307,59 @@ export function Sidebar() {
         <span
           style={{
             fontFamily: 'var(--font-display)',
-            fontSize: 'var(--text-lg)',
+            fontSize: 'var(--text-base)',
             fontWeight: 700,
             color: 'var(--color-text-primary)',
+            letterSpacing: 'var(--tracking-wide)',
+            textTransform: 'uppercase' as const,
           }}
         >
-          SOCIALLENS
+          SocialLens
+        </span>
+        <span
+          style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: '9px',
+            fontWeight: 600,
+            color: 'var(--color-text-muted)',
+            background: 'var(--color-surface-3)',
+            border: '1px solid var(--color-border-base)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '2px 5px',
+            letterSpacing: 'var(--tracking-wide)',
+            lineHeight: 1,
+            alignSelf: 'center',
+            marginTop: '1px',
+          }}
+        >
+          BETA
         </span>
       </div>
 
-      {/* Nav items */}
-      <nav className="flex flex-1 flex-col gap-1 px-3 pt-2">
-        {NAV_ITEMS.map(({ label, to, icon: Icon }) => (
-          <NavLink
-            key={label}
-            to={to}
-            className="flex items-center gap-3 px-3 py-2 transition-interactive"
-            style={({ isActive }: { isActive: boolean }) => ({
-              borderRadius: 'var(--radius-md)',
-              borderLeft: isActive ? '2px solid var(--accent)' : '2px solid transparent',
-              paddingLeft: 'calc(var(--space-3) - 2px)',
-              background: isActive ? 'var(--color-surface-2)' : 'transparent',
-              color: isActive ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
-              fontFamily: 'var(--font-body)',
-              fontSize: 'var(--text-sm)',
-              fontWeight: 500,
-              textDecoration: 'none',
-            })}
-          >
-            {({ isActive }: { isActive: boolean }) => (
-              <>
-                <Icon
-                  size={16}
-                  aria-hidden
-                  style={{
-                    color: isActive ? 'var(--accent)' : 'var(--color-text-secondary)',
-                    flexShrink: 0,
-                  }}
-                />
-                {label}
-              </>
-            )}
-          </NavLink>
+      {/* ── Primary nav ── */}
+      <nav className="flex flex-1 flex-col gap-0.5 px-3 pt-3">
+        {PRIMARY_NAV.map(({ label, to, icon }) => (
+          <NavItem key={to} to={to} icon={icon} label={label} />
+        ))}
+
+        {/* Divider */}
+        <div
+          aria-hidden
+          style={{
+            height: '1px',
+            background: 'var(--color-border-subtle)',
+            margin: 'var(--space-2) var(--space-1)',
+          }}
+        />
+
+        {/* Secondary nav */}
+        {SECONDARY_NAV.map(({ label, to, icon }) => (
+          <NavItem key={to} to={to} icon={icon} label={label} />
         ))}
       </nav>
 
-      {/* Bottom: account connection card */}
-      <div style={{ padding: 'var(--space-4)' }}>
-        <AccountConnectionCard />
-      </div>
+      {/* ── Account status ── */}
+      <AccountStatusStrip />
     </aside>
   )
 }

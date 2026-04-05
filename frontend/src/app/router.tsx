@@ -7,7 +7,12 @@ const ChannelOverviewPage = lazy(() => import('@/features/channels/pages/Channel
 const ChannelsListPage = lazy(() => import('@/features/channels/pages/ChannelsListPage'))
 const ChannelVideosPage = lazy(() => import('@/features/channels/pages/ChannelVideosPage'))
 const TrendsPage = lazy(() => import('@/features/trends/pages/TrendsPage'))
+const GlobalTrendsPage = lazy(() => import('@/features/trends/pages/GlobalTrendsPage'))
+const InsightsPage = lazy(() => import('@/features/insights/pages/InsightsPage'))
 const VideosPage = lazy(() => import('@/features/videos/pages/VideosPage'))
+const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
+const CopilotPage = lazy(() => import('@/pages/CopilotPage'))
+const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
 const OAuthCallbackPage = lazy(() => import('@/pages/OAuthCallbackPage'))
 
@@ -19,12 +24,16 @@ export function AppRouter() {
 
       <Route element={<AppShell />}>
         <Route index element={<Navigate to="/channels" replace />} />
-        {/* /dashboard and legacy /channel redirect to the channels list */}
-        <Route path="/dashboard" element={<Navigate to="/channels" replace />} />
+        {/* Legacy /channel redirect */}
         <Route path="/channel" element={<Navigate to="/channels" replace />} />
 
         {/* Top-level feature pages */}
+        <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/videos" element={<VideosPage />} />
+        <Route path="/trends" element={<GlobalTrendsPage />} />
+        <Route path="/insights" element={<InsightsPage />} />
+        <Route path="/copilot" element={<CopilotPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
 
         {/* Channels feature */}
         <Route path="/channels" element={<ChannelsListPage />} />
