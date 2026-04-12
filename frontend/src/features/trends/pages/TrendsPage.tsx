@@ -28,7 +28,8 @@ import {
 
 import { cn } from '@/lib/utils'
 import { toastError } from '@/lib/toast'
-import { fmtNum, fmtDelta, fmtDateShort } from '@/lib/format'
+import { fmtDelta, fmtDateShort } from '@/lib/format'
+import { formatChartAxis } from '@/utils/formatters'
 import { ChartCard, CHART_STYLES } from '@/components/common/ChartCard'
 import { RangePills } from '@/components/charts/RangePills'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -673,7 +674,7 @@ export default function TrendsPage() {
                   tick={CHART_STYLES.axisTick}
                 />
                 <YAxis
-                  tickFormatter={fmtNum}
+                  tickFormatter={formatChartAxis}
                   tickLine={false}
                   axisLine={false}
                   tick={CHART_STYLES.axisTick}
@@ -683,7 +684,7 @@ export default function TrendsPage() {
                   contentStyle={CHART_STYLES.tooltip.contentStyle}
                   labelStyle={CHART_STYLES.tooltip.labelStyle}
                   cursor={CHART_STYLES.tooltip.cursor}
-                  formatter={(value: number) => [fmtNum(value), config.label]}
+                  formatter={(value: number) => [formatChartAxis(value), config.label]}
                   labelFormatter={(label: string) => {
                     try {
                       return format(parseISO(label), 'MMM d, yyyy')
@@ -736,7 +737,7 @@ export default function TrendsPage() {
                     ? fmtDelta(Math.round(insights.avgPerDay))
                     : insights.slopeUnavailable
                       ? '—'
-                      : `${insights.avgPerDay >= 0 ? '+' : ''}${fmtNum(Math.round(insights.avgPerDay))}`
+                      : `${insights.avgPerDay >= 0 ? '+' : ''}${formatChartAxis(Math.round(insights.avgPerDay))}`
                 }
                 sub={
                   <>
@@ -753,7 +754,7 @@ export default function TrendsPage() {
             value={
               seriesMode === 'delta'
                 ? fmtDelta(Math.round(insights.peakValue))
-                : fmtNum(insights.peakValue)
+                : formatChartAxis(insights.peakValue)
             }
             sub={insights.peakDate ? fmtDateShort(insights.peakDate) : '—'}
           />
@@ -767,7 +768,7 @@ export default function TrendsPage() {
               ? 'Not enough date range'
               : seriesMode === 'delta'
                 ? `${fmtDelta(Math.round(insights.slope))} / day avg`
-                : `${insights.slope >= 0 ? '+' : ''}${fmtNum(Math.round(Math.abs(insights.slope)))} / day`
+                : `${insights.slope >= 0 ? '+' : ''}${formatChartAxis(Math.round(Math.abs(insights.slope)))} / day`
             return (
               <InsightCard
                 icon={

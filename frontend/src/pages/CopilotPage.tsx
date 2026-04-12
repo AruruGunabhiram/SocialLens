@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ArrowUp, Bot, Sparkles } from 'lucide-react'
+import { ArrowUp, Bot, ChevronDown, Sparkles } from 'lucide-react'
 
 import {
   useChannelAnalyticsByIdQuery,
   useChannelsQuery,
   useVideosQuery,
 } from '@/features/channels/queries'
-import { fmtCompact, fmtDate } from '@/lib/format'
+import { ChannelAvatar } from '@/components/common/ChannelAvatar'
+import { formatCount, formatDate, formatSubscriberCount } from '@/utils/formatters'
 import type { ChannelAnalytics, ChannelItem, VideoRow } from '@/api/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -42,7 +43,7 @@ CHANNEL:
 - Subscribers: ${analytics.subscriberCount?.toLocaleString() ?? 'N/A'}
 - Total Views: ${analytics.totalViews?.toLocaleString() ?? 'N/A'}
 - Videos on YouTube: ${analytics.videoCount ?? 'N/A'}
-- Channel since: ${channel.publishedAt ? fmtDate(channel.publishedAt) : 'N/A'}
+- Channel since: ${channel.publishedAt ? formatDate(channel.publishedAt) : 'N/A'}
 
 RECENT SNAPSHOTS (newest first):
 ${snapshots.length > 0 ? snapshots.map((s) => `- ${s.date}: ${s.views?.toLocaleString() ?? '—'} views, ${s.subscribers?.toLocaleString() ?? '—'} subscribers`).join('\n') : '- No snapshot data yet'}
@@ -269,6 +270,157 @@ function SuggestedQuestions({ onPick }: { onPick: (q: string) => void }) {
   )
 }
 
+// ─── ChannelDropdown ──────────────────────────────────────────────────────────
+
+function ChannelDropdown({
+  channels,
+  selectedId,
+  onChange,
+}: {
+  channels: ChannelItem[] | undefined
+  selectedId: number | undefined
+  onChange: (id: number | undefined) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return
+    function handleOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [open])
+
+  const selected = channels?.find((c) => c.id === selectedId)
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative' }}>
+      {/* Trigger */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--space-2)',
+          width: '100%',
+          padding: 'var(--space-2) var(--space-3)',
+          background: 'var(--color-surface-1)',
+          border: `1px solid ${open ? 'var(--color-border-strong)' : 'var(--color-border-base)'}`,
+          borderRadius: 'var(--radius-md)',
+          fontFamily: 'var(--font-body)',
+          fontSize: 'var(--text-sm)',
+          color: selected ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
+          cursor: 'pointer',
+          textAlign: 'left',
+          transition: 'border-color var(--duration-base)',
+        }}
+      >
+        {selected ? (
+          <ChannelAvatar
+            size="sm"
+            thumbnailUrl={selected.thumbnailUrl}
+            channelName={selected.title ?? selected.channelId}
+          />
+        ) : (
+          <div
+            aria-hidden
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              background: 'var(--color-surface-3)',
+              flexShrink: 0,
+            }}
+          />
+        )}
+        <span className="flex-1 truncate">
+          {selected ? (selected.title ?? selected.channelId) : 'Select a channel…'}
+        </span>
+        <ChevronDown
+          size={14}
+          aria-hidden
+          style={{
+            color: 'var(--color-text-muted)',
+            flexShrink: 0,
+            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform var(--duration-base)',
+          }}
+        />
+      </button>
+
+      {/* Dropdown list */}
+      {open && channels && channels.length > 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 4px)',
+            left: 0,
+            right: 0,
+            background: 'var(--color-surface-2)',
+            border: '1px solid var(--color-border-base)',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: 'var(--shadow-md)',
+            zIndex: 50,
+            maxHeight: 240,
+            overflowY: 'auto',
+          }}
+        >
+          {channels.map((ch) => (
+            <button
+              key={ch.id}
+              type="button"
+              onClick={() => {
+                onChange(ch.id)
+                setOpen(false)
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+                width: '100%',
+                padding: 'var(--space-2) var(--space-3)',
+                background: ch.id === selectedId ? 'var(--color-surface-3)' : 'transparent',
+                border: 'none',
+                borderBottom: '1px solid var(--color-border-subtle)',
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--text-sm)',
+                color:
+                  ch.id === selectedId
+                    ? 'var(--color-text-primary)'
+                    : 'var(--color-text-secondary)',
+                cursor: 'pointer',
+                textAlign: 'left',
+                transition: 'background var(--duration-fast)',
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background =
+                  ch.id === selectedId ? 'var(--color-surface-3)' : 'var(--color-surface-1)')
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background =
+                  ch.id === selectedId ? 'var(--color-surface-3)' : 'transparent')
+              }
+            >
+              <ChannelAvatar
+                size="sm"
+                thumbnailUrl={ch.thumbnailUrl}
+                channelName={ch.title ?? ch.channelId}
+              />
+              <span className="flex-1 truncate">{ch.title ?? ch.channelId}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── ContextPanel ─────────────────────────────────────────────────────────────
 
 function ContextPanel({
@@ -309,28 +461,7 @@ function ContextPanel({
         >
           Channel context
         </p>
-        <select
-          value={selectedId ?? ''}
-          onChange={(e) => onChange(e.target.value ? Number(e.target.value) : undefined)}
-          style={{
-            width: '100%',
-            padding: 'var(--space-2) var(--space-3)',
-            background: 'var(--color-surface-1)',
-            border: '1px solid var(--color-border-base)',
-            borderRadius: 'var(--radius-md)',
-            fontFamily: 'var(--font-body)',
-            fontSize: 'var(--text-sm)',
-            color: selectedId ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
-            cursor: 'pointer',
-          }}
-        >
-          <option value="">Select a channel…</option>
-          {channels?.map((ch) => (
-            <option key={ch.id} value={ch.id}>
-              {ch.title ?? ch.channelId}
-            </option>
-          ))}
-        </select>
+        <ChannelDropdown channels={channels} selectedId={selectedId} onChange={onChange} />
       </div>
 
       {channel && analytics && (
@@ -356,8 +487,8 @@ function ContextPanel({
               {channel.title ?? channel.channelId}
             </p>
             {[
-              { label: 'Subscribers', val: fmtCompact(analytics.subscriberCount) },
-              { label: 'Total views', val: fmtCompact(analytics.totalViews) },
+              { label: 'Subscribers', val: formatCount(analytics.subscriberCount) },
+              { label: 'Total views', val: formatCount(analytics.totalViews) },
               { label: 'Videos', val: analytics.videoCount?.toLocaleString() ?? '—' },
               {
                 label: 'Snapshots loaded',
@@ -547,7 +678,7 @@ export default function CopilotPage() {
             <span style={{ ...muted, fontSize: '11px' }}>
               · {selectedChannel.title ?? selectedChannel.channelId}
               {analytics?.subscriberCount != null &&
-                ` · ${fmtCompact(analytics.subscriberCount)} subs`}
+                ` · ${formatSubscriberCount(analytics.subscriberCount)}`}
               {(analytics?.timeseries?.length ?? 0) > 0 &&
                 ` · ${analytics!.timeseries!.length} days of data`}
             </span>
