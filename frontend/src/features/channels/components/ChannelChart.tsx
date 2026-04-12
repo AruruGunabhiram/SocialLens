@@ -12,7 +12,8 @@ import {
   YAxis,
 } from 'recharts'
 
-import { fmtDelta, fmtNum, fmtDateShort } from '@/lib/format'
+import { fmtDelta, fmtDateShort } from '@/lib/format'
+import { formatChartAxis } from '@/utils/formatters'
 import { ChartCard, CHART_STYLES } from '@/components/common/ChartCard'
 import { EmptyState } from '@/components/common/EmptyState'
 import type { ChannelAnalytics } from '../schemas'
@@ -104,7 +105,7 @@ export function ChannelChart({ data }: ChannelChartProps) {
               strokeDasharray="4 2"
               strokeWidth={1}
               label={{
-                value: `avg ${fmtNum(Math.round(avg))}`,
+                value: `avg ${formatChartAxis(Math.round(avg))}`,
                 position: 'insideTopRight',
                 style: {
                   fontFamily: 'var(--font-mono)',
@@ -121,7 +122,7 @@ export function ChannelChart({ data }: ChannelChartProps) {
               tick={CHART_STYLES.axisTick}
             />
             <YAxis
-              tickFormatter={(v: number) => fmtNum(v)}
+              tickFormatter={formatChartAxis}
               tickLine={false}
               axisLine={false}
               tick={CHART_STYLES.axisTick}

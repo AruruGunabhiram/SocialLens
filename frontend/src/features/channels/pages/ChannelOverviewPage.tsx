@@ -2,11 +2,13 @@ import { differenceInDays, isValid, parseISO } from 'date-fns'
 import {
   AlertTriangle,
   BarChart2,
+  ExternalLink,
   Lightbulb,
   Loader2,
   RefreshCw,
   TrendingUp,
   Video,
+  Youtube,
 } from 'lucide-react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 
@@ -42,12 +44,13 @@ function humanizeError(raw: string | null | undefined): HumanizedError {
   return { message: raw, isRaw: true }
 }
 
+import { ChannelAvatar } from '@/components/common/ChannelAvatar'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { InfoTooltip } from '@/components/common/InfoTooltip'
 import { StatCard } from '@/components/common/StatCard'
 import { normalizeHttpError } from '@/api/httpError'
-import { fmtCompact, fmtDate, fmtDateTime, fmtSubscribers } from '@/lib/format'
+import { formatCount, formatDate } from '@/utils/formatters'
 import { toastError } from '@/lib/toast'
 
 import { ChannelChart } from '../components/ChannelChart'
@@ -58,65 +61,6 @@ import {
   useChannelRefreshByIdMutation,
   useVideosQuery,
 } from '../queries'
-
-// ─── Avatar ───────────────────────────────────────────────────────────────────
-
-const AVATAR_BG = [
-  'var(--chart-1)',
-  'var(--chart-2)',
-  'var(--chart-3)',
-  'var(--chart-4)',
-  'var(--chart-5)',
-  'var(--chart-6)',
-]
-
-function ChannelAvatar({
-  thumbnailUrl,
-  title,
-  id,
-}: {
-  thumbnailUrl?: string | null
-  title?: string | null
-  id: number
-}) {
-  const initial = (title ?? '?')[0].toUpperCase()
-  const bg = AVATAR_BG[id % AVATAR_BG.length]
-
-  if (thumbnailUrl) {
-    return (
-      <img
-        src={thumbnailUrl}
-        alt={title ?? 'Channel avatar'}
-        className="rounded-full object-cover shrink-0"
-        style={{ width: 64, height: 64 }}
-        onError={(e) => {
-          const target = e.currentTarget
-          target.style.display = 'none'
-          const sibling = target.nextElementSibling as HTMLElement | null
-          if (sibling) sibling.style.display = 'flex'
-        }}
-      />
-    )
-  }
-
-  return (
-    <div
-      className="shrink-0 rounded-full flex items-center justify-center"
-      style={{
-        width: 64,
-        height: 64,
-        background: bg,
-        color: 'var(--color-surface-1, #fff)',
-        fontSize: 26,
-        fontFamily: 'var(--font-display)',
-        fontWeight: 700,
-      }}
-      aria-hidden="true"
-    >
-      {initial}
-    </div>
-  )
-}
 
 // ─── Upload frequency ─────────────────────────────────────────────────────────
 
@@ -194,12 +138,12 @@ function RecentVideoRow({
         <div className="flex items-center gap-3 mt-0.5" style={{ fontSize: 11 }}>
           {publishedAt && (
             <span style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
-              {fmtDate(publishedAt)}
+              {formatDate(publishedAt)}
             </span>
           )}
           {viewCount != null && (
             <span style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
-              {fmtCompact(viewCount)} views
+              {formatCount(viewCount)} views
             </span>
           )}
         </div>
@@ -248,7 +192,8 @@ export default function ChannelOverviewPage() {
 
   // Subscribers
   const subCount = data?.subscriberCount ?? channelDetail?.subscriberCount
-  const { value: subValue, label: subLabel } = fmtSubscribers(subCount)
+  const subValue = formatCount(subCount)
+  const subLabel = subCount === 1 ? 'subscriber' : subCount != null ? 'subscribers' : undefined
 
   // Upload frequency
   const uploadFreq = computeUploadFreq(channelDetail?.publishedAt, channelDetail?.videoCount)
@@ -262,7 +207,7 @@ export default function ChannelOverviewPage() {
           { label: 'Title', value: title ?? '—' },
           {
             label: 'Published at',
-            value: channelDetail?.publishedAt ? fmtDate(channelDetail.publishedAt) : '—',
+            value: formatDate(channelDetail?.publishedAt),
           },
           { label: 'Videos (YouTube)', value: data.videoCount ?? channelDetail?.videoCount ?? '—' },
           { label: 'Videos (indexed)', value: indexedVideoCount ?? '—' },
@@ -272,11 +217,11 @@ export default function ChannelOverviewPage() {
           },
           {
             label: 'Last synced',
-            value: fmtDateTime(channelDetail?.lastSuccessfulRefreshAt),
+            value: formatDate(channelDetail?.lastSuccessfulRefreshAt),
           },
           {
             label: 'Last snapshot',
-            value: fmtDate(channelDetail?.lastSnapshotAt),
+            value: formatDate(channelDetail?.lastSnapshotAt),
           },
           ...(channelDetail?.snapshotDayCount != null
             ? [{ label: 'Snapshot days', value: String(channelDetail.snapshotDayCount) }]
@@ -319,16 +264,31 @@ export default function ChannelOverviewPage() {
     <div className="space-y-6">
       {/* Breadcrumb */}
       {channelDbIdParam && (
-        <div
-          className="flex items-center gap-2 text-sm"
-          style={{ color: 'var(--color-text-muted)' }}
-        >
-          <Link to="/channels" className="hover:text-foreground transition-colors">
-            Channels
-          </Link>
-          <span>/</span>
-          <span className="text-foreground font-medium truncate">{title ?? channelDbIdStr}</span>
-        </div>
+        <nav aria-label="Breadcrumb">
+          <ol
+            className="flex items-center gap-2 text-sm"
+            style={{ color: 'var(--color-text-muted)', listStyle: 'none', margin: 0, padding: 0 }}
+          >
+            <li>
+              <Link to="/channels" className="hover:text-foreground transition-colors">
+                Channels
+              </Link>
+            </li>
+            <li aria-hidden="true">
+              <span>/</span>
+            </li>
+            <li className="flex items-center gap-2 min-w-0">
+              <ChannelAvatar
+                size="sm"
+                thumbnailUrl={channelDetail?.thumbnailUrl}
+                channelName={title ?? channelId ?? String(channelDbId)}
+              />
+              <span className="text-foreground font-medium truncate" aria-current="page">
+                {title ?? channelDbIdStr}
+              </span>
+            </li>
+          </ol>
+        </nav>
       )}
 
       {/* ── SECTION 1: Channel Hero ─────────────────────────────────────── */}
@@ -336,9 +296,9 @@ export default function ChannelOverviewPage() {
         {/* Top row: avatar + name + status */}
         <div className="flex flex-wrap items-start gap-4">
           <ChannelAvatar
+            size="lg"
             thumbnailUrl={channelDetail?.thumbnailUrl}
-            title={title}
-            id={channelDbId}
+            channelName={title ?? channelId ?? String(channelDbId)}
           />
           <div className="min-w-0 flex-1 space-y-1">
             {isLoading ? (
@@ -356,23 +316,37 @@ export default function ChannelOverviewPage() {
             )}
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1" style={{ fontSize: 13 }}>
               {channelDetail?.handle && (
-                <a
-                  href={`https://youtube.com/${channelDetail.handle}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:underline"
-                  style={{ color: 'var(--color-text-muted)' }}
+                <span
+                  className="font-mono"
+                  style={{ color: 'var(--color-text-muted)', fontSize: 11 }}
                 >
-                  {channelDetail.handle}
-                </a>
+                  @{channelDetail.handle}
+                </span>
               )}
-              {channelId && (
+              {channelId && !channelDetail?.handle && (
                 <span
                   className="font-mono"
                   style={{ color: 'var(--color-text-muted)', fontSize: 11 }}
                 >
                   {channelId}
                 </span>
+              )}
+              {(channelDetail?.handle || channelId) && (
+                <a
+                  href={
+                    channelDetail?.handle
+                      ? `https://www.youtube.com/@${channelDetail.handle}`
+                      : `https://www.youtube.com/channel/${channelId}`
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 hover:underline"
+                  style={{ color: 'var(--color-text-muted)', fontSize: 12 }}
+                >
+                  <Youtube size={12} aria-hidden style={{ color: '#ff0000', flexShrink: 0 }} />
+                  View on YouTube
+                  <ExternalLink size={10} aria-hidden style={{ flexShrink: 0, opacity: 0.6 }} />
+                </a>
               )}
             </div>
             <div className="pt-1">
@@ -387,6 +361,7 @@ export default function ChannelOverviewPage() {
             <button
               type="button"
               disabled={isRefreshing}
+              aria-disabled={isRefreshing}
               onClick={() => refresh.mutate({ channelDbId: channelDbId! })}
               className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors"
               style={{ color: 'var(--color-text-muted)' }}
@@ -467,7 +442,7 @@ export default function ChannelOverviewPage() {
                 )}
                 {channelDetail.lastSuccessfulRefreshAt && (
                   <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                    Last successful sync: {fmtDateTime(channelDetail.lastSuccessfulRefreshAt)}
+                    Last successful sync: {formatDate(channelDetail.lastSuccessfulRefreshAt)}
                   </p>
                 )}
               </div>
@@ -476,6 +451,7 @@ export default function ChannelOverviewPage() {
             <button
               type="button"
               disabled={isRefreshing}
+              aria-disabled={isRefreshing}
               onClick={() => refresh.mutate({ channelDbId: channelDbId! })}
               className="shrink-0 flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold transition-opacity"
               style={{
@@ -516,7 +492,7 @@ export default function ChannelOverviewPage() {
           />
           <p className="text-sm" style={{ color: 'var(--color-warn)' }}>
             Data is {staleDays} day{staleDays !== 1 ? 's' : ''} old. Charts and metrics reflect the
-            last successful sync on {fmtDate(channelDetail.lastSuccessfulRefreshAt)}.
+            last successful sync on {formatDate(channelDetail.lastSuccessfulRefreshAt)}.
           </p>
         </div>
       )}
@@ -531,7 +507,7 @@ export default function ChannelOverviewPage() {
               {subValue}
             </span>
           }
-          description={subCount != null ? subLabel : undefined}
+          description={subLabel}
           loading={isLoading || isFetching}
         />
 
@@ -540,7 +516,7 @@ export default function ChannelOverviewPage() {
           label="Total Views"
           value={
             <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
-              {fmtCompact(data?.totalViews)}
+              {formatCount(data?.totalViews)}
             </span>
           }
           icon={<BarChart2 className="h-4 w-4 text-muted-foreground" />}
@@ -574,7 +550,7 @@ export default function ChannelOverviewPage() {
           }
           description={
             channelDetail?.publishedAt
-              ? `Channel since ${fmtDate(channelDetail.publishedAt)}`
+              ? `Channel since ${formatDate(channelDetail.publishedAt)}`
               : undefined
           }
           loading={isLoading}
@@ -668,12 +644,13 @@ export default function ChannelOverviewPage() {
               <tbody>
                 {detailsRows.map((row) => (
                   <tr key={row.label} className="border-t">
-                    <td
-                      className="py-1.5 pr-4 align-top font-medium"
+                    <th
+                      scope="row"
+                      className="py-1.5 pr-4 align-top font-medium text-left"
                       style={{ color: 'var(--color-text-muted)', width: '35%' }}
                     >
                       {row.label}
-                    </td>
+                    </th>
                     <td
                       className="py-1.5 break-all align-top font-mono text-xs"
                       style={{ color: 'var(--foreground)' }}

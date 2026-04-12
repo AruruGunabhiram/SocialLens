@@ -1,4 +1,4 @@
-import { fmtCompact, fmtDate } from '@/lib/format'
+import { formatCount, formatDate } from '@/utils/formatters'
 import {
   ChevronLeft,
   ChevronRight,
@@ -10,6 +10,7 @@ import {
   Loader2,
   Play,
   PlaySquare,
+  RefreshCw,
   Search,
   Video,
 } from 'lucide-react'
@@ -122,10 +123,16 @@ function SortableHeader({
           'flex items-center gap-1 rounded transition-colors hover:text-foreground',
           isActive && 'text-foreground'
         )}
-        aria-label={`Sort by ${label}${isActive ? `, currently ${currentDir}ending` : ''}`}
       >
-        {label}
-        <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        {/* Visible: compact label + direction icon */}
+        <span aria-hidden className="flex items-center gap-1">
+          {label}
+          <Icon className="h-3.5 w-3.5 shrink-0" />
+        </span>
+        {/* Screen-reader only: verbose description */}
+        <span className="sr-only">
+          {isActive ? `Sort by ${label}, currently ${currentDir}ending` : `Sort by ${label}`}
+        </span>
       </button>
       {labelExtra}
     </th>
@@ -199,8 +206,30 @@ function VideoTableRow({ video }: { video: VideoRow }) {
   const hasTitle = Boolean(video.title?.trim())
   const ytUrl = `${YT_WATCH}${video.videoId}`
 
+  function handleRowClick(e: React.MouseEvent<HTMLTableRowElement>) {
+    // Let inner <a> / <button> elements handle their own navigation
+    if ((e.target as HTMLElement).closest('a, button')) return
+    window.open(ytUrl, '_blank', 'noopener,noreferrer')
+  }
+
+  function handleRowKeyDown(e: React.KeyboardEvent<HTMLTableRowElement>) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      window.open(ytUrl, '_blank', 'noopener,noreferrer')
+    }
+  }
+
   return (
-    <tr className="group align-middle transition-colors hover:bg-muted/40">
+    <tr
+      className="group align-middle transition-colors hover:bg-muted/40"
+      style={{ cursor: 'pointer' }}
+      onClick={handleRowClick}
+      onKeyDown={handleRowKeyDown}
+      tabIndex={0}
+      aria-label={
+        hasTitle ? `Watch "${video.title}" on YouTube` : `Watch ${video.videoId} on YouTube`
+      }
+    >
       {/* Thumbnail — 48×27 (16:9), always links to YouTube */}
       <td className="py-2 pl-4 pr-4">
         <a
@@ -293,20 +322,20 @@ function VideoTableRow({ video }: { video: VideoRow }) {
 
       {/* Published date */}
       <td className="whitespace-nowrap py-2 pr-4 text-sm text-muted-foreground">
-        {fmtDate(video.publishedAt)}
+        {formatDate(video.publishedAt)}
       </td>
 
-      {/* Views — "—" when null (fmtCompact handles this) */}
-      <td className="py-2 pr-4 text-sm tabular-nums">{fmtCompact(video.viewCount)}</td>
+      {/* Views — "—" when null (formatCount handles this) */}
+      <td className="py-2 pr-4 text-sm tabular-nums">{formatCount(video.viewCount)}</td>
 
       {/* Likes — N/A badge when not yet enriched */}
       <td className="py-2 pr-4 text-sm tabular-nums">
-        {video.likeCount != null ? fmtCompact(video.likeCount) : <NaBadge />}
+        {video.likeCount != null ? formatCount(video.likeCount) : <NaBadge />}
       </td>
 
       {/* Comments — N/A badge when not yet enriched */}
       <td className="py-2 pr-4 text-sm tabular-nums">
-        {video.commentCount != null ? fmtCompact(video.commentCount) : <NaBadge />}
+        {video.commentCount != null ? formatCount(video.commentCount) : <NaBadge />}
       </td>
     </tr>
   )
@@ -316,20 +345,57 @@ function VideoTableRow({ video }: { video: VideoRow }) {
 // Pagination controls
 // ---------------------------------------------------------------------------
 
+const PAGE_SIZES = [25, 50, 100] as const
+
 type PaginationProps = {
   page: number
   totalPages: number
   totalItems: number
+  size: number
   onPrev: () => void
   onNext: () => void
+  onSizeChange: (n: number) => void
 }
 
-function Pagination({ page, totalPages, totalItems, onPrev, onNext }: PaginationProps) {
+function Pagination({
+  page,
+  totalPages,
+  totalItems,
+  size,
+  onPrev,
+  onNext,
+  onSizeChange,
+}: PaginationProps) {
+  const safeTotal = Math.max(1, totalPages)
   return (
-    <div className="flex items-center justify-between text-sm text-muted-foreground">
-      <span>
-        {totalItems.toLocaleString()} video{totalItems !== 1 ? 's' : ''}
-      </span>
+    <div className="flex flex-wrap items-center justify-between gap-y-2 text-sm text-muted-foreground">
+      {/* Left: page-size pills */}
+      <div className="flex items-center gap-1">
+        {PAGE_SIZES.map((n) => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => onSizeChange(n)}
+            style={{
+              padding: '2px 10px',
+              borderRadius: 'var(--radius-full)',
+              fontFamily: 'var(--font-body)',
+              fontSize: 'var(--text-xs)',
+              fontWeight: n === size ? 600 : 400,
+              border: '1px solid',
+              borderColor: n === size ? 'var(--color-border-strong)' : 'var(--color-border-subtle)',
+              background: n === size ? 'var(--color-surface-2)' : 'transparent',
+              color: n === size ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
+              cursor: n === size ? 'default' : 'pointer',
+              transition: 'all var(--duration-base)',
+            }}
+          >
+            {n} per page
+          </button>
+        ))}
+      </div>
+
+      {/* Right: navigation */}
       <div className="flex items-center gap-3">
         <Button
           variant="outline"
@@ -337,12 +403,31 @@ function Pagination({ page, totalPages, totalItems, onPrev, onNext }: Pagination
           onClick={onPrev}
           disabled={page === 0}
           className="gap-1"
+          aria-label="Previous page"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
           Prev
         </Button>
-        <span className="tabular-nums">
-          {page + 1} / {Math.max(1, totalPages)}
+        <span
+          className="tabular-nums"
+          style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: 'var(--text-sm)',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Page{' '}
+          <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+            {page + 1}
+          </span>{' '}
+          of{' '}
+          <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+            {safeTotal}
+          </span>
+          <span style={{ color: 'var(--color-text-muted)' }}>
+            {' '}
+            ({totalItems.toLocaleString()} video{totalItems !== 1 ? 's' : ''})
+          </span>
         </span>
         <Button
           variant="outline"
@@ -350,6 +435,7 @@ function Pagination({ page, totalPages, totalItems, onPrev, onNext }: Pagination
           onClick={onNext}
           disabled={page >= totalPages - 1}
           className="gap-1"
+          aria-label="Next page"
         >
           Next
           <ChevronRight className="h-4 w-4" aria-hidden />
@@ -447,6 +533,18 @@ export default function ChannelVideosPage() {
     )
   }
 
+  function handleSize(newSize: number) {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.set('size', String(newSize))
+        next.set('page', '0')
+        return next
+      },
+      { replace: true }
+    )
+  }
+
   // -----------------------------------------------------------------------
   // Error state
   // -----------------------------------------------------------------------
@@ -479,9 +577,12 @@ export default function ChannelVideosPage() {
     ? items.filter((v) => displayTitle(v).toLowerCase().includes(clientQ))
     : items
 
-  // Warning: >20% of this page's videos have no title → sync likely incomplete.
+  // Warning banner: >20% of this page's videos have no title → sync likely incomplete.
   const missingTitleCount = items.filter((v) => !v.title?.trim()).length
-  const showTitleWarning = !isLoading && items.length > 0 && missingTitleCount / items.length > 0.2
+  const missingTitleFraction = items.length > 0 ? missingTitleCount / items.length : 0
+  const showTitleWarning = !isLoading && items.length > 0 && missingTitleFraction > 0.2
+  // Subtle search hint: >50% titles missing — searching won't return useful results yet.
+  const showEnrichmentHint = !isLoading && items.length > 0 && missingTitleFraction > 0.5
 
   // -----------------------------------------------------------------------
   // Render
@@ -505,6 +606,7 @@ export default function ChannelVideosPage() {
             <InfoTooltip text="Indexed = videos stored in SocialLens DB. Total = YouTube channel lifetime total." />
           }
           value={meta?.totalItems?.toLocaleString() ?? '—'}
+          description="Stored in SocialLens DB"
           icon={<Database className="h-4 w-4 text-muted-foreground" />}
           loading={isLoading}
         />
@@ -536,6 +638,7 @@ export default function ChannelVideosPage() {
           <button
             type="button"
             disabled={refreshMutation.isPending}
+            aria-disabled={refreshMutation.isPending}
             onClick={() => refreshMutation.mutate({ channelDbId })}
             style={{
               display: 'inline-flex',
@@ -563,19 +666,79 @@ export default function ChannelVideosPage() {
         </div>
       )}
 
-      {/* Search bar */}
-      <div className="relative max-w-sm">
-        <Search
-          className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-          aria-hidden
-        />
-        <Input
-          value={searchInput}
-          onChange={handleSearchChange}
-          placeholder="Search by title or video ID…"
-          className="pl-9"
-          aria-label="Search videos by title or video ID"
-        />
+      {/* Search bar + Refresh Metadata */}
+      <div className="flex flex-wrap items-start gap-2">
+        <div className="flex flex-col gap-1">
+          <div className="relative">
+            <Search
+              className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden
+            />
+            <Input
+              value={searchInput}
+              onChange={handleSearchChange}
+              placeholder="Search by title or video ID…"
+              className="pl-9"
+              style={{ width: 280 }}
+              aria-label="Search videos by title or video ID"
+            />
+          </div>
+          {showEnrichmentHint && (
+            <p
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--color-text-muted)',
+                lineHeight: 'var(--leading-relaxed)',
+              }}
+            >
+              Titles will be searchable after metadata enrichment
+            </p>
+          )}
+        </div>
+
+        <button
+          type="button"
+          disabled={refreshMutation.isPending}
+          aria-disabled={refreshMutation.isPending}
+          onClick={() => refreshMutation.mutate({ channelDbId })}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 'var(--space-1)',
+            flexShrink: 0,
+            fontFamily: 'var(--font-body)',
+            fontSize: 'var(--text-sm)',
+            fontWeight: 500,
+            color: 'var(--color-text-secondary)',
+            background: 'var(--color-surface-1)',
+            border: '1px solid var(--color-border-base)',
+            borderRadius: 'var(--radius-md)',
+            padding: 'var(--space-2) var(--space-3)',
+            cursor: refreshMutation.isPending ? 'not-allowed' : 'pointer',
+            opacity: refreshMutation.isPending ? 0.6 : 1,
+            whiteSpace: 'nowrap',
+            height: 36,
+            transition: 'border-color var(--duration-base), color var(--duration-base)',
+          }}
+          onMouseEnter={(e) => {
+            if (!refreshMutation.isPending) {
+              e.currentTarget.style.borderColor = 'var(--color-border-strong)'
+              e.currentTarget.style.color = 'var(--color-text-primary)'
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'var(--color-border-base)'
+            e.currentTarget.style.color = 'var(--color-text-secondary)'
+          }}
+        >
+          {refreshMutation.isPending ? (
+            <Loader2 size={13} className="animate-spin" aria-hidden style={{ flexShrink: 0 }} />
+          ) : (
+            <RefreshCw size={13} aria-hidden style={{ flexShrink: 0 }} />
+          )}
+          {refreshMutation.isPending ? 'Refreshing…' : 'Refresh Metadata'}
+        </button>
       </div>
 
       {/* Table card */}
@@ -590,8 +753,11 @@ export default function ChannelVideosPage() {
             <table className="w-full min-w-[640px] text-left text-sm">
               <thead className="border-b">
                 <tr>
-                  <th className="pb-3 pl-4 pr-4 pt-4 text-xs font-medium text-muted-foreground">
-                    Thumb
+                  <th
+                    className="pb-3 pl-4 pr-4 pt-4 text-xs font-medium text-muted-foreground"
+                    style={{ width: 64 }}
+                  >
+                    <span className="sr-only">Thumbnail</span>
                   </th>
                   <SortableHeader
                     label="Title"
@@ -619,9 +785,7 @@ export default function ChannelVideosPage() {
                   />
                   <SortableHeader
                     label="Likes"
-                    labelExtra={
-                      <InfoTooltip text="Populated after enrichment. YouTube may disable likes on individual videos." />
-                    }
+                    labelExtra={<InfoTooltip text="Likes may not be available for all videos" />}
                     sortKey="likes"
                     currentSort={sort}
                     currentDir={dir}
@@ -630,7 +794,7 @@ export default function ChannelVideosPage() {
                   />
                   <SortableHeader
                     label="Comments"
-                    labelExtra={<InfoTooltip text="Populated after enrichment." />}
+                    labelExtra={<InfoTooltip text="Comment counts available after full sync" />}
                     sortKey="comments"
                     currentSort={sort}
                     currentDir={dir}
@@ -671,8 +835,10 @@ export default function ChannelVideosPage() {
                 page={meta.page}
                 totalPages={meta.totalPages}
                 totalItems={meta.totalItems}
+                size={size}
                 onPrev={() => handlePage(-1)}
                 onNext={() => handlePage(1)}
+                onSizeChange={handleSize}
               />
             </div>
           )}
@@ -698,20 +864,37 @@ function VideosPageHeader({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Link to="/channels" className="hover:text-foreground transition-colors">
-          Channels
-        </Link>
-        <span>/</span>
-        <Link
-          to={`/channels/${channelDbId}`}
-          className="hover:text-foreground transition-colors truncate max-w-[200px]"
+      <nav aria-label="Breadcrumb">
+        <ol
+          className="flex items-center gap-2 text-sm text-muted-foreground"
+          style={{ listStyle: 'none', margin: 0, padding: 0 }}
         >
-          {channelName}
-        </Link>
-        <span>/</span>
-        <span className="text-foreground font-medium">Videos</span>
-      </div>
+          <li>
+            <Link to="/channels" className="hover:text-foreground transition-colors">
+              Channels
+            </Link>
+          </li>
+          <li aria-hidden="true">
+            <span>/</span>
+          </li>
+          <li>
+            <Link
+              to={`/channels/${channelDbId}`}
+              className="hover:text-foreground transition-colors truncate max-w-[200px]"
+            >
+              {channelName}
+            </Link>
+          </li>
+          <li aria-hidden="true">
+            <span>/</span>
+          </li>
+          <li>
+            <span className="text-foreground font-medium" aria-current="page">
+              Videos
+            </span>
+          </li>
+        </ol>
+      </nav>
       <h1 className="text-2xl font-bold tracking-tight">Videos</h1>
       {channel && (
         <div className="flex items-center gap-2">
