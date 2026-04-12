@@ -1,8 +1,14 @@
 import { axiosClient } from '@/api/axiosClient'
 import { endpoints } from '@/api/endpoints'
 import { normalizeHttpError } from '@/api/httpError'
-import { AccountStatusSchema, LocalUserSchema, OAuthStartResponseSchema } from '@/api/schemas'
-import type { AccountStatus, LocalUser } from '@/api/types'
+import {
+  AccountStatusSchema,
+  BudgetStatusSchema,
+  ConnectedAccountDetailSchema,
+  LocalUserSchema,
+  OAuthStartResponseSchema,
+} from '@/api/schemas'
+import type { AccountStatus, BudgetStatus, ConnectedAccountDetail, LocalUser } from '@/api/types'
 
 /**
  * Returns the implicit "current user" for local-dev.
@@ -44,6 +50,55 @@ export async function fetchOAuthStartUrl(userId: number): Promise<string> {
       params: { userId },
     })
     return OAuthStartResponseSchema.parse(data).authUrl
+  } catch (error) {
+    throw normalizeHttpError(error)
+  }
+}
+
+/** Returns full connected account details (channelId, scopes, expiry, created). */
+export async function fetchAccountDetail(
+  userId: number,
+  platform: 'YOUTUBE'
+): Promise<ConnectedAccountDetail> {
+  try {
+    const { data } = await axiosClient.get(endpoints.account.detail, {
+      params: { userId, platform },
+    })
+    return ConnectedAccountDetailSchema.parse(data)
+  } catch (error) {
+    throw normalizeHttpError(error)
+  }
+}
+
+/** Clears stored tokens and marks the connected account as DISCONNECTED. */
+export async function disconnectAccount(userId: number, platform: 'YOUTUBE'): Promise<void> {
+  try {
+    await axiosClient.post(endpoints.account.disconnect, null, {
+      params: { userId, platform },
+    })
+  } catch (error) {
+    throw normalizeHttpError(error)
+  }
+}
+
+/** Returns the current YouTube Data API call budget for the day. */
+export async function fetchBudgetStatus(): Promise<BudgetStatus> {
+  try {
+    const { data } = await axiosClient.get(endpoints.jobs.budget)
+    return BudgetStatusSchema.parse(data)
+  } catch (error) {
+    throw normalizeHttpError(error)
+  }
+}
+
+/** Clears all stored snapshots and indexed videos (channels are preserved). */
+export async function clearAllData(): Promise<{
+  videosDeleted: number
+  channelSnapshotsDeleted: number
+}> {
+  try {
+    const { data } = await axiosClient.post(endpoints.admin.clearData)
+    return data as { videosDeleted: number; channelSnapshotsDeleted: number }
   } catch (error) {
     throw normalizeHttpError(error)
   }

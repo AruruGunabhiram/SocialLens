@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { differenceInHours, formatDistanceToNow, isValid, parseISO } from 'date-fns'
+import { differenceInHours, isValid, parseISO } from 'date-fns'
 import { ChevronDown, ChevronUp } from 'lucide-react'
+import { formatRelativeTime } from '@/utils/formatters'
 
 import { Badge } from '@/components/ui/badge'
 import type { ChannelItem } from '@/api/types'
@@ -86,10 +87,6 @@ function parseTs(value: string | null): Date | null {
   return isValid(fallback) ? fallback : null
 }
 
-function relAgo(d: Date): string {
-  return formatDistanceToNow(d, { addSuffix: true })
-}
-
 /**
  * Badge variant rules:
  * - FAILED + has historical data  → 'warning'  (data is usable; sync is broken)
@@ -133,23 +130,24 @@ export function FreshnessBadge({
   // "has data" = at least one snapshot exists (either we have a count, or a timestamp).
   const hasData = snapshotDayCount != null ? snapshotDayCount > 0 : snapshotDate != null
 
-  // Snapshot coverage line: prefer "N days captured · last X ago" when count is known.
+  // Snapshot coverage line: prefer "N days of data · updated X ago" when count is known.
   const snapshotLine = snapshotDate
     ? snapshotDayCount != null && snapshotDayCount > 0
-      ? `${snapshotDayCount} day${snapshotDayCount !== 1 ? 's' : ''} captured · last ${relAgo(snapshotDate)}`
-      : `Snapshot ${relAgo(snapshotDate)}`
+      ? `${snapshotDayCount} day${snapshotDayCount !== 1 ? 's' : ''} of data · updated ${formatRelativeTime(lastSnapshotAt)}`
+      : `Snapshot ${formatRelativeTime(lastSnapshotAt)}`
     : 'No snapshots yet'
 
   // When FAILED, lastRefreshAt is the last *successful* time — label accordingly.
   // When PARTIAL, lastRefreshAt IS the partial run time (snapshot succeeded).
+  // For SUCCESS, show just the relative time (no "Synced" prefix).
   const refreshLabel =
     refreshDate == null
       ? 'Never synced'
       : isFailed
-        ? `Last success ${relAgo(refreshDate)}`
+        ? `Last success ${formatRelativeTime(lastRefreshAt)}`
         : isPartial
-          ? `Partial sync ${relAgo(refreshDate)}`
-          : `Synced ${relAgo(refreshDate)}`
+          ? `Partial sync ${formatRelativeTime(lastRefreshAt)}`
+          : formatRelativeTime(lastRefreshAt)
 
   return (
     <div

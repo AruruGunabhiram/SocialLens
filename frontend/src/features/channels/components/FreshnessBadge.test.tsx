@@ -138,15 +138,15 @@ describe('FreshnessBadge — snapshot coverage', () => {
     expect(screen.getByTestId('freshness-snapshot')).toHaveTextContent('Snapshot')
   })
 
-  it('shows "N days captured · last X ago" when snapshotDayCount>0 and lastSnapshotAt is set', () => {
+  it('shows "N days of data · updated X ago" when snapshotDayCount>0 and lastSnapshotAt is set', () => {
     renderBadge({ lastSnapshotAt: ONE_HOUR_AGO, snapshotDayCount: 7 })
-    expect(screen.getByTestId('freshness-snapshot')).toHaveTextContent('7 days captured')
-    expect(screen.getByTestId('freshness-snapshot')).toHaveTextContent('last')
+    expect(screen.getByTestId('freshness-snapshot')).toHaveTextContent('7 days of data')
+    expect(screen.getByTestId('freshness-snapshot')).toHaveTextContent('updated')
   })
 
   it('uses singular "day" when snapshotDayCount is 1', () => {
     renderBadge({ lastSnapshotAt: ONE_HOUR_AGO, snapshotDayCount: 1 })
-    expect(screen.getByTestId('freshness-snapshot')).toHaveTextContent('1 day captured')
+    expect(screen.getByTestId('freshness-snapshot')).toHaveTextContent('1 day of data')
   })
 
   it('uses plural "days" when snapshotDayCount is 0 and falls back to timestamp', () => {

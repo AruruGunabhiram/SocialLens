@@ -1,5 +1,11 @@
 import type { TimeSeriesPoint } from '@/api/types'
 
+export interface WeeklyUploadPoint {
+  /** ISO date of the Monday that starts this week */
+  weekStart: string
+  count: number
+}
+
 export type SeriesMode = 'total' | 'delta'
 
 /** Minimum captured days before trend conclusions are considered reliable. */
@@ -86,6 +92,26 @@ export function hasSufficientDataForMode(pts: TimeSeriesPoint[], mode: SeriesMod
 
 function daysBetween(a: string, b: string): number {
   return Math.round(Math.abs(new Date(b).getTime() - new Date(a).getTime()) / 86_400_000)
+}
+
+/**
+ * Group daily upload delta points into ISO-week (Mon–Sun) buckets.
+ * Input must be daily deltas (from computeDailyDeltas on the UPLOADS series).
+ * Negative deltas (data corrections) are clamped to 0.
+ */
+export function computeWeeklyUploads(dailyDeltas: TimeSeriesPoint[]): WeeklyUploadPoint[] {
+  const map = new Map<string, number>()
+  for (const pt of dailyDeltas) {
+    const d = new Date(pt.date + 'T00:00:00Z')
+    const dayOfWeek = d.getUTCDay() // 0=Sun, 1=Mon, …, 6=Sat
+    const daysToMonday = (dayOfWeek + 6) % 7
+    const mon = new Date(d.getTime() - daysToMonday * 86_400_000)
+    const monStr = mon.toISOString().slice(0, 10)
+    map.set(monStr, (map.get(monStr) ?? 0) + Math.max(0, pt.value))
+  }
+  return Array.from(map.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([weekStart, count]) => ({ weekStart, count }))
 }
 
 /**
