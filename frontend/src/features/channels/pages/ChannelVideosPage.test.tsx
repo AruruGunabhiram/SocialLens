@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import ChannelVideosPage from './ChannelVideosPage'
@@ -296,7 +296,8 @@ describe('ChannelVideosPage', () => {
       } as any)
       vi.mocked(useVideosQuery).mockReturnValue(makeMissingTitleState() as any)
       renderPage()
-      expect(screen.getByRole('button', { name: /refreshing/i })).toBeDisabled()
+      const warningBanner = screen.getByTestId('title-warning-banner')
+      expect(within(warningBanner).getByRole('button', { name: /refreshing/i })).toBeDisabled()
     })
 
     it('does not show the warning when the majority of videos have titles', () => {

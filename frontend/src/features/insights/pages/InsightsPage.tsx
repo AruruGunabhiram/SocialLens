@@ -24,7 +24,8 @@ import {
   computeSnapshotCoverage,
   normalizeTimeseriesPoints,
 } from '@/features/trends/utils'
-import { fmtCompact, fmtDate, fmtDelta } from '@/lib/format'
+import { fmtDelta } from '@/lib/format'
+import { formatCount, formatDate } from '@/utils/formatters'
 import { normalizeHttpError } from '@/api/httpError'
 import { SkeletonBlock } from '@/components/common/SkeletonBlock'
 import { ErrorState } from '@/components/common/ErrorState'
@@ -591,7 +592,7 @@ function TopVideosTable({ videos }: { videos: VideoRow[] }) {
                   textAlign: 'right',
                 }}
               >
-                {fmtCompact(v.viewCount)}
+                {formatCount(v.viewCount)}
               </td>
               <td
                 style={{
@@ -602,7 +603,7 @@ function TopVideosTable({ videos }: { videos: VideoRow[] }) {
                   textAlign: 'right',
                 }}
               >
-                {fmtCompact(v.likeCount)}
+                {formatCount(v.likeCount)}
               </td>
               <td
                 style={{
@@ -613,7 +614,7 @@ function TopVideosTable({ videos }: { videos: VideoRow[] }) {
                   textAlign: 'right',
                 }}
               >
-                {fmtCompact(v.commentCount)}
+                {formatCount(v.commentCount)}
               </td>
             </tr>
           ))}
@@ -916,7 +917,8 @@ export default function InsightsPage() {
                             color: 'var(--color-text-primary)',
                           }}
                         >
-                          {fmtDate(viewsCoverage.firstDate)} — {fmtDate(viewsCoverage.lastDate)}
+                          {formatDate(viewsCoverage.firstDate)} —{' '}
+                          {formatDate(viewsCoverage.lastDate)}
                         </div>
                       </div>
                       <div>
@@ -992,7 +994,7 @@ export default function InsightsPage() {
                 trendLabel={subsInsights?.trendLabel}
                 avgPerDay={subsInsights?.avgPerDay}
                 capturedDays={subsPts.length}
-                unit="subs"
+                unit="subscribers"
               />
             </div>
           </section>

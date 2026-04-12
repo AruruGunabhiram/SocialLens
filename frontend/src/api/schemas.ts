@@ -148,6 +148,31 @@ export const OAuthStartResponseSchema = z.object({
 })
 
 // -----------------------------------------------------------------------
+// Connected account detail — GET /api/v1/connected-accounts/detail
+// -----------------------------------------------------------------------
+
+export const ConnectedAccountDetailSchema = z.object({
+  found: z.boolean(),
+  channelId: z.string().nullish(),
+  status: z.string().nullish(),
+  scopes: z.string().nullish(),
+  expiresAt: z.string().nullish(),
+  createdAt: z.string().nullish(),
+  lastRefreshedAt: z.string().nullish(),
+})
+
+// -----------------------------------------------------------------------
+// API budget status — GET /api/v1/jobs/budget
+// -----------------------------------------------------------------------
+
+export const BudgetStatusSchema = z.object({
+  dailyQuota: z.number(),
+  remaining: z.number(),
+  used: z.number(),
+  percentUsed: z.number(),
+})
+
+// -----------------------------------------------------------------------
 // Retention Diagnosis — POST /creator/retention/diagnosis
 // -----------------------------------------------------------------------
 

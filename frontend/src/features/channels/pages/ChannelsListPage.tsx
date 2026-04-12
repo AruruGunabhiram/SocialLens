@@ -1,12 +1,13 @@
-import { differenceInHours, formatDistanceToNow, isValid, parseISO } from 'date-fns'
+import { differenceInHours, isValid, parseISO } from 'date-fns'
 import { ArrowRight, Plus, RefreshCw, Tv2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import type { ChannelItem } from '@/api/types'
+import { ChannelAvatar } from '@/components/common/ChannelAvatar'
 import { ErrorState } from '@/components/common/ErrorState'
 import { SkeletonBlock } from '@/components/common/SkeletonBlock'
 import { Card } from '@/components/ui/card'
-import { fmtCompact, fmtSubscribers } from '@/lib/format'
+import { formatCount, formatRelativeTime } from '@/utils/formatters'
 import { toastError } from '@/lib/toast'
 import { useChannelRefreshByIdMutation, useChannelsQuery } from '../queries'
 
@@ -28,76 +29,6 @@ function humanizeError(raw: string | null | undefined): string {
   if (lower.includes('404')) return 'Channel not found on YouTube (HTTP 404).'
   if (lower.includes('401')) return 'Authentication failed — credentials may be invalid.'
   return raw
-}
-
-// ─── Avatar ──────────────────────────────────────────────────────────────────
-
-// Deterministic color per channel so the placeholder circle is visually distinct
-const AVATAR_BG = [
-  'color-mix(in srgb, var(--chart-1) 18%, var(--color-surface-2))',
-  'color-mix(in srgb, var(--chart-2) 18%, var(--color-surface-2))',
-  'color-mix(in srgb, var(--chart-3) 18%, var(--color-surface-2))',
-  'color-mix(in srgb, var(--chart-4) 18%, var(--color-surface-2))',
-  'color-mix(in srgb, var(--chart-5) 18%, var(--color-surface-2))',
-  'color-mix(in srgb, var(--chart-6) 18%, var(--color-surface-2))',
-]
-const AVATAR_FG = [
-  'var(--chart-1)',
-  'var(--chart-2)',
-  'var(--chart-3)',
-  'var(--chart-4)',
-  'var(--chart-5)',
-  'var(--chart-6)',
-]
-
-function ChannelAvatar({ channel }: { channel: ChannelItem }) {
-  const idx = channel.id % AVATAR_BG.length
-  const initial = (channel.title ?? channel.channelId).charAt(0).toUpperCase()
-
-  const sharedStyle: React.CSSProperties = {
-    width: 48,
-    height: 48,
-    borderRadius: '50%',
-    flexShrink: 0,
-    objectFit: 'cover',
-  }
-
-  if (channel.thumbnailUrl) {
-    return (
-      <img
-        src={channel.thumbnailUrl}
-        alt=""
-        aria-hidden
-        style={sharedStyle}
-        onError={(e) => {
-          // Swap to placeholder on broken image
-          const el = e.currentTarget
-          el.style.display = 'none'
-          const sib = el.nextElementSibling as HTMLElement | null
-          if (sib) sib.style.display = 'flex'
-        }}
-      />
-    )
-  }
-
-  return (
-    <div
-      aria-hidden
-      style={{
-        ...sharedStyle,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: AVATAR_BG[idx],
-        fontFamily: 'var(--font-display)',
-        fontSize: 'var(--text-lg)',
-        fontWeight: 700,
-        color: AVATAR_FG[idx],
-      }}
-    >
-      {initial}
-    </div>
-  )
 }
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
@@ -194,16 +125,14 @@ function ChannelCard({ channel }: { channel: ChannelItem }) {
   const refresh = useChannelRefreshByIdMutation()
   const isFailed = channel.lastRefreshStatus === 'FAILED'
 
-  const { value: subValue, label: subLabel } = fmtSubscribers(channel.subscriberCount)
+  const subCount = channel.subscriberCount
+  const subValue = formatCount(subCount)
+  const subLabel = subCount === 1 ? 'subscriber' : 'subscribers'
 
-  // Relative time strings
-  const refreshDate = channel.lastSuccessfulRefreshAt
-    ? parseISO(channel.lastSuccessfulRefreshAt)
-    : null
-  const lastSyncedText =
-    refreshDate && isValid(refreshDate)
-      ? `Synced ${formatDistanceToNow(refreshDate, { addSuffix: true })}`
-      : 'Never synced'
+  // Relative time — no "Synced" prefix, just the time distance
+  const lastSyncedText = channel.lastSuccessfulRefreshAt
+    ? formatRelativeTime(channel.lastSuccessfulRefreshAt)
+    : 'Never synced'
 
   const snapshotCount = channel.snapshotDayCount
   const snapshotText =
@@ -230,7 +159,11 @@ function ChannelCard({ channel }: { channel: ChannelItem }) {
     >
       {/* ── Header: avatar + identity + status ── */}
       <div className="flex items-start gap-3">
-        <ChannelAvatar channel={channel} />
+        <ChannelAvatar
+          size="md"
+          thumbnailUrl={channel.thumbnailUrl}
+          channelName={channel.title ?? channel.channelId}
+        />
 
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <h3
@@ -312,7 +245,7 @@ function ChannelCard({ channel }: { channel: ChannelItem }) {
                 lineHeight: 1,
               }}
             >
-              {fmtCompact(channel.videoCount)}
+              {formatCount(channel.videoCount)}
             </span>
             <span
               style={{

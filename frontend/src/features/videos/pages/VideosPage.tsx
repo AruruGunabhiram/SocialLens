@@ -11,7 +11,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { fmtCompact, fmtDate } from '@/lib/format'
+import { formatCount, formatDate } from '@/utils/formatters'
 import { cn } from '@/lib/utils'
 
 // ---------------------------------------------------------------------------
@@ -329,7 +329,7 @@ function GlobalVideoRow({ video }: { video: GlobalVideoRow }) {
 
       {/* Published */}
       <td className="whitespace-nowrap py-2 pr-4 text-sm text-muted-foreground">
-        {fmtDate(video.publishedAt)}
+        {formatDate(video.publishedAt)}
       </td>
 
       {/* Views */}
@@ -337,7 +337,7 @@ function GlobalVideoRow({ video }: { video: GlobalVideoRow }) {
         className="py-2 pr-4 text-sm"
         style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}
       >
-        {fmtCompact(video.viewCount)}
+        {formatCount(video.viewCount)}
       </td>
 
       {/* Likes */}
@@ -345,7 +345,7 @@ function GlobalVideoRow({ video }: { video: GlobalVideoRow }) {
         className="py-2 pr-4 text-sm"
         style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}
       >
-        {video.likeCount != null ? fmtCompact(video.likeCount) : <NaBadge />}
+        {video.likeCount != null ? formatCount(video.likeCount) : <NaBadge />}
       </td>
 
       {/* Comments */}
@@ -353,7 +353,7 @@ function GlobalVideoRow({ video }: { video: GlobalVideoRow }) {
         className="py-2 pr-4 text-sm"
         style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}
       >
-        {video.commentCount != null ? fmtCompact(video.commentCount) : <NaBadge />}
+        {video.commentCount != null ? formatCount(video.commentCount) : <NaBadge />}
       </td>
     </tr>
   )

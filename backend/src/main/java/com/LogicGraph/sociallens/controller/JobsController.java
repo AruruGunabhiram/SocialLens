@@ -1,6 +1,7 @@
 package com.LogicGraph.sociallens.controller;
 
 import com.LogicGraph.sociallens.exception.RefreshAlreadyRunningException;
+import com.LogicGraph.sociallens.jobs.ApiCallBudget;
 import com.LogicGraph.sociallens.jobs.DailyRefreshJob;
 import com.LogicGraph.sociallens.jobs.DailyRefreshWorker;
 import org.springframework.http.HttpStatus;
@@ -16,10 +17,13 @@ public class JobsController {
 
     private final DailyRefreshJob dailyRefreshJob;
     private final DailyRefreshWorker dailyRefreshWorker;
+    private final ApiCallBudget apiCallBudget;
 
-    public JobsController(DailyRefreshJob dailyRefreshJob, DailyRefreshWorker dailyRefreshWorker) {
+    public JobsController(DailyRefreshJob dailyRefreshJob, DailyRefreshWorker dailyRefreshWorker,
+                          ApiCallBudget apiCallBudget) {
         this.dailyRefreshJob = dailyRefreshJob;
         this.dailyRefreshWorker = dailyRefreshWorker;
+        this.apiCallBudget = apiCallBudget;
     }
 
     /** Trigger the full daily refresh for all active channels. */
@@ -76,6 +80,23 @@ public class JobsController {
                     .body(refreshPayload("failed", channelDbId,
                             "Refresh failed: " + rootCause));
         }
+    }
+
+    /**
+     * GET /api/v1/jobs/budget
+     * Returns the current YouTube Data API call budget status.
+     */
+    @GetMapping("/budget")
+    public Map<String, Object> budget() {
+        int total = apiCallBudget.getDailyQuota();
+        int remaining = apiCallBudget.getRemaining();
+        int used = total - remaining;
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("dailyQuota", total);
+        body.put("remaining", remaining);
+        body.put("used", used);
+        body.put("percentUsed", total > 0 ? Math.round((used * 100.0) / total) : 0);
+        return body;
     }
 
     private Map<String, Object> refreshPayload(String status, Long channelDbId, String message) {
