@@ -2,9 +2,11 @@ import { z } from 'zod'
 
 import {
   AccountStatusSchema,
+  BudgetStatusSchema,
   ChannelAnalyticsSchema,
   ChannelItemSchema,
   ChannelMetricPointSchema,
+  ConnectedAccountDetailSchema,
   DiagnosisItemSchema,
   LocalUserSchema,
   OAuthStartResponseSchema,
@@ -33,3 +35,5 @@ export type OAuthStartResponse = z.infer<typeof OAuthStartResponseSchema>
 export type RetentionDropEvent = z.infer<typeof RetentionDropEventSchema>
 export type DiagnosisItem = z.infer<typeof DiagnosisItemSchema>
 export type RetentionDiagnosisResponse = z.infer<typeof RetentionDiagnosisResponseSchema>
+export type ConnectedAccountDetail = z.infer<typeof ConnectedAccountDetailSchema>
+export type BudgetStatus = z.infer<typeof BudgetStatusSchema>

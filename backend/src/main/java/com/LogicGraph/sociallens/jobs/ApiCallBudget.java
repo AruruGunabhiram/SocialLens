@@ -45,6 +45,11 @@ public class ApiCallBudget {
         }
     }
 
+    /** Returns the total daily quota configured for this instance. */
+    public int getDailyQuota() {
+        return dailyQuota;
+    }
+
     /** Returns the number of API call units remaining today. */
     public int getRemaining() {
         return remaining.get();

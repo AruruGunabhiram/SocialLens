@@ -4,6 +4,7 @@ import com.LogicGraph.sociallens.dto.account.ConnectAccountRequest;
 import com.LogicGraph.sociallens.dto.account.ConnectedAccountResponse;
 import com.LogicGraph.sociallens.entity.ConnectedAccount;
 import com.LogicGraph.sociallens.entity.User;
+import com.LogicGraph.sociallens.enums.ConnectedAccountStatus;
 import com.LogicGraph.sociallens.enums.Platform;
 import com.LogicGraph.sociallens.exception.ConnectedAccountNotFoundException;
 import com.LogicGraph.sociallens.repository.ConnectedAccountRepository;
@@ -86,6 +87,23 @@ public class ConnectedAccountService {
     @Transactional(readOnly = true)
     public Optional<ConnectedAccount> findAccount(Long userId, Platform platform) {
         return connectedAccountRepository.findByUser_IdAndPlatform(userId, platform);
+    }
+
+    /**
+     * Marks a connected account as DISCONNECTED and clears its stored tokens.
+     * The account row itself is retained so that createdAt / history is preserved.
+     */
+    @Transactional
+    public void disconnect(Long userId, Platform platform) {
+        ConnectedAccount account = connectedAccountRepository
+                .findByUser_IdAndPlatform(userId, platform)
+                .orElseThrow(() -> new ConnectedAccountNotFoundException(
+                        "No connected account for userId=" + userId + " platform=" + platform));
+        account.setStatus(ConnectedAccountStatus.DISCONNECTED);
+        account.setDisconnectReason("User-initiated disconnect");
+        account.setAccessToken(null);
+        account.setRefreshToken(null);
+        connectedAccountRepository.save(account);
     }
 
     @Transactional
