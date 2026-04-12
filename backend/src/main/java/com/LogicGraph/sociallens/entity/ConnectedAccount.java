@@ -152,6 +152,18 @@ public class ConnectedAccount {
         return status != null ? status : ConnectedAccountStatus.ACTIVE;
     }
 
+    public void setStatus(ConnectedAccountStatus status) {
+        this.status = status;
+    }
+
+    public String getDisconnectReason() {
+        return disconnectReason;
+    }
+
+    public void setDisconnectReason(String disconnectReason) {
+        this.disconnectReason = disconnectReason;
+    }
+
     public Instant getLastRefreshedAt() {
         return lastRefreshedAt;
     }

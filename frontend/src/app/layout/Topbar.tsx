@@ -247,7 +247,6 @@ export function Topbar() {
               fontWeight: 700,
               color: 'var(--color-text-primary)',
               letterSpacing: 'var(--tracking-wide)',
-              textTransform: 'uppercase',
             }}
           >
             SocialLens

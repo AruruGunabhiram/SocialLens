@@ -311,7 +311,6 @@ export function Sidebar() {
             fontWeight: 700,
             color: 'var(--color-text-primary)',
             letterSpacing: 'var(--tracking-wide)',
-            textTransform: 'uppercase' as const,
           }}
         >
           SocialLens
