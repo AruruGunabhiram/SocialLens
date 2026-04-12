@@ -1,6 +1,7 @@
 package com.LogicGraph.sociallens.controller;
 
 import com.LogicGraph.sociallens.exception.RefreshAlreadyRunningException;
+import com.LogicGraph.sociallens.jobs.ApiCallBudget;
 import com.LogicGraph.sociallens.jobs.DailyRefreshJob;
 import com.LogicGraph.sociallens.jobs.DailyRefreshWorker;
 import com.LogicGraph.sociallens.repository.YouTubeChannelRepository;
@@ -28,6 +29,9 @@ class JobsControllerTest {
 
     @MockBean
     private DailyRefreshWorker dailyRefreshWorker;
+
+        @MockBean
+        private ApiCallBudget apiCallBudget;
 
     // DailyRefreshJob internally uses this; required by WebMvcTest context
     @MockBean

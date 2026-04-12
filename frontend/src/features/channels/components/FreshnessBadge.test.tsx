@@ -171,9 +171,9 @@ describe('FreshnessBadge — refresh label', () => {
     expect(screen.getByTestId('freshness-refresh')).toHaveTextContent('Last success')
   })
 
-  it('shows "Synced X ago" when status is SUCCESS', () => {
+  it('shows relative time only when status is SUCCESS', () => {
     renderBadge({ status: 'SUCCESS', lastRefreshAt: ONE_HOUR_AGO, snapshotDayCount: 1 })
-    expect(screen.getByTestId('freshness-refresh')).toHaveTextContent('Synced')
+    expect(screen.getByTestId('freshness-refresh')).toHaveTextContent('ago')
   })
 })
 
