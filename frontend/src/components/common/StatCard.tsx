@@ -27,7 +27,10 @@ export function StatCard({
   return (
     <Card className={cn('h-full', className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardDescription className="flex items-center gap-2">
+        <CardDescription
+          className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide"
+          style={{ letterSpacing: 'var(--tracking-wide)' }}
+        >
           {icon}
           <span>{label}</span>
           {labelExtra}
@@ -37,7 +40,12 @@ export function StatCard({
         {loading ? (
           <Skeleton className="h-8 w-28" />
         ) : (
-          <CardTitle className="text-3xl font-bold leading-tight">{value}</CardTitle>
+          <CardTitle
+            className="text-3xl font-bold leading-tight"
+            style={{ fontVariantNumeric: 'tabular-nums', fontFeatureSettings: "'tnum'" }}
+          >
+            {value}
+          </CardTitle>
         )}
         {description && (
           <p className="text-sm text-muted-foreground" aria-label={`${label}-description`}>

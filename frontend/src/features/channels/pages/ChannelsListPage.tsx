@@ -9,6 +9,7 @@ import { SkeletonBlock } from '@/components/common/SkeletonBlock'
 import { Card } from '@/components/ui/card'
 import { formatCount, formatRelativeTime } from '@/utils/formatters'
 import { toastError } from '@/lib/toast'
+import { useRefreshAction } from '@/hooks/useRefreshAction'
 import { useChannelRefreshByIdMutation, useChannelsQuery } from '../queries'
 
 // ─── Error helpers ────────────────────────────────────────────────────────────
@@ -122,7 +123,10 @@ function StatusBadge({
 // ─── Single channel card ──────────────────────────────────────────────────────
 
 function ChannelCard({ channel }: { channel: ChannelItem }) {
-  const refresh = useChannelRefreshByIdMutation()
+  const refreshMutation = useChannelRefreshByIdMutation()
+  const { state: refreshState, trigger: triggerRefresh } = useRefreshAction(() =>
+    refreshMutation.mutateAsync({ channelDbId: channel.id })
+  )
   const isFailed = channel.lastRefreshStatus === 'FAILED'
 
   const subCount = channel.subscriberCount
@@ -150,7 +154,7 @@ function ChannelCard({ channel }: { channel: ChannelItem }) {
 
   return (
     <Card
-      className="flex flex-col"
+      className="flex flex-col transition-card"
       style={{
         padding: 'var(--space-5)',
         gap: 0,
@@ -312,8 +316,8 @@ function ChannelCard({ channel }: { channel: ChannelItem }) {
           </p>
           <button
             type="button"
-            disabled={refresh.isPending}
-            onClick={() => refresh.mutate({ channelDbId: channel.id })}
+            disabled={refreshState.disabled}
+            onClick={triggerRefresh}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -325,19 +329,30 @@ function ChannelCard({ channel }: { channel: ChannelItem }) {
               fontFamily: 'var(--font-body)',
               fontSize: 'var(--text-xs)',
               fontWeight: 600,
-              color: 'var(--color-down)',
-              cursor: refresh.isPending ? 'default' : 'pointer',
-              opacity: refresh.isPending ? 0.6 : 1,
+              color:
+                refreshState.phase === 'success'
+                  ? 'var(--color-up)'
+                  : refreshState.phase === 'error'
+                    ? 'var(--color-down)'
+                    : 'var(--color-down)',
+              cursor: refreshState.disabled ? 'default' : 'pointer',
+              opacity: refreshState.disabled ? 0.6 : 1,
               transition: 'opacity var(--duration-base) var(--ease-standard)',
             }}
           >
             <RefreshCw
               size={10}
               aria-hidden
-              className={refresh.isPending ? 'animate-spin' : ''}
+              className={refreshState.isPending ? 'animate-spin' : ''}
               style={{ flexShrink: 0 }}
             />
-            {refresh.isPending ? 'Retrying...' : 'Retry Sync'}
+            {refreshState.phase === 'success'
+              ? 'Refreshed'
+              : refreshState.phase === 'error'
+                ? 'Failed'
+                : refreshState.isPending
+                  ? 'Retrying...'
+                  : 'Retry Sync'}
           </button>
         </div>
       )}
@@ -532,7 +547,7 @@ export default function ChannelsListPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-8">
         <PageHeader />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -545,7 +560,7 @@ export default function ChannelsListPage() {
 
   if (isError) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-8">
         <PageHeader />
         <ErrorState
           title="Failed to load channels"
@@ -563,7 +578,7 @@ export default function ChannelsListPage() {
 
   if (!channels?.length) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-8">
         <PageHeader />
         <ChannelsEmptyState />
       </div>
@@ -571,7 +586,7 @@ export default function ChannelsListPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <PageHeader count={channels.length} />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {channels.map((ch) => (

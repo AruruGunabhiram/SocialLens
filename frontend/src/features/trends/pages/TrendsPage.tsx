@@ -37,6 +37,7 @@ import { ErrorState } from '@/components/common/ErrorState'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent } from '@/components/ui/card'
 import { useChannelQuery, useChannelRefreshByIdMutation } from '@/features/channels/queries'
+import { useRefreshAction } from '@/hooks/useRefreshAction'
 import {
   FreshnessBadge,
   mapChannelItemToFreshnessProps,
@@ -382,6 +383,9 @@ export default function TrendsPage() {
   const channelQuery = useChannelQuery(channelDbId)
   const { data, isLoading, isError, error, refetch } = useTimeSeries(channelDbId, metric, range)
   const refreshMutation = useChannelRefreshByIdMutation()
+  const { state: refreshState, trigger: triggerRefresh } = useRefreshAction(() =>
+    refreshMutation.mutateAsync({ channelDbId: channelDbId! })
+  )
 
   const rawPoints: TimeSeriesPoint[] = data?.points ?? []
 
@@ -709,8 +713,16 @@ export default function TrendsPage() {
           <EmptyState
             title={insufficientTitle}
             description={insufficientDescription}
-            actionLabel={refreshMutation.isPending ? 'Refreshing...' : 'Refresh now'}
-            onAction={() => refreshMutation.mutate({ channelDbId: channelDbId! })}
+            actionLabel={
+              refreshState.phase === 'success'
+                ? 'Refreshed'
+                : refreshState.phase === 'error'
+                  ? 'Failed — try again'
+                  : refreshState.isPending
+                    ? 'Refreshing...'
+                    : 'Refresh now'
+            }
+            onAction={triggerRefresh}
             className="h-full border-0 shadow-none bg-transparent"
           />
         )}

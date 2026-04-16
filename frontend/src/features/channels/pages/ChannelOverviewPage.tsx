@@ -48,10 +48,12 @@ import { ChannelAvatar } from '@/components/common/ChannelAvatar'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { InfoTooltip } from '@/components/common/InfoTooltip'
+import { PageSkeleton } from '@/components/common/PageSkeleton'
 import { StatCard } from '@/components/common/StatCard'
 import { normalizeHttpError } from '@/api/httpError'
 import { formatCount, formatDate } from '@/utils/formatters'
 import { toastError } from '@/lib/toast'
+import { useRefreshAction } from '@/hooks/useRefreshAction'
 
 import { ChannelChart } from '../components/ChannelChart'
 import { FreshnessBadge, mapChannelItemToFreshnessProps } from '../components/FreshnessBadge'
@@ -171,7 +173,10 @@ export default function ChannelOverviewPage() {
   })
 
   const refresh = useChannelRefreshByIdMutation()
-  const isRefreshing = refresh.isPending
+  const { state: refreshState, trigger: triggerRefresh } = useRefreshAction(() =>
+    refresh.mutateAsync({ channelDbId: channelDbId! })
+  )
+  const isRefreshing = refreshState.isPending
 
   const legacyChannelId = searchParams.get('channelId') ?? ''
   const title = data?.title ?? channelDetail?.title
@@ -238,9 +243,24 @@ export default function ChannelOverviewPage() {
     )
   }
 
+  if (isLoading) {
+    return <PageSkeleton statCards={4} showChart tableRows={5} />
+  }
+
   if (isError) {
     const err = normalizeHttpError(error)
+    const isNotFound = err.status === 404
     const requiresAuth = err.status === 401 || err.status === 403
+    if (isNotFound) {
+      return (
+        <EmptyState
+          title={`Channel #${channelDbId} not found`}
+          description="This channel may have been removed from SocialLens, or the ID is incorrect."
+          actionLabel="View all tracked channels"
+          onAction={() => window.location.assign('/channels')}
+        />
+      )
+    }
     return (
       <ErrorState
         title={requiresAuth ? 'Connect account' : 'Unable to load channel analytics'}
@@ -261,7 +281,7 @@ export default function ChannelOverviewPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Breadcrumb */}
       {channelDbIdParam && (
         <nav aria-label="Breadcrumb">
@@ -284,7 +304,7 @@ export default function ChannelOverviewPage() {
                 channelName={title ?? channelId ?? String(channelDbId)}
               />
               <span className="text-foreground font-medium truncate" aria-current="page">
-                {title ?? channelDbIdStr}
+                {title ?? 'Unknown Channel'}
               </span>
             </li>
           </ol>
@@ -308,7 +328,7 @@ export default function ChannelOverviewPage() {
               />
             ) : (
               <h1
-                className="text-2xl font-bold leading-tight truncate"
+                className="text-2xl font-bold leading-tight tracking-tight truncate"
                 style={{ fontFamily: 'var(--font-display)' }}
               >
                 {title ?? 'Channel overview'}
@@ -360,18 +380,31 @@ export default function ChannelOverviewPage() {
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              disabled={isRefreshing}
-              aria-disabled={isRefreshing}
-              onClick={() => refresh.mutate({ channelDbId: channelDbId! })}
+              disabled={refreshState.disabled}
+              aria-disabled={refreshState.disabled}
+              onClick={triggerRefresh}
               className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors"
-              style={{ color: 'var(--color-text-muted)' }}
+              style={{
+                color:
+                  refreshState.phase === 'success'
+                    ? 'var(--color-up)'
+                    : refreshState.phase === 'error'
+                      ? 'var(--color-down)'
+                      : 'var(--color-text-muted)',
+              }}
             >
               {isRefreshing ? (
                 <Loader2 size={13} className="animate-spin" aria-hidden="true" />
               ) : (
                 <RefreshCw size={13} aria-hidden="true" />
               )}
-              {isRefreshing ? 'Refreshing…' : 'Refresh'}
+              {refreshState.phase === 'success'
+                ? 'Refreshed'
+                : refreshState.phase === 'error'
+                  ? 'Failed'
+                  : isRefreshing
+                    ? 'Refreshing…'
+                    : 'Refresh'}
             </button>
             <Link
               to={`/channels/${channelDbId}/trends`}
@@ -450,16 +483,17 @@ export default function ChannelOverviewPage() {
 
             <button
               type="button"
-              disabled={isRefreshing}
-              aria-disabled={isRefreshing}
-              onClick={() => refresh.mutate({ channelDbId: channelDbId! })}
+              disabled={refreshState.disabled}
+              aria-disabled={refreshState.disabled}
+              onClick={triggerRefresh}
               className="shrink-0 flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold transition-opacity"
               style={{
-                background: 'var(--color-down)',
+                background:
+                  refreshState.phase === 'success' ? 'var(--color-up)' : 'var(--color-down)',
                 color: '#fff',
                 border: 'none',
-                opacity: isRefreshing ? 0.6 : 1,
-                cursor: isRefreshing ? 'default' : 'pointer',
+                opacity: refreshState.disabled ? 0.6 : 1,
+                cursor: refreshState.disabled ? 'default' : 'pointer',
               }}
             >
               {isRefreshing ? (
@@ -467,7 +501,13 @@ export default function ChannelOverviewPage() {
               ) : (
                 <RefreshCw size={13} aria-hidden="true" />
               )}
-              {isRefreshing ? 'Retrying…' : 'Retry Sync'}
+              {refreshState.phase === 'success'
+                ? 'Refreshed'
+                : refreshState.phase === 'error'
+                  ? 'Failed'
+                  : isRefreshing
+                    ? 'Retrying…'
+                    : 'Retry Sync'}
             </button>
           </div>
         </div>
@@ -567,7 +607,7 @@ export default function ChannelOverviewPage() {
         <div className="rounded-lg border bg-card/60 p-5 shadow-sm space-y-3">
           <div className="flex items-center justify-between gap-2">
             <div className="space-y-0.5">
-              <h2 className="text-base font-semibold">Recent Videos</h2>
+              <h2 className="text-lg font-semibold tracking-tight">Recent Videos</h2>
               <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
                 5 most recently published
               </p>
