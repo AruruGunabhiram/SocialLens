@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { render, screen, fireEvent, within } from '@testing-library/react'
+import { act, render, screen, fireEvent, within, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import ChannelVideosPage from './ChannelVideosPage'
@@ -15,6 +15,7 @@ vi.mock('@/features/channels/queries', async (importOriginal) => {
     useVideosQuery: vi.fn(),
     useChannelRefreshByIdMutation: vi.fn(() => ({
       mutate: vi.fn(),
+      mutateAsync: vi.fn(() => Promise.resolve()),
       isPending: false,
     })),
   }
@@ -156,6 +157,7 @@ describe('ChannelVideosPage', () => {
     vi.mocked(useVideosQuery).mockReturnValue(success(makeVideosResponse([])) as any)
     vi.mocked(useChannelRefreshByIdMutation).mockReturnValue({
       mutate: vi.fn(),
+      mutateAsync: vi.fn(() => Promise.resolve()),
       isPending: false,
     } as any)
   })
@@ -274,30 +276,41 @@ describe('ChannelVideosPage', () => {
     it('warning banner contains a refresh button', () => {
       vi.mocked(useVideosQuery).mockReturnValue(makeMissingTitleState() as any)
       renderPage()
-      expect(screen.getByRole('button', { name: /refresh now/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^refresh$/i })).toBeInTheDocument()
     })
 
     it('clicking refresh calls the mutation with the current channelDbId', () => {
-      const mutate = vi.fn()
+      const mutateAsync = vi.fn(() => new Promise<never>(() => {}))
       vi.mocked(useChannelRefreshByIdMutation).mockReturnValue({
-        mutate,
+        mutateAsync,
         isPending: false,
       } as any)
       vi.mocked(useVideosQuery).mockReturnValue(makeMissingTitleState() as any)
       renderPage()
-      fireEvent.click(screen.getByRole('button', { name: /refresh now/i }))
-      expect(mutate).toHaveBeenCalledWith({ channelDbId: 1 })
+      act(() => {
+        fireEvent.click(screen.getByRole('button', { name: /^refresh$/i }))
+      })
+      expect(mutateAsync).toHaveBeenCalledWith({ channelDbId: 1 })
     })
 
-    it('refresh button is disabled while refresh is pending', () => {
+    it('refresh button is disabled while refresh is pending', async () => {
+      const mutateAsync = vi.fn(
+        () => new Promise<never>(() => {})
+      )
       vi.mocked(useChannelRefreshByIdMutation).mockReturnValue({
         mutate: vi.fn(),
-        isPending: true,
+        mutateAsync,
+        isPending: false,
       } as any)
       vi.mocked(useVideosQuery).mockReturnValue(makeMissingTitleState() as any)
       renderPage()
       const warningBanner = screen.getByTestId('title-warning-banner')
-      expect(within(warningBanner).getByRole('button', { name: /refreshing/i })).toBeDisabled()
+      act(() => {
+        fireEvent.click(within(warningBanner).getByRole('button', { name: /^refresh$/i }))
+      })
+      await waitFor(() =>
+        expect(within(warningBanner).getByRole('button', { name: /refreshing/i })).toBeDisabled()
+      )
     })
 
     it('does not show the warning when the majority of videos have titles', () => {
