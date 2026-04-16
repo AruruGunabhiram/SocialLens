@@ -9,7 +9,7 @@ type StatCardProps = {
   /** Optional node rendered inline after the label text (e.g. an InfoTooltip). */
   labelExtra?: ReactNode
   value: ReactNode
-  description?: string
+  description?: ReactNode
   icon?: ReactNode
   loading?: boolean
   className?: string
@@ -47,10 +47,8 @@ export function StatCard({
             {value}
           </CardTitle>
         )}
-        {description && (
-          <p className="text-sm text-muted-foreground" aria-label={`${label}-description`}>
-            {description}
-          </p>
+        {description != null && (
+          <div className="text-sm text-muted-foreground space-y-0.5">{description}</div>
         )}
       </CardContent>
     </Card>

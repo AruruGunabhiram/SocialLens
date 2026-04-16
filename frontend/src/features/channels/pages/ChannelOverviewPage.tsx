@@ -2,9 +2,11 @@ import { differenceInDays, isValid, parseISO } from 'date-fns'
 import {
   AlertTriangle,
   BarChart2,
+  Database,
   ExternalLink,
   Lightbulb,
   Loader2,
+  PlaySquare,
   RefreshCw,
   TrendingUp,
   Video,
@@ -51,6 +53,7 @@ import { InfoTooltip } from '@/components/common/InfoTooltip'
 import { PageSkeleton } from '@/components/common/PageSkeleton'
 import { StatCard } from '@/components/common/StatCard'
 import { normalizeHttpError } from '@/api/httpError'
+import { fmtDelta, fmtDateShort } from '@/lib/format'
 import { formatCount, formatDate } from '@/utils/formatters'
 import { toastError } from '@/lib/toast'
 import { useRefreshAction } from '@/hooks/useRefreshAction'
@@ -197,11 +200,29 @@ export default function ChannelOverviewPage() {
 
   // Subscribers
   const subCount = data?.subscriberCount ?? channelDetail?.subscriberCount
-  const subValue = formatCount(subCount)
-  const subLabel = subCount === 1 ? 'subscriber' : subCount != null ? 'subscribers' : undefined
+
+  // Trend deltas from analytics timeseries (cumulative snapshots, sorted ascending)
+  const timeseriesSorted = [...(data?.timeseries ?? [])].sort((a, b) =>
+    a.date.localeCompare(b.date)
+  )
+
+  function computeSeriesDelta(field: 'subscribers' | 'views'): number | null {
+    const pts = timeseriesSorted.filter((p) => p[field] != null)
+    if (pts.length < 2) return null
+    return (pts[pts.length - 1][field] as number) - (pts[0][field] as number)
+  }
+
+  const subDelta = computeSeriesDelta('subscribers')
+  const viewsDelta = computeSeriesDelta('views')
+
+  // Freshness label from the most recent snapshot date
+  const snapshotDateLabel = channelDetail?.lastSnapshotAt
+    ? `As of ${fmtDateShort(channelDetail.lastSnapshotAt.slice(0, 10))}`
+    : null
 
   // Upload frequency
   const uploadFreq = computeUploadFreq(channelDetail?.publishedAt, channelDetail?.videoCount)
+  void uploadFreq // retained for technical details only
 
   // Technical details rows
   const detailsRows =
@@ -544,10 +565,30 @@ export default function ChannelOverviewPage() {
           label="Subscribers"
           value={
             <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
-              {subValue}
+              {formatCount(subCount)}
             </span>
           }
-          description={subLabel}
+          description={
+            <>
+              {subDelta !== null && (
+                <span
+                  style={{
+                    color:
+                      subDelta > 0
+                        ? 'var(--color-up)'
+                        : subDelta < 0
+                          ? 'var(--color-down)'
+                          : 'var(--color-text-muted)',
+                    fontFamily: 'var(--font-mono)',
+                  }}
+                >
+                  {subDelta > 0 ? '▲ ' : subDelta < 0 ? '▼ ' : '→ '}
+                  {subDelta === 0 ? 'No change' : fmtDelta(subDelta)}
+                </span>
+              )}
+              {snapshotDateLabel && <span>{snapshotDateLabel}</span>}
+            </>
+          }
           loading={isLoading || isFetching}
         />
 
@@ -560,40 +601,75 @@ export default function ChannelOverviewPage() {
             </span>
           }
           icon={<BarChart2 className="h-4 w-4 text-muted-foreground" />}
+          description={
+            <>
+              {viewsDelta !== null && (
+                <span
+                  style={{
+                    color:
+                      viewsDelta > 0
+                        ? 'var(--color-up)'
+                        : viewsDelta < 0
+                          ? 'var(--color-down)'
+                          : 'var(--color-text-muted)',
+                    fontFamily: 'var(--font-mono)',
+                  }}
+                >
+                  {viewsDelta > 0 ? '▲ ' : viewsDelta < 0 ? '▼ ' : '→ '}
+                  {viewsDelta === 0 ? 'No change' : fmtDelta(viewsDelta)}
+                </span>
+              )}
+              {snapshotDateLabel && <span>{snapshotDateLabel}</span>}
+            </>
+          }
           loading={isLoading || isFetching}
         />
 
-        {/* Videos */}
+        {/* Total Videos */}
         <StatCard
-          label="Videos"
+          label="Total Videos"
+          value={
+            <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+              {formatCount(data?.videoCount ?? channelDetail?.videoCount)}
+            </span>
+          }
+          icon={<PlaySquare className="h-4 w-4 text-muted-foreground" />}
+          description={snapshotDateLabel ? <span>{snapshotDateLabel}</span> : undefined}
+          loading={isLoading || isFetching}
+        />
+
+        {/* Indexed Videos */}
+        <StatCard
+          label="Indexed Videos"
           labelExtra={
-            <InfoTooltip text="YouTube total · SocialLens indexed (enriched with full metadata)" />
+            <InfoTooltip
+              text={
+                indexedVideoCount != null && (data?.videoCount ?? channelDetail?.videoCount) != null
+                  ? `SocialLens has indexed ${indexedVideoCount} of ${data?.videoCount ?? channelDetail?.videoCount} total videos. Run a sync to index more.`
+                  : 'Indexed = videos stored in SocialLens DB with full metadata.'
+              }
+            />
           }
           value={
             <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
-              {data?.videoCount ?? channelDetail?.videoCount ?? '—'}
+              {formatCount(indexedVideoCount)}
             </span>
           }
+          icon={<Database className="h-4 w-4 text-muted-foreground" />}
           description={
-            indexedVideoCount != null ? `${indexedVideoCount.toLocaleString()} indexed` : undefined
+            (data?.videoCount ?? channelDetail?.videoCount) != null && indexedVideoCount != null ? (
+              <span>
+                of{' '}
+                <span
+                  style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}
+                >
+                  {formatCount(data?.videoCount ?? channelDetail?.videoCount)}
+                </span>{' '}
+                on YouTube
+              </span>
+            ) : undefined
           }
           loading={isLoading || isFetching}
-        />
-
-        {/* Upload Frequency */}
-        <StatCard
-          label="Upload Frequency"
-          value={
-            <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
-              {uploadFreq}
-            </span>
-          }
-          description={
-            channelDetail?.publishedAt
-              ? `Channel since ${formatDate(channelDetail.publishedAt)}`
-              : undefined
-          }
-          loading={isLoading}
         />
       </div>
 
