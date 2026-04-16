@@ -1,8 +1,13 @@
+import { format, parseISO } from 'date-fns'
 import type { TimeSeriesPoint } from '@/api/types'
 
 export interface WeeklyUploadPoint {
   /** ISO date of the Monday that starts this week */
   weekStart: string
+  /** ISO date of the Sunday that ends this week */
+  weekEnd: string
+  /** Human label: "Mar 17 – Mar 23" */
+  label: string
   count: number
 }
 
@@ -94,6 +99,22 @@ function daysBetween(a: string, b: string): number {
   return Math.round(Math.abs(new Date(b).getTime() - new Date(a).getTime()) / 86_400_000)
 }
 
+/** Derive the Monday ISO string for any date string. */
+function toMondayIso(dateStr: string): string {
+  const d = new Date(dateStr.slice(0, 10) + 'T00:00:00Z')
+  const dayOfWeek = d.getUTCDay() // 0=Sun
+  const daysToMonday = (dayOfWeek + 6) % 7
+  return new Date(d.getTime() - daysToMonday * 86_400_000).toISOString().slice(0, 10)
+}
+
+function makeWeekLabel(monIso: string): { weekEnd: string; label: string } {
+  const mon = new Date(monIso + 'T00:00:00Z')
+  const sun = new Date(mon.getTime() + 6 * 86_400_000)
+  const sunIso = sun.toISOString().slice(0, 10)
+  const label = `${format(parseISO(monIso), 'MMM d')} – ${format(parseISO(sunIso), 'MMM d')}`
+  return { weekEnd: sunIso, label }
+}
+
 /**
  * Group daily upload delta points into ISO-week (Mon–Sun) buckets.
  * Input must be daily deltas (from computeDailyDeltas on the UPLOADS series).
@@ -102,16 +123,45 @@ function daysBetween(a: string, b: string): number {
 export function computeWeeklyUploads(dailyDeltas: TimeSeriesPoint[]): WeeklyUploadPoint[] {
   const map = new Map<string, number>()
   for (const pt of dailyDeltas) {
-    const d = new Date(pt.date + 'T00:00:00Z')
-    const dayOfWeek = d.getUTCDay() // 0=Sun, 1=Mon, …, 6=Sat
-    const daysToMonday = (dayOfWeek + 6) % 7
-    const mon = new Date(d.getTime() - daysToMonday * 86_400_000)
-    const monStr = mon.toISOString().slice(0, 10)
+    const monStr = toMondayIso(pt.date)
     map.set(monStr, (map.get(monStr) ?? 0) + Math.max(0, pt.value))
   }
   return Array.from(map.entries())
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([weekStart, count]) => ({ weekStart, count }))
+    .map(([weekStart, count]) => {
+      const { weekEnd, label } = makeWeekLabel(weekStart)
+      return { weekStart, weekEnd, label, count }
+    })
+}
+
+/**
+ * Group an array of video publishedAt strings into ISO-week (Mon–Sun) buckets.
+ * Videos with null/invalid publishedAt are skipped.
+ * Optionally filtered to only weeks within the last `rangeDays` days.
+ */
+export function groupVideosByPublishWeek(
+  publishedAts: (string | null | undefined)[],
+  rangeDays?: number
+): WeeklyUploadPoint[] {
+  const cutoff =
+    rangeDays != null
+      ? new Date(Date.now() - (rangeDays - 1) * 86_400_000).toISOString().slice(0, 10)
+      : null
+
+  const map = new Map<string, number>()
+  for (const iso of publishedAts) {
+    if (!iso) continue
+    const day = iso.slice(0, 10)
+    if (cutoff && day < cutoff) continue
+    const monStr = toMondayIso(day)
+    map.set(monStr, (map.get(monStr) ?? 0) + 1)
+  }
+  return Array.from(map.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([weekStart, count]) => {
+      const { weekEnd, label } = makeWeekLabel(weekStart)
+      return { weekStart, weekEnd, label, count }
+    })
 }
 
 /**
