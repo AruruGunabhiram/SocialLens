@@ -1,7 +1,7 @@
 import { useLocation, useNavigate, Link } from 'react-router-dom'
-import { ArrowLeft, BarChart2, Lightbulb, MessageSquare } from 'lucide-react'
+import { ArrowLeft, BarChart2, Lightbulb, MessageSquare, type LucideIcon } from 'lucide-react'
 
-const SUGGESTIONS: { label: string; href: string; Icon: React.FC<{ size?: number }> }[] = [
+const SUGGESTIONS: { label: string; href: string; Icon: LucideIcon }[] = [
   { label: 'Channels', href: '/channels', Icon: BarChart2 },
   { label: 'Insights', href: '/insights', Icon: Lightbulb },
   { label: 'Copilot', href: '/copilot', Icon: MessageSquare },
