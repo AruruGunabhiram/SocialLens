@@ -162,6 +162,7 @@
 .transition-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
+  border-color: color-mix(in srgb, var(--accent) 25%, var(--color-border-base));
 }
 
 /* Panel slide (Copilot) — use with Framer Motion or CSS class toggle */

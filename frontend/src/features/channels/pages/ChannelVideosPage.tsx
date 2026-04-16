@@ -29,6 +29,7 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { toastError } from '@/lib/toast'
+import { useRefreshAction } from '@/hooks/useRefreshAction'
 import { type VideoQueryParams } from '../api'
 import { useChannelQuery, useChannelRefreshByIdMutation, useVideosQuery } from '../queries'
 import { FreshnessBadge, mapChannelItemToFreshnessProps } from '../components/FreshnessBadge'
@@ -149,25 +150,25 @@ function SkeletonRows({ count = 5 }: { count?: number }) {
       {Array.from({ length: count }).map((_, i) => (
         <tr key={i}>
           {/* 48×27 = 16:9 */}
-          <td className="py-2 pl-4 pr-4">
+          <td className="py-3 pl-4 pr-4">
             <Skeleton className="rounded" style={{ width: 48, height: 27 }} />
           </td>
-          <td className="py-2 pr-4">
+          <td className="py-3 pr-4">
             <div className="flex flex-col gap-1.5">
               <Skeleton className="h-3.5 w-56" />
               <Skeleton className="h-3 w-32" />
             </div>
           </td>
-          <td className="py-2 pr-4">
+          <td className="py-3 pr-4">
             <Skeleton className="h-3.5 w-20" />
           </td>
-          <td className="py-2 pr-4">
+          <td className="py-3 pr-4">
             <Skeleton className="h-3.5 w-10" />
           </td>
-          <td className="py-2 pr-4">
+          <td className="py-3 pr-4">
             <Skeleton className="h-3.5 w-10" />
           </td>
-          <td className="py-2 pr-4">
+          <td className="py-3 pr-4">
             <Skeleton className="h-3.5 w-10" />
           </td>
         </tr>
@@ -231,7 +232,7 @@ function VideoTableRow({ video }: { video: VideoRow }) {
       }
     >
       {/* Thumbnail — 48×27 (16:9), always links to YouTube */}
-      <td className="py-2 pl-4 pr-4">
+      <td className="py-3 pl-4 pr-4">
         <a
           href={ytUrl}
           target="_blank"
@@ -277,7 +278,7 @@ function VideoTableRow({ video }: { video: VideoRow }) {
       </td>
 
       {/* Title — or video ID link + "(title pending)" when not yet enriched */}
-      <td className="max-w-xs py-2 pr-4">
+      <td className="max-w-xs py-3 pr-4">
         {hasTitle ? (
           <span
             className="line-clamp-2 text-sm font-medium leading-snug"
@@ -321,20 +322,20 @@ function VideoTableRow({ video }: { video: VideoRow }) {
       </td>
 
       {/* Published date */}
-      <td className="whitespace-nowrap py-2 pr-4 text-sm text-muted-foreground">
+      <td className="whitespace-nowrap py-3 pr-4 text-sm text-muted-foreground">
         {formatDate(video.publishedAt)}
       </td>
 
       {/* Views — "—" when null (formatCount handles this) */}
-      <td className="py-2 pr-4 text-sm tabular-nums">{formatCount(video.viewCount)}</td>
+      <td className="py-3 pr-4 text-sm tabular-nums">{formatCount(video.viewCount)}</td>
 
       {/* Likes — N/A badge when not yet enriched */}
-      <td className="py-2 pr-4 text-sm tabular-nums">
+      <td className="py-3 pr-4 text-sm tabular-nums">
         {video.likeCount != null ? formatCount(video.likeCount) : <NaBadge />}
       </td>
 
       {/* Comments — N/A badge when not yet enriched */}
-      <td className="py-2 pr-4 text-sm tabular-nums">
+      <td className="py-3 pr-4 text-sm tabular-nums">
         {video.commentCount != null ? formatCount(video.commentCount) : <NaBadge />}
       </td>
     </tr>
@@ -480,6 +481,9 @@ export default function ChannelVideosPage() {
   )
 
   const refreshMutation = useChannelRefreshByIdMutation()
+  const { state: refreshState, trigger: triggerRefresh } = useRefreshAction(() =>
+    refreshMutation.mutateAsync({ channelDbId })
+  )
 
   // Invalid route param — redirect after all hooks have run
   if (Number.isNaN(channelDbId)) return <Navigate to="/channels" replace />
@@ -637,9 +641,9 @@ export default function ChannelVideosPage() {
           </span>
           <button
             type="button"
-            disabled={refreshMutation.isPending}
-            aria-disabled={refreshMutation.isPending}
-            onClick={() => refreshMutation.mutate({ channelDbId })}
+            disabled={refreshState.disabled}
+            aria-disabled={refreshState.disabled}
+            onClick={triggerRefresh}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -648,20 +652,24 @@ export default function ChannelVideosPage() {
               fontFamily: 'var(--font-body)',
               fontSize: 'var(--text-sm)',
               fontWeight: 600,
-              color: 'var(--color-warn)',
+              color: refreshState.phase === 'success' ? 'var(--color-up)' : 'var(--color-warn)',
               background: 'transparent',
               border: '1px solid color-mix(in srgb, var(--color-warn) 50%, transparent)',
               borderRadius: 'var(--radius-md)',
               padding: 'var(--space-1) var(--space-3)',
-              cursor: refreshMutation.isPending ? 'not-allowed' : 'pointer',
-              opacity: refreshMutation.isPending ? 0.6 : 1,
+              cursor: refreshState.disabled ? 'not-allowed' : 'pointer',
+              opacity: refreshState.disabled ? 0.6 : 1,
               whiteSpace: 'nowrap',
             }}
           >
-            {refreshMutation.isPending && (
+            {refreshState.isPending && (
               <Loader2 size={12} className="animate-spin" aria-hidden style={{ flexShrink: 0 }} />
             )}
-            {refreshMutation.isPending ? 'Refreshing...' : 'Refresh now'}
+            {refreshState.phase === 'success'
+              ? 'Refreshed'
+              : refreshState.phase === 'error'
+                ? 'Failed'
+                : refreshState.label}
           </button>
         </div>
       )}
@@ -699,9 +707,9 @@ export default function ChannelVideosPage() {
 
         <button
           type="button"
-          disabled={refreshMutation.isPending}
-          aria-disabled={refreshMutation.isPending}
-          onClick={() => refreshMutation.mutate({ channelDbId })}
+          disabled={refreshState.disabled}
+          aria-disabled={refreshState.disabled}
+          onClick={triggerRefresh}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -710,34 +718,41 @@ export default function ChannelVideosPage() {
             fontFamily: 'var(--font-body)',
             fontSize: 'var(--text-sm)',
             fontWeight: 500,
-            color: 'var(--color-text-secondary)',
+            color:
+              refreshState.phase === 'success'
+                ? 'var(--color-up)'
+                : refreshState.phase === 'error'
+                  ? 'var(--color-down)'
+                  : 'var(--color-text-secondary)',
             background: 'var(--color-surface-1)',
             border: '1px solid var(--color-border-base)',
             borderRadius: 'var(--radius-md)',
             padding: 'var(--space-2) var(--space-3)',
-            cursor: refreshMutation.isPending ? 'not-allowed' : 'pointer',
-            opacity: refreshMutation.isPending ? 0.6 : 1,
+            cursor: refreshState.disabled ? 'not-allowed' : 'pointer',
+            opacity: refreshState.disabled ? 0.6 : 1,
             whiteSpace: 'nowrap',
             height: 36,
             transition: 'border-color var(--duration-base), color var(--duration-base)',
           }}
           onMouseEnter={(e) => {
-            if (!refreshMutation.isPending) {
+            if (!refreshState.disabled) {
               e.currentTarget.style.borderColor = 'var(--color-border-strong)'
-              e.currentTarget.style.color = 'var(--color-text-primary)'
             }
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.borderColor = 'var(--color-border-base)'
-            e.currentTarget.style.color = 'var(--color-text-secondary)'
           }}
         >
-          {refreshMutation.isPending ? (
+          {refreshState.isPending ? (
             <Loader2 size={13} className="animate-spin" aria-hidden style={{ flexShrink: 0 }} />
           ) : (
             <RefreshCw size={13} aria-hidden style={{ flexShrink: 0 }} />
           )}
-          {refreshMutation.isPending ? 'Refreshing…' : 'Refresh Metadata'}
+          {refreshState.phase === 'success'
+            ? 'Refreshed'
+            : refreshState.phase === 'error'
+              ? 'Failed'
+              : 'Refresh Metadata'}
         </button>
       </div>
 

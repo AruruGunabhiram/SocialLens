@@ -255,18 +255,19 @@ export function Topbar() {
         <span
           style={{
             fontFamily: 'var(--font-body)',
-            fontSize: '9px',
-            fontWeight: 600,
-            color: 'var(--color-text-muted)',
-            background: 'var(--color-surface-2)',
-            border: '1px solid var(--color-border-base)',
-            borderRadius: 'var(--radius-sm)',
-            padding: '2px 5px',
+            fontSize: '10px',
+            fontWeight: 700,
+            color: 'var(--color-neutral)',
+            background: 'color-mix(in srgb, var(--color-neutral) 10%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--color-neutral) 25%, transparent)',
+            borderRadius: 'var(--radius-full)',
+            padding: '2px 6px',
             letterSpacing: 'var(--tracking-wide)',
             lineHeight: 1,
+            textTransform: 'uppercase',
           }}
         >
-          BETA
+          Beta
         </span>
       </div>
 
@@ -431,6 +432,7 @@ export function Topbar() {
             >
               <span
                 aria-hidden
+                className="animate-pulse-dot"
                 style={{
                   width: 6,
                   height: 6,

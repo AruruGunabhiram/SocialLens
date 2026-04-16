@@ -2,9 +2,11 @@ import { differenceInDays, isValid, parseISO } from 'date-fns'
 import {
   AlertTriangle,
   BarChart2,
+  Database,
   ExternalLink,
   Lightbulb,
   Loader2,
+  PlaySquare,
   RefreshCw,
   TrendingUp,
   Video,
@@ -48,10 +50,13 @@ import { ChannelAvatar } from '@/components/common/ChannelAvatar'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { InfoTooltip } from '@/components/common/InfoTooltip'
+import { PageSkeleton } from '@/components/common/PageSkeleton'
 import { StatCard } from '@/components/common/StatCard'
 import { normalizeHttpError } from '@/api/httpError'
+import { fmtDelta, fmtDateShort } from '@/lib/format'
 import { formatCount, formatDate } from '@/utils/formatters'
 import { toastError } from '@/lib/toast'
+import { useRefreshAction } from '@/hooks/useRefreshAction'
 
 import { ChannelChart } from '../components/ChannelChart'
 import { FreshnessBadge, mapChannelItemToFreshnessProps } from '../components/FreshnessBadge'
@@ -171,7 +176,10 @@ export default function ChannelOverviewPage() {
   })
 
   const refresh = useChannelRefreshByIdMutation()
-  const isRefreshing = refresh.isPending
+  const { state: refreshState, trigger: triggerRefresh } = useRefreshAction(() =>
+    refresh.mutateAsync({ channelDbId: channelDbId! })
+  )
+  const isRefreshing = refreshState.isPending
 
   const legacyChannelId = searchParams.get('channelId') ?? ''
   const title = data?.title ?? channelDetail?.title
@@ -192,11 +200,29 @@ export default function ChannelOverviewPage() {
 
   // Subscribers
   const subCount = data?.subscriberCount ?? channelDetail?.subscriberCount
-  const subValue = formatCount(subCount)
-  const subLabel = subCount === 1 ? 'subscriber' : subCount != null ? 'subscribers' : undefined
+
+  // Trend deltas from analytics timeseries (cumulative snapshots, sorted ascending)
+  const timeseriesSorted = [...(data?.timeseries ?? [])].sort((a, b) =>
+    a.date.localeCompare(b.date)
+  )
+
+  function computeSeriesDelta(field: 'subscribers' | 'views'): number | null {
+    const pts = timeseriesSorted.filter((p) => p[field] != null)
+    if (pts.length < 2) return null
+    return (pts[pts.length - 1][field] as number) - (pts[0][field] as number)
+  }
+
+  const subDelta = computeSeriesDelta('subscribers')
+  const viewsDelta = computeSeriesDelta('views')
+
+  // Freshness label from the most recent snapshot date
+  const snapshotDateLabel = channelDetail?.lastSnapshotAt
+    ? `As of ${fmtDateShort(channelDetail.lastSnapshotAt.slice(0, 10))}`
+    : null
 
   // Upload frequency
   const uploadFreq = computeUploadFreq(channelDetail?.publishedAt, channelDetail?.videoCount)
+  void uploadFreq // retained for technical details only
 
   // Technical details rows
   const detailsRows =
@@ -238,9 +264,24 @@ export default function ChannelOverviewPage() {
     )
   }
 
+  if (isLoading) {
+    return <PageSkeleton statCards={4} showChart tableRows={5} />
+  }
+
   if (isError) {
     const err = normalizeHttpError(error)
+    const isNotFound = err.status === 404
     const requiresAuth = err.status === 401 || err.status === 403
+    if (isNotFound) {
+      return (
+        <EmptyState
+          title={`Channel #${channelDbId} not found`}
+          description="This channel may have been removed from SocialLens, or the ID is incorrect."
+          actionLabel="View all tracked channels"
+          onAction={() => window.location.assign('/channels')}
+        />
+      )
+    }
     return (
       <ErrorState
         title={requiresAuth ? 'Connect account' : 'Unable to load channel analytics'}
@@ -261,7 +302,7 @@ export default function ChannelOverviewPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Breadcrumb */}
       {channelDbIdParam && (
         <nav aria-label="Breadcrumb">
@@ -284,7 +325,7 @@ export default function ChannelOverviewPage() {
                 channelName={title ?? channelId ?? String(channelDbId)}
               />
               <span className="text-foreground font-medium truncate" aria-current="page">
-                {title ?? channelDbIdStr}
+                {title ?? 'Unknown Channel'}
               </span>
             </li>
           </ol>
@@ -308,7 +349,7 @@ export default function ChannelOverviewPage() {
               />
             ) : (
               <h1
-                className="text-2xl font-bold leading-tight truncate"
+                className="text-2xl font-bold leading-tight tracking-tight truncate"
                 style={{ fontFamily: 'var(--font-display)' }}
               >
                 {title ?? 'Channel overview'}
@@ -360,18 +401,31 @@ export default function ChannelOverviewPage() {
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              disabled={isRefreshing}
-              aria-disabled={isRefreshing}
-              onClick={() => refresh.mutate({ channelDbId: channelDbId! })}
+              disabled={refreshState.disabled}
+              aria-disabled={refreshState.disabled}
+              onClick={triggerRefresh}
               className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors"
-              style={{ color: 'var(--color-text-muted)' }}
+              style={{
+                color:
+                  refreshState.phase === 'success'
+                    ? 'var(--color-up)'
+                    : refreshState.phase === 'error'
+                      ? 'var(--color-down)'
+                      : 'var(--color-text-muted)',
+              }}
             >
               {isRefreshing ? (
                 <Loader2 size={13} className="animate-spin" aria-hidden="true" />
               ) : (
                 <RefreshCw size={13} aria-hidden="true" />
               )}
-              {isRefreshing ? 'Refreshing…' : 'Refresh'}
+              {refreshState.phase === 'success'
+                ? 'Refreshed'
+                : refreshState.phase === 'error'
+                  ? 'Failed'
+                  : isRefreshing
+                    ? 'Refreshing…'
+                    : 'Refresh'}
             </button>
             <Link
               to={`/channels/${channelDbId}/trends`}
@@ -450,16 +504,17 @@ export default function ChannelOverviewPage() {
 
             <button
               type="button"
-              disabled={isRefreshing}
-              aria-disabled={isRefreshing}
-              onClick={() => refresh.mutate({ channelDbId: channelDbId! })}
+              disabled={refreshState.disabled}
+              aria-disabled={refreshState.disabled}
+              onClick={triggerRefresh}
               className="shrink-0 flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold transition-opacity"
               style={{
-                background: 'var(--color-down)',
+                background:
+                  refreshState.phase === 'success' ? 'var(--color-up)' : 'var(--color-down)',
                 color: '#fff',
                 border: 'none',
-                opacity: isRefreshing ? 0.6 : 1,
-                cursor: isRefreshing ? 'default' : 'pointer',
+                opacity: refreshState.disabled ? 0.6 : 1,
+                cursor: refreshState.disabled ? 'default' : 'pointer',
               }}
             >
               {isRefreshing ? (
@@ -467,7 +522,13 @@ export default function ChannelOverviewPage() {
               ) : (
                 <RefreshCw size={13} aria-hidden="true" />
               )}
-              {isRefreshing ? 'Retrying…' : 'Retry Sync'}
+              {refreshState.phase === 'success'
+                ? 'Refreshed'
+                : refreshState.phase === 'error'
+                  ? 'Failed'
+                  : isRefreshing
+                    ? 'Retrying…'
+                    : 'Retry Sync'}
             </button>
           </div>
         </div>
@@ -504,10 +565,30 @@ export default function ChannelOverviewPage() {
           label="Subscribers"
           value={
             <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
-              {subValue}
+              {formatCount(subCount)}
             </span>
           }
-          description={subLabel}
+          description={
+            <>
+              {subDelta !== null && (
+                <span
+                  style={{
+                    color:
+                      subDelta > 0
+                        ? 'var(--color-up)'
+                        : subDelta < 0
+                          ? 'var(--color-down)'
+                          : 'var(--color-text-muted)',
+                    fontFamily: 'var(--font-mono)',
+                  }}
+                >
+                  {subDelta > 0 ? '▲ ' : subDelta < 0 ? '▼ ' : '→ '}
+                  {subDelta === 0 ? 'No change' : fmtDelta(subDelta)}
+                </span>
+              )}
+              {snapshotDateLabel && <span>{snapshotDateLabel}</span>}
+            </>
+          }
           loading={isLoading || isFetching}
         />
 
@@ -520,40 +601,75 @@ export default function ChannelOverviewPage() {
             </span>
           }
           icon={<BarChart2 className="h-4 w-4 text-muted-foreground" />}
+          description={
+            <>
+              {viewsDelta !== null && (
+                <span
+                  style={{
+                    color:
+                      viewsDelta > 0
+                        ? 'var(--color-up)'
+                        : viewsDelta < 0
+                          ? 'var(--color-down)'
+                          : 'var(--color-text-muted)',
+                    fontFamily: 'var(--font-mono)',
+                  }}
+                >
+                  {viewsDelta > 0 ? '▲ ' : viewsDelta < 0 ? '▼ ' : '→ '}
+                  {viewsDelta === 0 ? 'No change' : fmtDelta(viewsDelta)}
+                </span>
+              )}
+              {snapshotDateLabel && <span>{snapshotDateLabel}</span>}
+            </>
+          }
           loading={isLoading || isFetching}
         />
 
-        {/* Videos */}
+        {/* Total Videos */}
         <StatCard
-          label="Videos"
+          label="Total Videos"
+          value={
+            <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+              {formatCount(data?.videoCount ?? channelDetail?.videoCount)}
+            </span>
+          }
+          icon={<PlaySquare className="h-4 w-4 text-muted-foreground" />}
+          description={snapshotDateLabel ? <span>{snapshotDateLabel}</span> : undefined}
+          loading={isLoading || isFetching}
+        />
+
+        {/* Indexed Videos */}
+        <StatCard
+          label="Indexed Videos"
           labelExtra={
-            <InfoTooltip text="YouTube total · SocialLens indexed (enriched with full metadata)" />
+            <InfoTooltip
+              text={
+                indexedVideoCount != null && (data?.videoCount ?? channelDetail?.videoCount) != null
+                  ? `SocialLens has indexed ${indexedVideoCount} of ${data?.videoCount ?? channelDetail?.videoCount} total videos. Run a sync to index more.`
+                  : 'Indexed = videos stored in SocialLens DB with full metadata.'
+              }
+            />
           }
           value={
             <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
-              {data?.videoCount ?? channelDetail?.videoCount ?? '—'}
+              {formatCount(indexedVideoCount)}
             </span>
           }
+          icon={<Database className="h-4 w-4 text-muted-foreground" />}
           description={
-            indexedVideoCount != null ? `${indexedVideoCount.toLocaleString()} indexed` : undefined
+            (data?.videoCount ?? channelDetail?.videoCount) != null && indexedVideoCount != null ? (
+              <span>
+                of{' '}
+                <span
+                  style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}
+                >
+                  {formatCount(data?.videoCount ?? channelDetail?.videoCount)}
+                </span>{' '}
+                on YouTube
+              </span>
+            ) : undefined
           }
           loading={isLoading || isFetching}
-        />
-
-        {/* Upload Frequency */}
-        <StatCard
-          label="Upload Frequency"
-          value={
-            <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
-              {uploadFreq}
-            </span>
-          }
-          description={
-            channelDetail?.publishedAt
-              ? `Channel since ${formatDate(channelDetail.publishedAt)}`
-              : undefined
-          }
-          loading={isLoading}
         />
       </div>
 
@@ -567,7 +683,7 @@ export default function ChannelOverviewPage() {
         <div className="rounded-lg border bg-card/60 p-5 shadow-sm space-y-3">
           <div className="flex items-center justify-between gap-2">
             <div className="space-y-0.5">
-              <h2 className="text-base font-semibold">Recent Videos</h2>
+              <h2 className="text-lg font-semibold tracking-tight">Recent Videos</h2>
               <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
                 5 most recently published
               </p>
