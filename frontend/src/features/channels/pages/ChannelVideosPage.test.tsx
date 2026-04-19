@@ -294,9 +294,7 @@ describe('ChannelVideosPage', () => {
     })
 
     it('refresh button is disabled while refresh is pending', async () => {
-      const mutateAsync = vi.fn(
-        () => new Promise<never>(() => {})
-      )
+      const mutateAsync = vi.fn(() => new Promise<never>(() => {}))
       vi.mocked(useChannelRefreshByIdMutation).mockReturnValue({
         mutate: vi.fn(),
         mutateAsync,

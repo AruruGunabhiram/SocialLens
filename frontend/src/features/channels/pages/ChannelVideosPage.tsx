@@ -1,4 +1,4 @@
-import { formatCount, formatDate } from '@/utils/formatters'
+import { formatCount, formatDate, formatRelativeTime } from '@/utils/formatters'
 import {
   ChevronLeft,
   ChevronRight,
@@ -204,8 +204,11 @@ function NaBadge() {
 }
 
 function VideoTableRow({ video }: { video: VideoRow }) {
+  const [thumbError, setThumbError] = useState(false)
   const hasTitle = Boolean(video.title?.trim())
   const ytUrl = `${YT_WATCH}${video.videoId}`
+  const thumbSrc = video.thumbnailUrl ?? `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`
+  const relativeDate = formatRelativeTime(video.publishedAt)
 
   function handleRowClick(e: React.MouseEvent<HTMLTableRowElement>) {
     // Let inner <a> / <button> elements handle their own navigation
@@ -249,12 +252,13 @@ function VideoTableRow({ video }: { video: VideoRow }) {
             flexShrink: 0,
           }}
         >
-          {video.thumbnailUrl ? (
+          {!thumbError ? (
             <img
-              src={video.thumbnailUrl}
+              src={thumbSrc}
               alt=""
               style={{ width: 48, height: 27, objectFit: 'cover', display: 'block' }}
               loading="lazy"
+              onError={() => setThumbError(true)}
             />
           ) : (
             <div
@@ -280,12 +284,34 @@ function VideoTableRow({ video }: { video: VideoRow }) {
       {/* Title — or video ID link + "(title pending)" when not yet enriched */}
       <td className="max-w-xs py-3 pr-4">
         {hasTitle ? (
-          <span
-            className="line-clamp-2 text-sm font-medium leading-snug"
+          <a
+            href={ytUrl}
+            target="_blank"
+            rel="noopener noreferrer"
             title={video.title!.length > 60 ? video.title! : undefined}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'flex-start',
+              gap: 4,
+              textDecoration: 'none',
+              color: 'inherit',
+            }}
+            onMouseEnter={(e) => {
+              const span = e.currentTarget.querySelector('span')
+              if (span) span.style.textDecoration = 'underline'
+            }}
+            onMouseLeave={(e) => {
+              const span = e.currentTarget.querySelector('span')
+              if (span) span.style.textDecoration = 'none'
+            }}
           >
-            {video.title}
-          </span>
+            <span className="line-clamp-2 text-sm font-medium leading-snug">{video.title}</span>
+            <ExternalLink
+              size={11}
+              aria-hidden
+              style={{ flexShrink: 0, marginTop: 3, color: 'var(--color-text-muted)' }}
+            />
+          </a>
         ) : (
           <span className="inline-flex flex-wrap items-center gap-1.5">
             <a
@@ -323,7 +349,12 @@ function VideoTableRow({ video }: { video: VideoRow }) {
 
       {/* Published date */}
       <td className="whitespace-nowrap py-3 pr-4 text-sm text-muted-foreground">
-        {formatDate(video.publishedAt)}
+        <span
+          title={relativeDate !== '—' ? relativeDate : undefined}
+          style={{ cursor: relativeDate !== '—' ? 'help' : undefined }}
+        >
+          {formatDate(video.publishedAt)}
+        </span>
       </td>
 
       {/* Views — "—" when null (formatCount handles this) */}
