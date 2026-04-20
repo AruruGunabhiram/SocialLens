@@ -21,7 +21,14 @@ import {
   type VideoQueryParams,
 } from './api'
 import type { ChannelAnalytics } from './schemas'
-import { toastError, toastInfo, toastSuccess, toastWarning } from '@/lib/toast'
+import {
+  toastDismiss,
+  toastError,
+  toastInfo,
+  toastLoading,
+  toastSuccess,
+  toastWarning,
+} from '@/lib/toast'
 import { isAppError, type AppError } from '@/api/httpError'
 import type { ChannelItem, TimeSeriesResponse, VideosPageResponse } from '@/api/types'
 
@@ -111,7 +118,12 @@ export function useChannelSyncMutation() {
 
   return useMutation({
     mutationFn: (identifier: string) => syncChannel(identifier),
-    onSuccess: (data) => {
+    onMutate: () => {
+      const toastId = toastLoading('Looking up channel...')
+      return { toastId }
+    },
+    onSuccess: (data, _vars, context) => {
+      toastDismiss(context?.toastId)
       toastSuccess('Channel loaded', `Loaded channel: ${data.title || data.channelId}`)
       // Invalidate the channel list so the new channel appears immediately on /channels
       queryClient.invalidateQueries({ queryKey: channelListQueryKeys.root })
@@ -120,7 +132,8 @@ export function useChannelSyncMutation() {
       queryClient.invalidateQueries({ queryKey: channelQueryKeys.root })
       queryClient.invalidateQueries({ queryKey: ['timeseries', data.channelDbId] })
     },
-    onError: (error) => {
+    onError: (error, _vars, context) => {
+      toastDismiss(context?.toastId)
       toastError(error, 'Failed to load channel')
     },
   })
@@ -192,9 +205,19 @@ export function useChannelAnalyticsByIdQuery(
 export function useChannelRefreshByIdMutation() {
   const queryClient = useQueryClient()
 
-  return useMutation<RefreshChannelResult, unknown, { channelDbId: number }>({
+  return useMutation<
+    RefreshChannelResult,
+    unknown,
+    { channelDbId: number },
+    { toastId: string | number }
+  >({
     mutationFn: ({ channelDbId }) => refreshChannelById(channelDbId),
-    onSuccess: (data, { channelDbId }) => {
+    onMutate: () => {
+      const toastId = toastLoading('Syncing channel data...')
+      return { toastId }
+    },
+    onSuccess: (data, { channelDbId }, context) => {
+      toastDismiss(context?.toastId)
       const enriched = data.videosEnriched ?? null
       const errors = data.enrichmentErrors ?? 0
       const isPartial = errors > 0 || data.outcomeStatus === 'PARTIAL'
@@ -223,7 +246,8 @@ export function useChannelRefreshByIdMutation() {
       queryClient.invalidateQueries({ queryKey: ['channelList', 'videos', channelDbId] })
       queryClient.invalidateQueries({ queryKey: ['timeseries', channelDbId] })
     },
-    onError: (error) => {
+    onError: (error, _vars, context) => {
+      toastDismiss(context?.toastId)
       // 409 = refresh already running; not an error worth alarming the user.
       if (isAppError(error) && error.status === 409) {
         toastInfo('Refresh already in progress', 'This channel is currently being refreshed.')

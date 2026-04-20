@@ -27,6 +27,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { formatDate } from '@/utils/formatters'
+import { toastSuccess } from '@/lib/toast'
+import { NotificationHistoryDropdown } from '@/components/common/NotificationHistoryDropdown'
 
 // ─── DisconnectConfirmDialog ──────────────────────────────────────────────────
 
@@ -386,6 +388,15 @@ export function Topbar() {
 
   const connected = accountStatus?.connected ?? false
 
+  // Fire a toast when OAuth connection is detected (tab polling picks it up)
+  const prevConnectedRef = useRef<boolean | undefined>(undefined)
+  useEffect(() => {
+    if (prevConnectedRef.current === false && connected === true) {
+      toastSuccess('YouTube account connected!')
+    }
+    prevConnectedRef.current = connected
+  }, [connected])
+
   // Close dropdown on outside click
   useEffect(() => {
     if (!dropdownOpen) return
@@ -647,8 +658,9 @@ export function Topbar() {
           )}
         </div>
 
-        {/* RIGHT: Connection status */}
+        {/* RIGHT: Notifications + Connection status */}
         <div className="flex shrink-0 items-center gap-2">
+          <NotificationHistoryDropdown />
           {connected ? (
             <div ref={dropdownRef} style={{ position: 'relative' }}>
               <button

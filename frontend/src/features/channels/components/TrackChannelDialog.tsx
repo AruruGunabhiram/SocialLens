@@ -1,8 +1,8 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, Loader2 } from 'lucide-react'
-import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
+import { toastDismiss, toastLoading, toastSuccess, toastWarning } from '@/lib/toast'
 
 import { isAppError } from '@/api/httpError'
 import type { ChannelItem } from '@/api/types'
@@ -36,6 +36,7 @@ export function TrackChannelDialog({ open, onOpenChange }: TrackChannelDialogPro
   const [trackError, setTrackError] = useState<TrackError | null>(null)
 
   const inputRef = useRef<HTMLInputElement>(null)
+  const loadingToastRef = useRef<string | number | null>(null)
   const queryClient = useQueryClient()
   const navigate = useNavigate()
 
@@ -60,6 +61,7 @@ export function TrackChannelDialog({ open, onOpenChange }: TrackChannelDialogPro
 
     setTrackError(null)
     setIsPending(true)
+    loadingToastRef.current = toastLoading('Looking up channel...')
 
     try {
       // Snapshot current list so we can detect "already tracked" after sync
@@ -72,14 +74,19 @@ export function TrackChannelDialog({ open, onOpenChange }: TrackChannelDialogPro
       // Invalidate channel list so new channel appears immediately
       void queryClient.invalidateQueries({ queryKey: channelListQueryKeys.root })
 
+      toastDismiss(loadingToastRef.current ?? undefined)
+      loadingToastRef.current = null
+
       // Check if the returned channel already existed in the list
       const existingChannel = cachedChannels?.find((ch) => ch.id === response.channelDbId)
 
       if (existingChannel) {
+        const channelTitle = existingChannel.title ?? response.title ?? response.channelId
+        toastWarning('Already tracking this channel', `${channelTitle} is already in your list.`)
         setTrackError({
           type: 'already_tracked',
           channelId: response.channelDbId,
-          channelTitle: existingChannel.title ?? response.title ?? response.channelId,
+          channelTitle,
         })
         setIsPending(false)
         return
@@ -87,11 +94,14 @@ export function TrackChannelDialog({ open, onOpenChange }: TrackChannelDialogPro
 
       // New channel successfully added
       onOpenChange(false)
-      toast.success(`${response.title ?? response.channelId} added!`, {
-        description: 'Syncing data in the background...',
-      })
+      toastSuccess(
+        `${response.title ?? response.channelId} added!`,
+        'Syncing data in the background...'
+      )
       navigate(`/channels/${response.channelDbId}`)
     } catch (err) {
+      toastDismiss(loadingToastRef.current ?? undefined)
+      loadingToastRef.current = null
       const appError = isAppError(err) ? err : null
       if (appError?.status === 404) {
         setTrackError({ type: 'not_found' })
