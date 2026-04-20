@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { differenceInHours, isValid, parseISO } from 'date-fns'
 import { ArrowRight, Plus, RefreshCw, Tv2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -11,6 +12,7 @@ import { formatCount, formatRelativeTime } from '@/utils/formatters'
 import { toastError } from '@/lib/toast'
 import { useRefreshAction } from '@/hooks/useRefreshAction'
 import { useChannelRefreshByIdMutation, useChannelsQuery } from '../queries'
+import { TrackChannelDialog } from '../components/TrackChannelDialog'
 
 // ─── Error helpers ────────────────────────────────────────────────────────────
 
@@ -395,17 +397,7 @@ function ChannelCardSkeleton() {
 
 // ─── Page header ─────────────────────────────────────────────────────────────
 
-function focusTrackInput() {
-  const input = document.querySelector<HTMLInputElement>(
-    'input[aria-label="Track a YouTube channel"]'
-  )
-  if (input) {
-    input.focus()
-    input.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-  }
-}
-
-function PageHeader({ count }: { count?: number }) {
+function PageHeader({ count, onTrackClick }: { count?: number; onTrackClick: () => void }) {
   return (
     <div className="flex items-center justify-between gap-4">
       <div>
@@ -437,7 +429,7 @@ function PageHeader({ count }: { count?: number }) {
 
       <button
         type="button"
-        onClick={focusTrackInput}
+        onClick={onTrackClick}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -458,7 +450,7 @@ function PageHeader({ count }: { count?: number }) {
         onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
       >
         <Plus size={15} aria-hidden style={{ flexShrink: 0 }} />
-        Track New Channel
+        Track Channel
       </button>
     </div>
   )
@@ -466,7 +458,7 @@ function PageHeader({ count }: { count?: number }) {
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
-function ChannelsEmptyState() {
+function ChannelsEmptyState({ onTrackClick }: { onTrackClick: () => void }) {
   return (
     <div
       className="flex flex-col items-center text-center"
@@ -514,7 +506,7 @@ function ChannelsEmptyState() {
 
       <button
         type="button"
-        onClick={focusTrackInput}
+        onClick={onTrackClick}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -543,12 +535,15 @@ function ChannelsEmptyState() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ChannelsListPage() {
+  const [dialogOpen, setDialogOpen] = useState(false)
   const { data: channels, isLoading, isError, error, refetch } = useChannelsQuery(false)
+
+  const openDialog = () => setDialogOpen(true)
 
   if (isLoading) {
     return (
       <div className="space-y-8">
-        <PageHeader />
+        <PageHeader onTrackClick={openDialog} />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <ChannelCardSkeleton key={i} />
@@ -561,7 +556,7 @@ export default function ChannelsListPage() {
   if (isError) {
     return (
       <div className="space-y-8">
-        <PageHeader />
+        <PageHeader onTrackClick={openDialog} />
         <ErrorState
           title="Failed to load channels"
           description={error.message}
@@ -572,6 +567,7 @@ export default function ChannelsListPage() {
             if (result.isError) toastError(result.error, 'Failed to reload channels')
           }}
         />
+        <TrackChannelDialog open={dialogOpen} onOpenChange={setDialogOpen} />
       </div>
     )
   }
@@ -579,20 +575,22 @@ export default function ChannelsListPage() {
   if (!channels?.length) {
     return (
       <div className="space-y-8">
-        <PageHeader />
-        <ChannelsEmptyState />
+        <PageHeader onTrackClick={openDialog} />
+        <ChannelsEmptyState onTrackClick={openDialog} />
+        <TrackChannelDialog open={dialogOpen} onOpenChange={setDialogOpen} />
       </div>
     )
   }
 
   return (
     <div className="space-y-8">
-      <PageHeader count={channels.length} />
+      <PageHeader count={channels.length} onTrackClick={openDialog} />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {channels.map((ch) => (
           <ChannelCard key={ch.id} channel={ch} />
         ))}
       </div>
+      <TrackChannelDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </div>
   )
 }

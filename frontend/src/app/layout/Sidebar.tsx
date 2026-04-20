@@ -201,7 +201,7 @@ function AccountStatusStrip() {
 // ─── Nav config ───────────────────────────────────────────────────────────────
 
 const PRIMARY_NAV = [
-  { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
+  { label: 'Dashboard', to: '/', icon: LayoutDashboard },
   { label: 'Channels', to: '/channels', icon: Tv2 },
   { label: 'Videos', to: '/videos', icon: PlaySquare },
   { label: 'Trends', to: '/trends', icon: TrendingUp },
@@ -339,7 +339,7 @@ export function Sidebar() {
       {/* ── Primary nav ── */}
       <nav className="flex flex-1 flex-col gap-0.5 px-3 pt-3">
         {PRIMARY_NAV.map(({ label, to, icon }) => (
-          <NavItem key={to} to={to} icon={icon} label={label} />
+          <NavItem key={to} to={to} icon={icon} label={label} end={to === '/'} />
         ))}
 
         {/* Divider */}
