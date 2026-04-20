@@ -7,8 +7,8 @@ import type { RetentionDiagnosisResponse } from '@/api/types'
 export type RetentionDiagnosisRequest = {
   userId: number
   videoId: string
-  startDate?: string // YYYY-MM-DD — defaults to 28 days ago on backend
-  endDate?: string // YYYY-MM-DD — defaults to today on backend
+  startDate?: string // YYYY-MM-DD  -  defaults to 28 days ago on backend
+  endDate?: string // YYYY-MM-DD  -  defaults to today on backend
 }
 
 export async function fetchRetentionDiagnosis(

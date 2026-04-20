@@ -87,7 +87,7 @@ function DeltaBadge({ delta }: DeltaBadgeProps) {
 // ---------------------------------------------------------------------------
 
 /**
- * KPI MetricCard — spec §5.5.
+ * KPI MetricCard  -  spec §5.5.
  *
  * Token-first: all colors via CSS variables, no hardcoded hex.
  * Numbers use DM Mono + tabular-nums.

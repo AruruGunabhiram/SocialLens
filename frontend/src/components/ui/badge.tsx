@@ -11,7 +11,7 @@ export type BadgeVariant =
   | 'outline'
   | 'pill'
 
-/** Shared base layout + typography — no colors here. */
+/** Shared base layout + typography  -  no colors here. */
 const BASE: React.CSSProperties = {
   fontFamily: 'var(--font-mono)',
   fontSize: 'var(--text-xs)',
@@ -23,7 +23,7 @@ const BASE: React.CSSProperties = {
   gap: 'var(--space-1)',
 }
 
-/** Per-variant color + border overrides — all via CSS tokens. */
+/** Per-variant color + border overrides  -  all via CSS tokens. */
 const VARIANTS: Record<BadgeVariant, React.CSSProperties> = {
   /** Accent-colored badge (Explorer = amber, Studio = blue via --accent token). */
   default: {
@@ -55,14 +55,14 @@ const VARIANTS: Record<BadgeVariant, React.CSSProperties> = {
     color: 'var(--color-down)',
     border: '1px solid color-mix(in srgb, var(--color-down) 30%, transparent)',
   },
-  /** Ghost badge — transparent background, subtle border. */
+  /** Ghost badge  -  transparent background, subtle border. */
   outline: {
     background: 'transparent',
     color: 'var(--color-text-secondary)',
     border: '1px solid var(--color-border-base)',
   },
   /**
-   * Active pill — used for chart time-range selectors and filter groups.
+   * Active pill  -  used for chart time-range selectors and filter groups.
    * Not uppercase; tracking is normal so short labels like "28D" read cleanly.
    */
   pill: {

@@ -148,7 +148,7 @@ function OverviewStats({ channels }: { channels: ChannelItem[] }) {
       <StatCard label="Videos Indexed" value={formatCount(totalVideos)} />
       <StatCard
         label="Latest Sync"
-        value={latestSync ? formatRelativeTime(latestSync) : '—'}
+        value={latestSync ? formatRelativeTime(latestSync) : ' - '}
         sub={latestSync ? 'most recent across all channels' : 'no syncs yet'}
       />
     </div>

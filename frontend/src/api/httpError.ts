@@ -51,7 +51,7 @@ export function normalizeHttpError(error: unknown): AppError {
     return extractAxiosError(error)
   }
 
-  // Already normalized by the response interceptor — pass through unchanged
+  // Already normalized by the response interceptor  -  pass through unchanged
   if (isAppError(error)) {
     return error
   }

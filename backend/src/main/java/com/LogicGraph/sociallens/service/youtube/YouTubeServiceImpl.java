@@ -26,7 +26,7 @@ import java.util.Optional;
 
 /**
  * Raw YouTube Data API v3 wrapper.
- * No persistence — all methods fetch live data from YouTube and return mapped internal DTOs.
+ * No persistence  -  all methods fetch live data from YouTube and return mapped internal DTOs.
  */
 @Service("youtubeServiceV2")
 public class YouTubeServiceImpl implements YouTubeService {
@@ -49,7 +49,7 @@ public class YouTubeServiceImpl implements YouTubeService {
     }
 
     // -------------------------------------------------------------------------
-    // Public interface methods — each consumes exactly one budget unit
+    // Public interface methods  -  each consumes exactly one budget unit
     // -------------------------------------------------------------------------
 
     @Override
@@ -136,7 +136,7 @@ public class YouTubeServiceImpl implements YouTubeService {
             // Step 1: resolve uploads playlist ID
             String uploadsPlaylistId = resolveUploadsPlaylistId(channelId);
             if (uploadsPlaylistId == null) {
-                log.debug("fetchVideosByChannelId channelId={} — no uploads playlist found", channelId);
+                log.debug("fetchVideosByChannelId channelId={}  -  no uploads playlist found", channelId);
                 return Collections.emptyList();
             }
 
@@ -144,13 +144,13 @@ public class YouTubeServiceImpl implements YouTubeService {
             int pageSize = Math.min(maxResults, PLAYLIST_MAX_RESULTS);
             List<String> videoIds = fetchVideoIdsFromPlaylist(uploadsPlaylistId, pageSize);
             if (videoIds.isEmpty()) {
-                log.debug("fetchVideosByChannelId channelId={} — playlist empty", channelId);
+                log.debug("fetchVideosByChannelId channelId={}  -  playlist empty", channelId);
                 return Collections.emptyList();
             }
 
             // Step 3: batch-fetch video details
             List<VideoDto> videos = fetchVideoDetailsBatch(videoIds);
-            log.debug("fetchVideosByChannelId channelId={} — returned {} videos", channelId, videos.size());
+            log.debug("fetchVideosByChannelId channelId={}  -  returned {} videos", channelId, videos.size());
             return videos;
 
         } catch (RateLimitException | InsufficientApiQuotaException e) {
@@ -191,7 +191,7 @@ public class YouTubeServiceImpl implements YouTubeService {
     }
 
     // -------------------------------------------------------------------------
-    // Private helpers — no budget interaction
+    // Private helpers  -  no budget interaction
     // -------------------------------------------------------------------------
 
     /** Resolves the uploads playlist ID for a given channel ID (no budget charge). */
@@ -328,7 +328,7 @@ public class YouTubeServiceImpl implements YouTubeService {
         }
     }
 
-    /** Centralized YouTube API GET — translates quota/rate errors into typed exceptions. */
+    /** Centralized YouTube API GET  -  translates quota/rate errors into typed exceptions. */
     private <T> T ytGet(String url, Class<T> responseType) {
         try {
             return restTemplate.getForObject(url, responseType);
@@ -339,7 +339,7 @@ public class YouTubeServiceImpl implements YouTubeService {
                     || body.contains("userRateLimitExceeded")) {
                 throw new RateLimitException("YouTube API quota/rate limit exceeded.", e);
             }
-            throw new RuntimeException("YouTube API client error: " + e.getStatusCode() + " — " + body, e);
+            throw new RuntimeException("YouTube API client error: " + e.getStatusCode() + "  -  " + body, e);
         } catch (HttpServerErrorException e) {
             throw new RuntimeException("YouTube API server error: " + e.getStatusCode(), e);
         }
@@ -353,7 +353,7 @@ public class YouTubeServiceImpl implements YouTubeService {
 
     /**
      * Parses a YouTube statistics string to a boxed Long.
-     * Returns {@code null} — not zero — when the value is absent or blank.
+     * Returns {@code null}  -  not zero  -  when the value is absent or blank.
      * YouTube omits fields like {@code likeCount} when likes are disabled, and
      * returning 0 would misrepresent "unknown" as "zero engagement".
      */

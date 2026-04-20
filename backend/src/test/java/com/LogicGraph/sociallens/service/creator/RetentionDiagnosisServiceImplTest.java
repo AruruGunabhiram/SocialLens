@@ -40,7 +40,7 @@ class RetentionDiagnosisServiceImplTest {
     }
 
     // -------------------------------------------------------------------------
-    // diagnoseRetention — orchestration paths
+    // diagnoseRetention  -  orchestration paths
     // -------------------------------------------------------------------------
 
     /**
@@ -92,7 +92,7 @@ class RetentionDiagnosisServiceImplTest {
                 .thenReturn(Optional.of(account));
         when(youTubeOAuthService.getValidAccessToken(account)).thenReturn("tok");
 
-        // Drop per step ≈ 2.5% — well below the 8% threshold
+        // Drop per step ≈ 2.5%  -  well below the 8% threshold
         List<RetentionPoint> curve = new ArrayList<>(List.of(
                 new RetentionPoint(0.00, 1.00),
                 new RetentionPoint(0.25, 0.975),
@@ -111,7 +111,7 @@ class RetentionDiagnosisServiceImplTest {
     }
 
     // -------------------------------------------------------------------------
-    // Diagnosis label routing — one test per branch
+    // Diagnosis label routing  -  one test per branch
     // -------------------------------------------------------------------------
 
     /**

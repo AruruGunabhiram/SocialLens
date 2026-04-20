@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
- * TrendsPage — empty and error state tests.
+ * TrendsPage  -  empty and error state tests.
  *
  * Recharts is mocked to avoid ResizeObserver / SVG issues in jsdom.
  * The utility logic (normalize, deltas, insights) is thoroughly tested in
@@ -166,9 +166,9 @@ describe('TrendsPage', () => {
     })
   })
 
-  // ── Insufficient data — total mode ──────────────────────────────────────────
+  // ── Insufficient data  -  total mode ──────────────────────────────────────────
 
-  describe('insufficient data — total mode (default)', () => {
+  describe('insufficient data  -  total mode (default)', () => {
     it('shows "No snapshot history yet" for 0 data points', () => {
       vi.mocked(useTimeSeries).mockReturnValue(tsSuccess(makeTimeSeriesResponse([])) as any)
       renderTrendsPage('1', 'mode=total')
@@ -180,7 +180,7 @@ describe('TrendsPage', () => {
         tsSuccess(makeTimeSeriesResponse([{ date: '2024-01-01', value: 100 }])) as any
       )
       renderTrendsPage('1', 'mode=total')
-      expect(screen.getByText('Only 1 snapshot captured — need at least 2')).toBeInTheDocument()
+      expect(screen.getByText(/Only 1 snapshot captured\s*-\s*need at least 2/)).toBeInTheDocument()
     })
 
     it('does not show the insufficient-data empty state with 2+ distinct points', () => {
@@ -193,13 +193,13 @@ describe('TrendsPage', () => {
         ) as any
       )
       renderTrendsPage('1', 'mode=total')
-      expect(screen.queryByText('Need at least 2 snapshots — run refresh')).not.toBeInTheDocument()
+      expect(screen.queryByText('Need at least 2 snapshots  -  run refresh')).not.toBeInTheDocument()
     })
   })
 
-  // ── Insufficient data — delta mode ──────────────────────────────────────────
+  // ── Insufficient data  -  delta mode ──────────────────────────────────────────
 
-  describe('insufficient data — delta mode', () => {
+  describe('insufficient data  -  delta mode', () => {
     it('shows "Need at least 3 snapshots" when switching to delta with only 2 points', () => {
       vi.mocked(useTimeSeries).mockReturnValue(
         tsSuccess(
@@ -210,7 +210,7 @@ describe('TrendsPage', () => {
         ) as any
       )
       renderTrendsPage('1', 'mode=delta')
-      expect(screen.getByText('Need at least 3 snapshots — run refresh')).toBeInTheDocument()
+      expect(screen.getByText(/Need at least 3 snapshots\s*-\s*run refresh/)).toBeInTheDocument()
     })
   })
 
@@ -260,7 +260,7 @@ describe('TrendsPage', () => {
       vi.mocked(useTimeSeries).mockReturnValue(
         tsSuccess(makeTimeSeriesResponse([{ date: '2024-03-21', value: 100 }])) as any
       )
-      renderTrendsPage()
+      renderTrendsPage('1', 'mode=total')
       const banner = screen.getByTestId('snapshot-coverage-banner')
       expect(banner).toBeInTheDocument()
       expect(banner).toHaveTextContent('1')
@@ -325,7 +325,7 @@ describe('TrendsPage', () => {
         tsSuccess(makeTimeSeriesResponse([{ date: '2024-03-21', value: 100 }])) as any
       )
       renderTrendsPage('1', 'mode=total')
-      expect(screen.getByText('Only 1 snapshot captured — need at least 2')).toBeInTheDocument()
+      expect(screen.getByText(/Only 1 snapshot captured\s*-\s*need at least 2/)).toBeInTheDocument()
     })
 
     it('shows correct description for 0 points', () => {

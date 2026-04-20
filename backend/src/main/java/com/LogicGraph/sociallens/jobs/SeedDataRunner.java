@@ -38,18 +38,18 @@ public class SeedDataRunner implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         if (channelRepository.count() > 0) {
-            log.info("SeedDataRunner: youtube_channel table is not empty — skipping seed");
+            log.info("SeedDataRunner: youtube_channel table is not empty  -  skipping seed");
             return;
         }
 
         log.info("SeedDataRunner: table is empty, seeding demo channel '{}'", SEED_CHANNEL);
         try {
             var result = syncService.syncChannel(SEED_CHANNEL);
-            log.info("SeedDataRunner: seed complete — {} videos processed, {} API calls used (channelId={}, status={})",
+            log.info("SeedDataRunner: seed complete  -  {} videos processed, {} API calls used (channelId={}, status={})",
                     result.videosProcessed(), result.apiCallsUsed(), result.channelId(), result.status());
         } catch (Exception e) {
             // A seed failure must never prevent the application from starting.
-            log.error("SeedDataRunner: seed failed for '{}' — continuing startup: {}",
+            log.error("SeedDataRunner: seed failed for '{}'  -  continuing startup: {}",
                     SEED_CHANNEL, e.getMessage(), e);
         }
     }

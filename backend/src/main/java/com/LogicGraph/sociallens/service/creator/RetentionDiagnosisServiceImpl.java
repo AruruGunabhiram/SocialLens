@@ -194,7 +194,7 @@ public class RetentionDiagnosisServiceImpl implements RetentionDiagnosisService 
                 String.format("Late drop (%.0f%%) suggests outro/end-screen drag. End faster after the payoff.",
                         d.getDropMagnitude() * 100.0);
             default ->
-                "Retention drop detected—review the segment at the drop and improve structure/pacing.";
+                "Retention drop detected - review the segment at the drop and improve structure/pacing.";
         };
     }
 }

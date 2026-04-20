@@ -44,7 +44,7 @@ export const channelListQueryKeys = {
 }
 
 // -----------------------------------------------------------------------
-// Channels list query  — GET /channels
+// Channels list query   -  GET /channels
 // -----------------------------------------------------------------------
 
 export function useChannelsQuery(includeInactive = false) {
@@ -56,7 +56,7 @@ export function useChannelsQuery(includeInactive = false) {
 }
 
 // -----------------------------------------------------------------------
-// Single channel query  — GET /channels/:id
+// Single channel query   -  GET /channels/:id
 // Used by Topbar for title / by ChannelOverviewPage for meta
 // -----------------------------------------------------------------------
 
@@ -70,7 +70,7 @@ export function useChannelQuery(channelDbId?: number) {
 }
 
 // -----------------------------------------------------------------------
-// Videos query  — GET /channels/:id/videos
+// Videos query   -  GET /channels/:id/videos
 // -----------------------------------------------------------------------
 
 export function useVideosQuery(channelDbId: number, params: VideoQueryParams) {
@@ -198,7 +198,7 @@ export function useChannelAnalyticsByIdQuery(
 }
 
 // ==============================================
-// Refresh by DB ID  — calls POST /api/v1/jobs/refresh/channel?channelDbId=
+// Refresh by DB ID   -  calls POST /api/v1/jobs/refresh/channel?channelDbId=
 // This is the ONLY refresh hook. Always uses channelDbId as the query param.
 // ==============================================
 
@@ -223,18 +223,18 @@ export function useChannelRefreshByIdMutation() {
       const isPartial = errors > 0 || data.outcomeStatus === 'PARTIAL'
 
       if (isPartial) {
-        // Enrichment had batch failures — snapshot and channel data are fresh, but some
+        // Enrichment had batch failures  -  snapshot and channel data are fresh, but some
         // videos may still be missing titles/thumbnails.
         const description =
           enriched !== null
-            ? `${enriched} video(s) enriched. ${errors} API batch(es) failed — some titles/thumbnails may be missing.`
-            : `${errors} enrichment batch(es) failed — some video metadata may be incomplete.`
+            ? `${enriched} video(s) enriched. ${errors} API batch(es) failed  -  some titles/thumbnails may be missing.`
+            : `${errors} enrichment batch(es) failed  -  some video metadata may be incomplete.`
         toastWarning('Partial refresh', description)
       } else {
         const description =
           enriched !== null
             ? `${enriched} video(s) enriched with full metadata. Snapshot written.`
-            : 'Snapshot written — chart data is ready.'
+            : 'Snapshot written  -  chart data is ready.'
         toastSuccess('Refresh complete', description)
       }
 

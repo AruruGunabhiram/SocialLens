@@ -2,7 +2,7 @@
 
 > Source of truth for the design-token system and mode switching rules.
 > All values are derived directly from `frontend/src/styles/tokens.css`.
-> Do not invent new values — add them to `tokens.css` first, then document here.
+> Do not invent new values  -  add them to `tokens.css` first, then document here.
 
 ---
 
@@ -62,9 +62,9 @@
 
 ## Mode accent system
 
-The active mode is set by adding `.mode-explorer` **or** `.mode-studio` to the `<body>` element (done by `ModeProvider` in `src/lib/ModeContext.tsx`). Components reference only the abstract `--accent` token family — never hard-coded mode colours.
+The active mode is set by adding `.mode-explorer` **or** `.mode-studio` to the `<body>` element (done by `ModeProvider` in `src/lib/ModeContext.tsx`). Components reference only the abstract `--accent` token family  -  never hard-coded mode colours.
 
-### Explorer mode (default) — Amber/Gold
+### Explorer mode (default)  -  Amber/Gold
 
 Activated by `.mode-explorer` on `<body>`.
 
@@ -76,7 +76,7 @@ Activated by `.mode-explorer` on `<body>`.
 | `--accent-glow` | `rgba(240,165,0,.12)`                |
 | `--shadow-glow` | `0 0 24px rgba(240,165,0,.2)`        |
 
-### Studio mode — Electric Blue
+### Studio mode  -  Electric Blue
 
 Activated by `.mode-studio` on `<body>`.
 
@@ -228,7 +228,7 @@ Six fixed colours in usage order. Recharts charts must reference these tokens.
 | `--ease-accelerate` | `cubic-bezier(0.4, 0, 1, 1)`     |
 | `--ease-spring`     | `cubic-bezier(0.32, 0.72, 0, 1)` |
 
-**Rule:** Framer Motion is allowed for panel/page transitions only. Do not apply it to micro-interactions (hover, focus) — use CSS transitions with the tokens above.
+**Rule:** Framer Motion is allowed for panel/page transitions only. Do not apply it to micro-interactions (hover, focus)  -  use CSS transitions with the tokens above.
 
 ---
 

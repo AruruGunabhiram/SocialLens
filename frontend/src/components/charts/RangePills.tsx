@@ -9,7 +9,7 @@ export interface RangePillOption {
   value: string
 }
 
-/** Convenience preset — most charts use this exact set. */
+/** Convenience preset  -  most charts use this exact set. */
 export const DEFAULT_RANGE_OPTIONS: RangePillOption[] = [
   { label: '7D', value: '7' },
   { label: '28D', value: '28' },
@@ -30,7 +30,7 @@ export interface RangePillsProps {
 // ---------------------------------------------------------------------------
 
 /**
- * Time-range pill selector for chart card headers — spec §5.6.
+ * Time-range pill selector for chart card headers  -  spec §5.6.
  *
  * Active pill:   surface-3 background + border-strong
  * Inactive pill: transparent + text-muted; hover → surface-1 + text-secondary

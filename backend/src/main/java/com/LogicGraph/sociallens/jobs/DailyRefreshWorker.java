@@ -131,7 +131,7 @@ public class DailyRefreshWorker {
             boolean enrichmentPartial = enrichResult.failedBatches() > 0;
             RefreshStatus outcomeStatus = enrichmentPartial ? RefreshStatus.PARTIAL : RefreshStatus.SUCCESS;
             String outcomeError = enrichmentPartial
-                    ? "Enrichment partial: " + enrichResult.failedBatches() + " API batch(es) failed — "
+                    ? "Enrichment partial: " + enrichResult.failedBatches() + " API batch(es) failed  -  "
                       + enrichResult.enriched() + " video(s) enriched successfully. "
                       + "Some titles/thumbnails may be missing until the next refresh."
                     : null;
@@ -164,7 +164,7 @@ public class DailyRefreshWorker {
 
             // Persist failure status in a new independent transaction.
             // The current transaction (T1) may already be marked rollback-only if a
-            // @Transactional(REQUIRED) inner method threw — in that case channelRepo.save(ch)
+            // @Transactional(REQUIRED) inner method threw  -  in that case channelRepo.save(ch)
             // inside T1 would itself throw "Transaction silently rolled back because it has been
             // marked as rollback-only", masking the real error. REQUIRES_NEW sidesteps that.
             try {

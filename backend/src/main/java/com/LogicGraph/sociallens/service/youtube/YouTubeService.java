@@ -8,7 +8,7 @@ import java.util.Optional;
 /**
  * Raw YouTube Data API v3 wrapper.
  * Every method checks the {@link com.LogicGraph.sociallens.jobs.ApiCallBudget} before calling YouTube.
- * Methods return {@link Optional#empty()} when the resource does not exist — never null.
+ * Methods return {@link Optional#empty()} when the resource does not exist  -  never null.
  */
 public interface YouTubeService {
 

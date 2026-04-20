@@ -59,8 +59,8 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
      * Paths that match a PROTECTED_PATTERN but must be accessible without an API key.
      * These are user-initiated actions, not admin operations.
      * <ul>
-     *   <li>{@code /api/v1/connected-accounts/status} — read-only account connection check</li>
-     *   <li>{@code /api/v1/jobs/refresh/channel} — per-channel refresh triggered from the UI</li>
+     *   <li>{@code /api/v1/connected-accounts/status}  -  read-only account connection check</li>
+     *   <li>{@code /api/v1/jobs/refresh/channel}  -  per-channel refresh triggered from the UI</li>
      * </ul>
      */
     static final List<String> BYPASS_PATTERNS = List.of(
@@ -103,7 +103,7 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Valid key — mark the request as authenticated for Spring Security
+        // Valid key  -  mark the request as authenticated for Spring Security
         var auth = new PreAuthenticatedAuthenticationToken(
                 "api-key-client", "[protected]",
                 List.of(new SimpleGrantedAuthority("ROLE_API_CLIENT")));

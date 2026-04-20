@@ -19,10 +19,10 @@ export function fmtNum(n: number): string {
 
 /**
  * Intl compact notation for display values: 1.2M, 340K.
- * Returns '—' for null/undefined.
+ * Returns ' - ' for null/undefined.
  */
 export function fmtCompact(n: number | null | undefined): string {
-  if (n == null) return '—'
+  if (n == null) return ' - '
   return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(n)
 }
 
@@ -43,22 +43,22 @@ export function fmtDelta(n: number): string {
 
 /**
  * Format an ISO date string to "MMM d, yyyy".
- * Returns '—' for absent or invalid values.
+ * Returns ' - ' for absent or invalid values.
  */
 export function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
+  if (!iso) return ' - '
   const d = parseISO(iso)
-  return isValid(d) ? format(d, 'MMM d, yyyy') : '—'
+  return isValid(d) ? format(d, 'MMM d, yyyy') : ' - '
 }
 
 /**
  * Format an ISO datetime string to "MMM d, yyyy HH:mm" (local time).
- * Returns '—' for absent or invalid values.
+ * Returns ' - ' for absent or invalid values.
  */
 export function fmtDateTime(iso: string | null | undefined): string {
-  if (!iso) return '—'
+  if (!iso) return ' - '
   const d = parseISO(iso)
-  return isValid(d) ? format(d, 'MMM d, yyyy HH:mm') : '—'
+  return isValid(d) ? format(d, 'MMM d, yyyy HH:mm') : ' - '
 }
 
 /**
@@ -82,7 +82,7 @@ export function fmtDateShort(date: string): string {
  *           2_500_000 → { value: "2.5M", label: "subscribers" }
  */
 export function fmtSubscribers(n: number | null | undefined): { value: string; label: string } {
-  if (n == null) return { value: '—', label: 'subscribers' }
+  if (n == null) return { value: ' - ', label: 'subscribers' }
   const label = n === 1 ? 'subscriber' : 'subscribers'
   const value = new Intl.NumberFormat('en', {
     notation: 'compact',

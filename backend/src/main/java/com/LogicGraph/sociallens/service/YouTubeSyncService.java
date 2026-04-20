@@ -231,11 +231,11 @@ public class YouTubeSyncService {
      * page token is exhausted or when we reach a video already older than the cursor.
      * Capped at 5 pages (250 videos) per run to bound API quota usage.
      *
-     * <p>Does NOT fall back to a full sync — the caller (DailyRefreshWorker) is
+     * <p>Does NOT fall back to a full sync  -  the caller (DailyRefreshWorker) is
      * responsible for providing an appropriate initial cursor (typically 30-day backfill).
      *
      * @param channelId     YouTube channel ID string (e.g. "UCxxxxxx")
-     * @param publishedAfter cursor — only fetch videos published strictly after this instant
+     * @param publishedAfter cursor  -  only fetch videos published strictly after this instant
      * @return number of video rows upserted
      */
     @Transactional
@@ -290,7 +290,7 @@ public class YouTubeSyncService {
                             break;
                         }
                     } catch (Exception ignored) {
-                        // Malformed publishedAt — include this video and keep going
+                        // Malformed publishedAt  -  include this video and keep going
                     }
                 }
 
@@ -315,7 +315,7 @@ public class YouTubeSyncService {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void writeChannelSnapshotIfNeeded(Long channelDbId, LocalDate dayUtc) {
-        // Fast path: already have a snapshot for today — nothing to do.
+        // Fast path: already have a snapshot for today  -  nothing to do.
         if (channelSnapshotRepository.existsByChannel_IdAndCapturedDayUtc(channelDbId, dayUtc)) {
             return;
         }
@@ -335,7 +335,7 @@ public class YouTubeSyncService {
         try {
             channelSnapshotRepository.saveAndFlush(snap);
         } catch (DataIntegrityViolationException ignore) {
-            // Race condition: another thread inserted between our check and insert — fine.
+            // Race condition: another thread inserted between our check and insert  -  fine.
         }
     }
 
@@ -346,7 +346,7 @@ public class YouTubeSyncService {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void writeVideoSnapshotIfNeeded(Long videoDbId, LocalDate dayUtc) {
-        // Fast path: already have a snapshot for today — nothing to do.
+        // Fast path: already have a snapshot for today  -  nothing to do.
         if (videoSnapRepo.existsByVideo_IdAndCapturedDayUtc(videoDbId, dayUtc)) {
             return;
         }
@@ -376,7 +376,7 @@ public class YouTubeSyncService {
         try {
             videoSnapRepo.saveAndFlush(snap);
         } catch (DataIntegrityViolationException ignore) {
-            // Race condition: another thread inserted between our check and insert — fine.
+            // Race condition: another thread inserted between our check and insert  -  fine.
         }
     }
 
@@ -494,7 +494,7 @@ public class YouTubeSyncService {
                 try {
                     video.setPublishedAt(Instant.parse(item.snippet.publishedAt));
                 } catch (Exception ignored) {
-                    // malformed date — leave publishedAt unchanged
+                    // malformed date  -  leave publishedAt unchanged
                 }
             }
             video.setCategoryId(item.snippet.categoryId);

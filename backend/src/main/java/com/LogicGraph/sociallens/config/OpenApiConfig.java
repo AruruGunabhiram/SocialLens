@@ -23,9 +23,9 @@ public class OpenApiConfig {
                 .addServersItem(new Server().url(baseUrl).description("Default server"))
                 .addTagsItem(new Tag()
                         .name("Explorer")
-                        .description("Public channel analytics — no auth required"))
+                        .description("Public channel analytics  -  no auth required"))
                 .addTagsItem(new Tag()
                         .name("Studio")
-                        .description("OAuth-privileged creator analytics — requires connected account"));
+                        .description("OAuth-privileged creator analytics  -  requires connected account"));
     }
 }

@@ -128,7 +128,7 @@ describe('fetchTimeSeries', () => {
 
   it('gracefully returns empty points when backend response omits the points array', async () => {
     // fetchTimeSeries substitutes [] before Zod validation, so missing points
-    // does NOT throw — it resolves with an empty points array.
+    // does NOT throw  -  it resolves with an empty points array.
     mockGet.mockResolvedValueOnce({ data: { channelDbId: 1, metric: 'VIEWS' } })
     const result = await fetchTimeSeries(1, 'VIEWS', 30)
     expect(result.points).toEqual([])

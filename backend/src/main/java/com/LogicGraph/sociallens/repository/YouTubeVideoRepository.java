@@ -52,7 +52,7 @@ public interface YouTubeVideoRepository extends JpaRepository<YouTubeVideo, Long
 
     /**
      * Search by title OR videoId (case-insensitive).
-     * COALESCE on title handles videos where title has not been synced yet —
+     * COALESCE on title handles videos where title has not been synced yet  - 
      * those rows still participate in the videoId match.
      */
     @Query("""

@@ -8,11 +8,11 @@ type ErrorStateProps = {
   title?: string
   /** Error message / description shown below the title. */
   description?: string
-  /** Alias for description — either prop works. */
+  /** Alias for description  -  either prop works. */
   message?: string
   actionLabel?: string
   onAction?: () => void
-  /** Alias for onAction — either prop works. */
+  /** Alias for onAction  -  either prop works. */
   onRetry?: () => void
   icon?: ReactNode
   className?: string

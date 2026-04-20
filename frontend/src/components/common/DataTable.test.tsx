@@ -1,5 +1,5 @@
 /**
- * DataTable is a pure presentational component — it renders whatever data[]
+ * DataTable is a pure presentational component  -  it renders whatever data[]
  * it receives. Search and sort are caller responsibilities: callers
  * pre-filter / pre-sort the array before passing it as a prop.
  * These tests verify that user-visible output faithfully reflects the prop.
@@ -135,7 +135,7 @@ describe('DataTable – sort (caller pre-sorts data[])', () => {
     render(<DataTable columns={columns} data={desc} />)
 
     const firstDataRow = screen.getAllByRole('row')[1]
-    // Gamma has score 500 — the highest
+    // Gamma has score 500  -  the highest
     expect(within(firstDataRow).getByText('Gamma')).toBeInTheDocument()
     expect(within(firstDataRow).getByText('500')).toBeInTheDocument()
   })

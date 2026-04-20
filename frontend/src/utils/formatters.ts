@@ -13,7 +13,7 @@ function dropZeroDecimal(s: string): string {
  * Compact count notation for display values.
  *
  * Rules (positive values; negatives follow the same bands):
- *   null/undefined → "—"
+ *   null/undefined → " - "
  *   0              → "0"
  *   1–999          → "1"–"999"
  *   1 000–9 999    → "1K"–"9.9K"   (1 decimal, drop if .0)
@@ -23,7 +23,7 @@ function dropZeroDecimal(s: string): string {
  *   1B+            → "1B", "2.1B"  (1 decimal for < 10B, else floor)
  */
 export function formatCount(n: number | null | undefined): string {
-  if (n == null) return '—'
+  if (n == null) return ' - '
   if (n === 0) return '0'
   const abs = Math.abs(n)
 
@@ -50,12 +50,12 @@ export function formatCount(n: number | null | undefined): string {
 
 /**
  * Subscriber count with correct singular/plural word.
- *   null/undefined → "—"
+ *   null/undefined → " - "
  *   1              → "1 subscriber"
  *   others         → "{formatCount(n)} subscribers"
  */
 export function formatSubscriberCount(n: number | null | undefined): string {
-  if (n == null) return '—'
+  if (n == null) return ' - '
   if (n === 1) return '1 subscriber'
   return `${formatCount(n)} subscribers`
 }
@@ -66,12 +66,12 @@ export function formatSubscriberCount(n: number | null | undefined): string {
  * Format an ISO date or ISO datetime string.
  *   "2026-04-04"              → "Apr 4, 2026"
  *   "2026-04-04T13:35:00Z"    → "Apr 4, 2026 at 1:35 PM"
- *   null / "" / invalid       → "—"
+ *   null / "" / invalid       → " - "
  */
 export function formatDate(dateStr: string | null | undefined): string {
-  if (!dateStr) return '—'
+  if (!dateStr) return ' - '
   const d = parseISO(dateStr)
-  if (!isValid(d)) return '—'
+  if (!isValid(d)) return ' - '
   // ISO datetime strings contain 'T'; date-only strings do not.
   const hasTime = dateStr.includes('T') || (dateStr.length > 10 && dateStr.includes(' '))
   return hasTime ? format(d, "MMM d, yyyy 'at' h:mm a") : format(d, 'MMM d, yyyy')
@@ -88,12 +88,12 @@ export function formatDate(dateStr: string | null | undefined): string {
  *   < 7 days   → "3 days ago"
  *   same year  → "Mar 21"
  *   diff year  → "Mar 21, 2025"
- *   null/bad   → "—"
+ *   null/bad   → " - "
  */
 export function formatRelativeTime(dateStr: string | null | undefined): string {
-  if (!dateStr) return '—'
+  if (!dateStr) return ' - '
   const d = parseISO(dateStr)
-  if (!isValid(d)) return '—'
+  if (!isValid(d)) return ' - '
 
   const now = new Date()
   const diffMs = now.getTime() - d.getTime()
@@ -115,7 +115,7 @@ export function formatRelativeTime(dateStr: string | null | undefined): string {
 
 /**
  * Compact notation for Recharts tickFormatter.
- * No trailing ".0" — keeps axis labels brief.
+ * No trailing ".0"  -  keeps axis labels brief.
  *   0          → "0"
  *   1 000      → "1K"
  *   1 500      → "1.5K"

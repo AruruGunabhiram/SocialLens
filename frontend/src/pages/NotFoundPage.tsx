@@ -16,7 +16,7 @@ function NotFoundPage() {
       className="flex min-h-[70vh] flex-col items-center justify-center text-center"
       style={{ padding: 'var(--space-12) var(--space-6)', maxWidth: 520, margin: '0 auto' }}
     >
-      {/* Decorative "404" — not a heading, purely visual */}
+      {/* Decorative "404"  -  not a heading, purely visual */}
       <div
         aria-hidden
         style={{

@@ -121,7 +121,7 @@ export function CopilotPanel() {
           gap: 'var(--space-6)',
         }}
       >
-        {/* Insights — not yet available */}
+        {/* Insights  -  not yet available */}
         <section>
           <SectionLabel>Insights</SectionLabel>
           <div

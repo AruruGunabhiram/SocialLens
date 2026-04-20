@@ -57,7 +57,7 @@ class AnalyticsServiceGroupByDayTest {
     }
 
     // -------------------------------------------------------------------------
-    // groupAndMapToDaily — direct unit tests (package-private method)
+    // groupAndMapToDaily  -  direct unit tests (package-private method)
     // -------------------------------------------------------------------------
 
     @Test
@@ -77,7 +77,7 @@ class AnalyticsServiceGroupByDayTest {
         ChannelMetricsSnapshot early = snapshot(day, "2026-02-10T06:00:00Z", 500L, null, null);
         ChannelMetricsSnapshot late  = snapshot(day, "2026-02-10T22:00:00Z", 999L, null, null);
 
-        // Feed in arbitrary order — grouping must still pick late
+        // Feed in arbitrary order  -  grouping must still pick late
         List<DailyMetricPointDto> result = service.groupAndMapToDaily(List.of(late, early), "VIEWS");
 
         assertThat(result).hasSize(1);
@@ -125,7 +125,7 @@ class AnalyticsServiceGroupByDayTest {
     }
 
     // -------------------------------------------------------------------------
-    // getChannelTimeSeriesById — integration-style (via service public API)
+    // getChannelTimeSeriesById  -  integration-style (via service public API)
     // -------------------------------------------------------------------------
 
     @Test
@@ -167,7 +167,7 @@ class AnalyticsServiceGroupByDayTest {
     }
 
     // -------------------------------------------------------------------------
-    // Expand: getChannelTimeSeriesById — range cutoff and empty path
+    // Expand: getChannelTimeSeriesById  -  range cutoff and empty path
     // -------------------------------------------------------------------------
 
     /**

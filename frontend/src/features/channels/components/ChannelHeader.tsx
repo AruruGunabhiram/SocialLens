@@ -6,7 +6,7 @@ import { FreshnessBadge, type FreshnessBadgeProps } from './FreshnessBadge'
 type ChannelHeaderProps = {
   title?: string
   channelId?: string
-  /** Pre-mapped freshness data — use mapChannelItemToFreshnessProps() at the call site. */
+  /** Pre-mapped freshness data  -  use mapChannelItemToFreshnessProps() at the call site. */
   freshness: FreshnessBadgeProps
 }
 

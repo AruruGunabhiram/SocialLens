@@ -14,7 +14,7 @@ import java.util.Map;
  * Administrative data management endpoints.
  *
  * WARNING: All operations here are destructive and irreversible.
- * MVP — no auth guards; protect behind a real auth layer before
+ * MVP  -  no auth guards; protect behind a real auth layer before
  * exposing to untrusted users.
  */
 @RestController

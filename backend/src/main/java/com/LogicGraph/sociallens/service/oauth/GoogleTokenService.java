@@ -25,7 +25,7 @@ public class GoogleTokenService {
 
     /**
      * Returns a valid access token for userId+platform=YOUTUBE.
-     * Delegates refresh to YouTubeOAuthService — the single canonical refresh path.
+     * Delegates refresh to YouTubeOAuthService  -  the single canonical refresh path.
      */
     public String getValidAccessToken(Long userId) {
         ConnectedAccount acc = connectedAccountRepository

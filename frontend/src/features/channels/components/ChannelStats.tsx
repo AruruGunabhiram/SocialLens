@@ -16,7 +16,7 @@ type ChannelStatsProps = {
 }
 
 const formatNumber = (value?: number | null) => {
-  if (typeof value !== 'number') return '—'
+  if (typeof value !== 'number') return ' - '
   return value.toLocaleString()
 }
 

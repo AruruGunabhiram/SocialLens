@@ -197,7 +197,7 @@ function SkeletonRows({ count = 5 }: { count?: number }) {
 // ---------------------------------------------------------------------------
 
 // Small pill shown when likes/comments haven't been enriched yet.
-// Uses native title= for tooltip — keeps the table cell uncluttered.
+// Uses native title= for tooltip  -  keeps the table cell uncluttered.
 function NaBadge() {
   return (
     <span
@@ -249,7 +249,7 @@ function VideoTableRow({ video }: { video: VideoRow }) {
         hasTitle ? `Watch "${video.title}" on YouTube` : `Watch ${video.videoId} on YouTube`
       }
     >
-      {/* Thumbnail — 48×27 (16:9), always links to YouTube */}
+      {/* Thumbnail  -  48×27 (16:9), always links to YouTube */}
       <td className="py-3 pl-4 pr-4">
         <a
           href={ytUrl}
@@ -296,7 +296,7 @@ function VideoTableRow({ video }: { video: VideoRow }) {
         </a>
       </td>
 
-      {/* Title — or video ID link + "(title pending)" when not yet enriched */}
+      {/* Title  -  or video ID link + "(title pending)" when not yet enriched */}
       <td className="max-w-xs py-3 pr-4">
         {hasTitle ? (
           <a
@@ -365,22 +365,22 @@ function VideoTableRow({ video }: { video: VideoRow }) {
       {/* Published date */}
       <td className="whitespace-nowrap py-3 pr-4 text-sm text-muted-foreground">
         <span
-          title={relativeDate !== '—' ? relativeDate : undefined}
-          style={{ cursor: relativeDate !== '—' ? 'help' : undefined }}
+          title={relativeDate !== ' - ' ? relativeDate : undefined}
+          style={{ cursor: relativeDate !== ' - ' ? 'help' : undefined }}
         >
           {formatDate(video.publishedAt)}
         </span>
       </td>
 
-      {/* Views — "—" when null (formatCount handles this) */}
+      {/* Views  -  " - " when null (formatCount handles this) */}
       <td className="py-3 pr-4 text-sm tabular-nums">{formatCount(video.viewCount)}</td>
 
-      {/* Likes — N/A badge when not yet enriched */}
+      {/* Likes  -  N/A badge when not yet enriched */}
       <td className="py-3 pr-4 text-sm tabular-nums">
         {video.likeCount != null ? formatCount(video.likeCount) : <NaBadge />}
       </td>
 
-      {/* Comments — N/A badge when not yet enriched */}
+      {/* Comments  -  N/A badge when not yet enriched */}
       <td className="py-3 pr-4 text-sm tabular-nums">
         {video.commentCount != null ? formatCount(video.commentCount) : <NaBadge />}
       </td>
@@ -561,7 +561,7 @@ export default function ChannelVideosPage() {
   const page = parsePage(searchParams.get('page'))
   const size = parseSize(searchParams.get('size'))
 
-  // Local search input — initialized from URL; debounced before writing back
+  // Local search input  -  initialized from URL; debounced before writing back
   const [searchInput, setSearchInput] = useState(urlQ)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
 
@@ -582,7 +582,7 @@ export default function ChannelVideosPage() {
     refreshMutation.mutateAsync({ channelDbId })
   )
 
-  // Invalid route param — redirect after all hooks have run
+  // Invalid route param  -  redirect after all hooks have run
   if (Number.isNaN(channelDbId)) return <Navigate to="/channels" replace />
 
   // -----------------------------------------------------------------------
@@ -696,7 +696,7 @@ export default function ChannelVideosPage() {
   const missingTitleCount = items.filter((v) => !v.title?.trim()).length
   const missingTitleFraction = items.length > 0 ? missingTitleCount / items.length : 0
   const showTitleWarning = !isLoading && items.length > 0 && missingTitleFraction > 0.2
-  // Subtle search hint: >50% titles missing — searching won't return useful results yet.
+  // Subtle search hint: >50% titles missing  -  searching won't return useful results yet.
   const showEnrichmentHint = !isLoading && items.length > 0 && missingTitleFraction > 0.5
 
   // -----------------------------------------------------------------------
@@ -711,7 +711,7 @@ export default function ChannelVideosPage() {
       <div className="grid grid-cols-2 gap-4 max-w-sm">
         <StatCard
           label="Total Videos"
-          value={channel?.videoCount?.toLocaleString() ?? '—'}
+          value={channel?.videoCount?.toLocaleString() ?? ' - '}
           icon={<PlaySquare className="h-4 w-4 text-muted-foreground" />}
           loading={isChannelLoading}
         />
@@ -720,7 +720,7 @@ export default function ChannelVideosPage() {
           labelExtra={
             <InfoTooltip text="Indexed = videos stored in SocialLens DB. Total = YouTube channel lifetime total." />
           }
-          value={meta?.totalItems?.toLocaleString() ?? '—'}
+          value={meta?.totalItems?.toLocaleString() ?? ' - '}
           description="Stored in SocialLens DB"
           icon={<Database className="h-4 w-4 text-muted-foreground" />}
           loading={isLoading}
@@ -747,7 +747,7 @@ export default function ChannelVideosPage() {
           data-testid="title-warning-banner"
         >
           <span>
-            Most videos are missing titles — metadata enrichment may have failed during the last
+            Most videos are missing titles  -  metadata enrichment may have failed during the last
             sync. Run a refresh to fix this.
           </span>
           <button
