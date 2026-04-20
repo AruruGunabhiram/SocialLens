@@ -29,16 +29,16 @@ describe('fmtNum', () => {
 
 describe('fmtCompact', () => {
   it('returns em-dash for null', () => {
-    expect(fmtCompact(null)).toBe('—')
+    expect(fmtCompact(null)).toBe(' - ')
   })
 
   it('returns em-dash for undefined', () => {
-    expect(fmtCompact(undefined)).toBe('—')
+    expect(fmtCompact(undefined)).toBe(' - ')
   })
 
   it('formats a valid number compactly', () => {
     expect(fmtCompact(0)).toBe('0')
-    // Intl compact rounding — just verify it does not throw and is non-empty
+    // Intl compact rounding  -  just verify it does not throw and is non-empty
     const result = fmtCompact(1_234_567)
     expect(result).toBeTruthy()
     expect(result).toMatch(/M/)
@@ -75,15 +75,15 @@ describe('fmtDate', () => {
   })
 
   it('returns em-dash for null', () => {
-    expect(fmtDate(null)).toBe('—')
+    expect(fmtDate(null)).toBe(' - ')
   })
 
   it('returns em-dash for empty string', () => {
-    expect(fmtDate('')).toBe('—')
+    expect(fmtDate('')).toBe(' - ')
   })
 
   it('returns em-dash for an invalid date string', () => {
-    expect(fmtDate('not-a-date')).toBe('—')
+    expect(fmtDate('not-a-date')).toBe(' - ')
   })
 })
 

@@ -25,7 +25,7 @@ public interface VideoMetricsSnapshotRepository extends JpaRepository<VideoMetri
 
         List<VideoMetricsSnapshot> findByVideoOrderByCapturedAtDesc(YouTubeVideo video);
 
-        // VideoMetricsSnapshot has no direct channel FK — navigate through video.channel
+        // VideoMetricsSnapshot has no direct channel FK  -  navigate through video.channel
         @Query("SELECT s FROM VideoMetricsSnapshot s WHERE s.video.channel = :channel ORDER BY s.viewCount DESC")
         List<VideoMetricsSnapshot> findTopNByChannelOrderByViewCountDesc(
                         @Param("channel") YouTubeChannel channel, Pageable pageable);

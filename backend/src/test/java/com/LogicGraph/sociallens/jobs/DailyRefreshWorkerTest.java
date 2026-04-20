@@ -98,7 +98,7 @@ class DailyRefreshWorkerTest {
      * without touching the repository at all.
      *
      * Simulated by injecting the running map directly via reflection and
-     * pre-populating it — no actual concurrency required.
+     * pre-populating it  -  no actual concurrency required.
      */
     @Test
     void refreshOneChannel_calledTwiceConcurrently_secondThrowsAlreadyRunning() {

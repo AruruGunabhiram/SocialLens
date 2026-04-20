@@ -29,7 +29,7 @@ class OAuthStateCleanupJobTest {
     // -------------------------------------------------------------------------
 
     /**
-     * Normal case: repository deletes nothing — no log, no error.
+     * Normal case: repository deletes nothing  -  no log, no error.
      */
     @Test
     void cleanupExpiredStates_zeroRowsDeleted_completesQuietly() {
@@ -40,7 +40,7 @@ class OAuthStateCleanupJobTest {
     }
 
     /**
-     * Deletion case: repository deletes rows — job passes a timestamp that is
+     * Deletion case: repository deletes rows  -  job passes a timestamp that is
      * >= before the call and <= after, ensuring we are not passing a hardcoded or
      * stale Instant.
      */
@@ -61,7 +61,7 @@ class OAuthStateCleanupJobTest {
     }
 
     /**
-     * Repository error propagates — the scheduled runner's error handler will
+     * Repository error propagates  -  the scheduled runner's error handler will
      * log it; the job itself should not swallow it.
      */
     @Test

@@ -26,9 +26,9 @@ export function useCurrentUser() {
 /**
  * Polls the backend for the current user's YouTube connection status.
  * Disabled until the current user is known so we never send userId=undefined.
- * - staleTime: 60s  — avoid re-fetching on every render
- * - refetchInterval: 30s — detect newly-completed OAuth in the background
- * - retry: false — a connection error ≠ "user is not connected"; don't mask it
+ * - staleTime: 60s   -  avoid re-fetching on every render
+ * - refetchInterval: 30s  -  detect newly-completed OAuth in the background
+ * - retry: false  -  a connection error ≠ "user is not connected"; don't mask it
  */
 export function useAccountStatus(userId: number | undefined) {
   return useQuery({
@@ -41,7 +41,7 @@ export function useAccountStatus(userId: number | undefined) {
   })
 }
 
-/** Full connected account details — channelId, scopes, expiry, created date. */
+/** Full connected account details  -  channelId, scopes, expiry, created date. */
 export function useAccountDetail(userId: number | undefined) {
   return useQuery({
     queryKey: ['account-detail', userId, 'YOUTUBE'],

@@ -9,7 +9,7 @@
 /* shadcn/ui compat bridge
    Tailwind color classes (bg-background, text-foreground, etc.) need HSL channel
    values. These map our design tokens to the format shadcn's Tailwind config expects.
-   Source of truth remains tokens.css — these are read-only aliases. */
+   Source of truth remains tokens.css  -  these are read-only aliases. */
 :root {
   --radius: var(--radius-lg);
 

@@ -1,4 +1,4 @@
-# SocialLens Frontend — Claude Code Rules (Source of Truth)
+# SocialLens Frontend  -  Claude Code Rules (Source of Truth)
 
 > Read docs/UI_THEME_SPEC.md before touching ANY component or style.
 > This file + that spec = the only two sources of truth.
@@ -8,8 +8,8 @@
 ## Stack (no new libraries)
 
 * Vite + React 18 + TypeScript (strict mode)
-* Tailwind CSS (with custom token config — do not use arbitrary values like `text-[13px]`)
-* shadcn/ui — import from `@/components/ui/*`
+* Tailwind CSS (with custom token config  -  do not use arbitrary values like `text-[13px]`)
+* shadcn/ui  -  import from `@/components/ui/*`
 * TanStack Query v5 for all server state
 * Recharts for charts (customized via the color system in the spec)
 * Framer Motion for panel/page animations only
@@ -56,14 +56,14 @@ src/
 
 ## Workflow (every single task)
 
-1. State the exact files you will create or modify — nothing else.
+1. State the exact files you will create or modify  -  nothing else.
 2. Implement the smallest diff that satisfies the acceptance criteria.
 3. Run: `npm run typecheck && npm run lint` (run tests only when relevant tests exist for touched files; otherwise skip).
 4. Summarize: what changed, what to manually verify in browser.
 
 ## Build Order (do not skip or reorder)
 
-* [ ] 1. `styles/tokens.css` — full CSS variable system
+* [ ] 1. `styles/tokens.css`  -  full CSS variable system
 * [ ] 2. `styles/base.css` + `styles/animations.css`
 * [ ] 3. AppShell layout (Topbar + Sidebar + main grid)
 * [ ] 4. Mode switching (`.mode-explorer` / `.mode-studio` + accent tokens)
@@ -83,4 +83,4 @@ src/
 * Animated gradient borders
 * Pie charts (use donut or bar)
 * `localStorage` or `sessionStorage` for UI state (use React state, or an existing state library if already present)
-* Tailwind arbitrary values — use CSS tokens instead
+* Tailwind arbitrary values  -  use CSS tokens instead

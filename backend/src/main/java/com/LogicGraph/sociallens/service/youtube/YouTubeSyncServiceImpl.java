@@ -86,7 +86,7 @@ public class YouTubeSyncServiceImpl implements YouTubeSyncService {
             videos = youTubeService.fetchVideosByChannelId(channelId, VIDEO_FETCH_LIMIT);
             apiCallsUsed++;
         } catch (RateLimitException | RateLimitExceededException | InsufficientApiQuotaException e) {
-            log.warn("Sync PARTIAL for {} — rate limited or quota exhausted: {}", channelId, e.getMessage());
+            log.warn("Sync PARTIAL for {}  -  rate limited or quota exhausted: {}", channelId, e.getMessage());
             channel.setLastRefreshStatus(RefreshStatus.FAILED);
             channel.setLastRefreshError(e.getMessage());
             channelRepo.save(channel);
@@ -105,12 +105,12 @@ public class YouTubeSyncServiceImpl implements YouTubeSyncService {
             }
         }
 
-        // Step 4: write channel-level snapshot (INSERT only — skip if today's row exists)
+        // Step 4: write channel-level snapshot (INSERT only  -  skip if today's row exists)
         writeChannelSnapshot(channel, now, today);
 
         // Update channel refresh observability fields and persist explicitly.
         // The channel entity was saved mid-transaction by the resolver (locking in the prior
-        // status), so dirty-checking alone is not reliable — we save directly here.
+        // status), so dirty-checking alone is not reliable  -  we save directly here.
         channel.setLastSuccessfulRefreshAt(now);
         channel.setLastRefreshStatus(RefreshStatus.SUCCESS);
         channel.setLastRefreshError(null);
@@ -134,13 +134,13 @@ public class YouTubeSyncServiceImpl implements YouTubeSyncService {
             Instant capturedAt = latest.get().getCapturedAt();
             Instant staleAfter = Instant.now().minus(stalenessThreshold);
             if (capturedAt.isAfter(staleAfter)) {
-                log.debug("syncChannelIfStale: skipping {} — snapshot is fresh (capturedAt={})",
+                log.debug("syncChannelIfStale: skipping {}  -  snapshot is fresh (capturedAt={})",
                         channelId, capturedAt);
                 return Optional.empty();
             }
         }
 
-        // No snapshot exists, or it is older than the threshold — run full sync.
+        // No snapshot exists, or it is older than the threshold  -  run full sync.
         // Note: self-call; runs within the transaction opened by this method.
         SyncResultDto result = syncChannel(channelId);
         return Optional.of(result);
@@ -174,7 +174,7 @@ public class YouTubeSyncServiceImpl implements YouTubeSyncService {
      */
     private void writeChannelSnapshot(YouTubeChannel channel, Instant capturedAt, LocalDate dayUtc) {
         if (channelSnapshotRepo.existsByChannel_IdAndCapturedDayUtc(channel.getId(), dayUtc)) {
-            log.debug("Channel snapshot already exists for {} on {} — skipping INSERT",
+            log.debug("Channel snapshot already exists for {} on {}  -  skipping INSERT",
                     channel.getChannelId(), dayUtc);
             return;
         }
@@ -196,7 +196,7 @@ public class YouTubeSyncServiceImpl implements YouTubeSyncService {
      */
     private void writeVideoSnapshot(YouTubeVideo video, VideoDto dto, Instant capturedAt, LocalDate dayUtc) {
         if (videoSnapshotRepo.existsByVideo_IdAndCapturedDayUtc(video.getId(), dayUtc)) {
-            log.debug("Video snapshot already exists for {} on {} — skipping INSERT",
+            log.debug("Video snapshot already exists for {} on {}  -  skipping INSERT",
                     video.getVideoId(), dayUtc);
             return;
         }

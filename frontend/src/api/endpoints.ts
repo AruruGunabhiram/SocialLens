@@ -34,7 +34,7 @@ export const endpoints = {
     disconnect: '/api/v1/connected-accounts/disconnect',
   },
   users: {
-    // GET /api/v1/users/me  → { id, email, name } — returns/creates the local-dev user
+    // GET /api/v1/users/me  → { id, email, name }  -  returns/creates the local-dev user
     me: '/api/v1/users/me',
   },
   oauth: {

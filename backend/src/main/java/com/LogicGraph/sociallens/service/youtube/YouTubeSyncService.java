@@ -7,7 +7,7 @@ import java.util.Optional;
 
 /**
  * Orchestrates the full channel sync pipeline: resolve → fetch → upsert → snapshot.
- * Does NOT call the YouTube Analytics API — that is {@code YtAnalyticsService}.
+ * Does NOT call the YouTube Analytics API  -  that is {@code YtAnalyticsService}.
  */
 public interface YouTubeSyncService {
 

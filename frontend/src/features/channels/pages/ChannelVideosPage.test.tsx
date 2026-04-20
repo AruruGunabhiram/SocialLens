@@ -113,7 +113,7 @@ function success(data: VideosPageResponse) {
 }
 
 function fetching(data: VideosPageResponse) {
-  // keepPreviousData in flight — previous data visible, background fetch running
+  // keepPreviousData in flight  -  previous data visible, background fetch running
   return {
     data,
     isLoading: false,

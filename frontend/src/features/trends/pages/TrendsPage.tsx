@@ -233,7 +233,7 @@ function SnapshotCoverageBanner({
 }) {
   const { capturedDays, firstDate, lastDate, isSparse } = coverage
   if (capturedDays === 0) return null // empty state handles the zero case
-  if (!isSparse) return null // full coverage — no banner needed
+  if (!isSparse) return null // full coverage  -  no banner needed
 
   const dateRange =
     firstDate && lastDate && firstDate !== lastDate
@@ -270,7 +270,7 @@ function SnapshotCoverageBanner({
             {dateRange && <span> · {dateRange}</span>}
           </span>
           <p className="mt-0.5" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-warn)' }}>
-            Fewer than {MIN_RELIABLE_DAYS} days — trends may not be reliable yet
+            Fewer than {MIN_RELIABLE_DAYS} days  -  trends may not be reliable yet
           </p>
         </div>
       </div>
@@ -486,7 +486,7 @@ export default function TrendsPage() {
   // ── Channel not found (404) ───────────────────────────────────────────────
   // Checked before isLoading so it surfaces immediately if the channel detail
   // query returns 404 (e.g. channel deleted or DB reset between sessions).
-  // "Retry" would loop forever here — steer the user back to reload instead.
+  // "Retry" would loop forever here  -  steer the user back to reload instead.
   if (channelQuery.isError && channelQuery.error?.status === 404) {
     return (
       <div className="p-4">
@@ -543,8 +543,8 @@ export default function TrendsPage() {
 
   const chartTitle =
     seriesMode === 'delta'
-      ? `Daily Change in ${config.label} — ${windowLabel}`
-      : `Cumulative ${config.label} — ${windowLabel}`
+      ? `Daily Change in ${config.label}  -  ${windowLabel}`
+      : `Cumulative ${config.label}  -  ${windowLabel}`
 
   const chartDescription =
     seriesMode === 'delta'
@@ -555,8 +555,8 @@ export default function TrendsPage() {
   // Distinguish: no history at all vs. not enough to draw a line/delta.
   const insufficientTitle = (() => {
     if (normalizedPoints.length === 0) return 'No snapshot history yet'
-    if (seriesMode === 'delta') return 'Need at least 3 snapshots — run refresh'
-    return 'Only 1 snapshot captured — need at least 2'
+    if (seriesMode === 'delta') return 'Need at least 3 snapshots  -  run refresh'
+    return 'Only 1 snapshot captured  -  need at least 2'
   })()
 
   const insufficientDescription = (() => {
@@ -717,7 +717,7 @@ export default function TrendsPage() {
               refreshState.phase === 'success'
                 ? 'Refreshed'
                 : refreshState.phase === 'error'
-                  ? 'Failed — try again'
+                  ? 'Failed  -  try again'
                   : refreshState.isPending
                     ? 'Refreshing...'
                     : 'Refresh now'
@@ -748,7 +748,7 @@ export default function TrendsPage() {
                   seriesMode === 'delta'
                     ? fmtDelta(Math.round(insights.avgPerDay))
                     : insights.slopeUnavailable
-                      ? '—'
+                      ? ' - '
                       : `${insights.avgPerDay >= 0 ? '+' : ''}${formatChartAxis(Math.round(insights.avgPerDay))}`
                 }
                 sub={
@@ -768,7 +768,7 @@ export default function TrendsPage() {
                 ? fmtDelta(Math.round(insights.peakValue))
                 : formatChartAxis(insights.peakValue)
             }
-            sub={insights.peakDate ? fmtDateShort(insights.peakDate) : '—'}
+            sub={insights.peakDate ? fmtDateShort(insights.peakDate) : ' - '}
           />
           {(() => {
             const confidenceLevel: ConfidenceLevel = isLowConfidenceCoverage(coverage.capturedDays)
@@ -801,7 +801,7 @@ export default function TrendsPage() {
                   )
                 }
                 label="Trend"
-                value={insights.trendLabel === 'N/A' ? '—' : insights.trendLabel}
+                value={insights.trendLabel === 'N/A' ? ' - ' : insights.trendLabel}
                 sub={
                   insights.slopeUnavailable ? (
                     slopeStr

@@ -15,7 +15,7 @@ export type RefreshStatus = 'SUCCESS' | 'FAILED' | 'NEVER_RUN' | 'PARTIAL'
 /**
  * Strict prop contract for FreshnessBadge.
  * All freshness fields are required (typed as `T | null` rather than optional)
- * so callers cannot silently omit them — pass `null` explicitly when unknown.
+ * so callers cannot silently omit them  -  pass `null` explicitly when unknown.
  */
 export type FreshnessBadgeProps = {
   /** ISO-8601 of the latest captured snapshot. Pass null if not yet captured. */
@@ -63,7 +63,7 @@ export function mapChannelItemToFreshnessProps(
 }
 
 // ---------------------------------------------------------------------------
-// Exported helper — reusable wherever a human-readable status label is needed
+// Exported helper  -  reusable wherever a human-readable status label is needed
 // (e.g. the ChannelOverviewPage details table).
 // ---------------------------------------------------------------------------
 
@@ -137,7 +137,7 @@ export function FreshnessBadge({
       : `Snapshot ${formatRelativeTime(lastSnapshotAt)}`
     : 'No snapshots yet'
 
-  // When FAILED, lastRefreshAt is the last *successful* time — label accordingly.
+  // When FAILED, lastRefreshAt is the last *successful* time  -  label accordingly.
   // When PARTIAL, lastRefreshAt IS the partial run time (snapshot succeeded).
   // For SUCCESS, show just the relative time (no "Synced" prefix).
   const refreshLabel =
@@ -173,7 +173,7 @@ export function FreshnessBadge({
           {refreshLabel}
         </span>
 
-        {/* "View error / View details" toggle — visible for FAILED and PARTIAL */}
+        {/* "View error / View details" toggle  -  visible for FAILED and PARTIAL */}
         {showDetailToggle && (
           <button
             type="button"
@@ -202,7 +202,7 @@ export function FreshnessBadge({
         )}
       </div>
 
-      {/* Collapsible detail panel — error for FAILED, partial summary for PARTIAL */}
+      {/* Collapsible detail panel  -  error for FAILED, partial summary for PARTIAL */}
       {showDetailToggle && errorExpanded && (
         <div
           id="freshness-error-detail"

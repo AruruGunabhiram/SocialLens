@@ -32,7 +32,7 @@ import static org.mockito.Mockito.*;
  * Unit tests for YouTubeOAuthService.
  *
  * RestTemplate is injected as a constructor argument, so the mock is passed
- * directly — no ReflectionTestUtils swapping required.
+ * directly  -  no ReflectionTestUtils swapping required.
  * The three {@code @Value} fields (clientId, clientSecret, redirectUri) are
  * still set via ReflectionTestUtils because there is no Spring context here.
  */

@@ -50,7 +50,7 @@ class ChannelsServiceImplTest {
      * channel IDs, not once per channel.
      *
      * Given N=3 active channels, findLatestPerChannel must be called with
-     * a list of size 3 — not three separate calls.
+     * a list of size 3  -  not three separate calls.
      */
     @Test
     void listChannels_batchesSnapshotQuery_notNPlusOne() {

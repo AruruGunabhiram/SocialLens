@@ -12,7 +12,7 @@ export interface EmptyStateProps {
   description?: string
   actionLabel?: string
   onAction?: () => void
-  /** Custom illustration / icon slot — overrides preset icon. */
+  /** Custom illustration / icon slot  -  overrides preset icon. */
   illustration?: ReactNode
   /** @deprecated Use `illustration`. Kept for backward compat. */
   icon?: ReactNode
@@ -82,7 +82,7 @@ export function EmptyState({
         <div style={{ marginBottom: 'var(--space-6)' }}>{displayIllustration}</div>
       )}
 
-      {/* Headline — Syne 600, --text-2xl per spec */}
+      {/* Headline  -  Syne 600, --text-2xl per spec */}
       <h3
         style={{
           fontFamily: 'var(--font-display)',
@@ -96,7 +96,7 @@ export function EmptyState({
         {displayTitle}
       </h3>
 
-      {/* Description — Instrument Sans 400, --text-base per spec */}
+      {/* Description  -  Instrument Sans 400, --text-base per spec */}
       <p
         style={{
           fontFamily: 'var(--font-body)',

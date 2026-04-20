@@ -49,7 +49,7 @@ class ChannelMetricsSnapshotRepositoryTest {
      *
      * NOTE: After DataIntegrityViolationException is thrown, the JPA
      * EntityManager session is in an invalid state (marked for rollback).
-     * We therefore assert only the exception — no further repository
+     * We therefore assert only the exception  -  no further repository
      * operations can be made in the same transactional test context.
      */
     @Test

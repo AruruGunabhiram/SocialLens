@@ -9,7 +9,7 @@ import com.LogicGraph.sociallens.entity.YouTubeChannel;
 public interface ChannelResolver {
 
     /**
-     * Pure pattern detection — no API calls, no DB access.
+     * Pure pattern detection  -  no API calls, no DB access.
      * Detects identifier type and extracts the canonical value.
      */
     ResolvedChannelIdentifier resolve(String input);

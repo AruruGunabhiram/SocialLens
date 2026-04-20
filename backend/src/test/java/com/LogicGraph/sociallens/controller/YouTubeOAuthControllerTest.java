@@ -59,7 +59,7 @@ class YouTubeOAuthControllerTest {
     }
 
     // -------------------------------------------------------------------------
-    // /callback — all paths now redirect (302) to the frontend callback page
+    // /callback  -  all paths now redirect (302) to the frontend callback page
     // -------------------------------------------------------------------------
 
     /**

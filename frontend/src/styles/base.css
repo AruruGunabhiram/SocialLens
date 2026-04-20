@@ -1,5 +1,5 @@
 /* ==========================================================================
-   BASE — Global resets, body, typography, scrollbar, focus ring
+   BASE  -  Global resets, body, typography, scrollbar, focus ring
    Depends on: tokens.css (imported before this file)
    ========================================================================== */
 
@@ -29,7 +29,7 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   INTERACTIVE ELEMENTS — inherit font from body
+   INTERACTIVE ELEMENTS  -  inherit font from body
    -------------------------------------------------------------------------- */
 input,
 button,
@@ -40,7 +40,7 @@ textarea {
 }
 
 /* --------------------------------------------------------------------------
-   PLACEHOLDER — muted color on all inputs and textareas
+   PLACEHOLDER  -  muted color on all inputs and textareas
    -------------------------------------------------------------------------- */
 ::placeholder {
   color: var(--color-text-muted);
@@ -61,7 +61,7 @@ a:hover {
 }
 
 /* --------------------------------------------------------------------------
-   FOCUS RING — visible for keyboard, hidden for pointer
+   FOCUS RING  -  visible for keyboard, hidden for pointer
    -------------------------------------------------------------------------- */
 :focus-visible {
   outline: var(--focus-ring);
@@ -87,14 +87,14 @@ a:hover {
   font-family: var(--font-mono);
 }
 
-/* Numeric values — always tabular, always DM Mono */
+/* Numeric values  -  always tabular, always DM Mono */
 .num {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum';
 }
 
-/* Metric display helper — compose with size tokens */
+/* Metric display helper  -  compose with size tokens */
 .metric-value {
   font-family: var(--font-mono);
   font-weight: 500;
@@ -103,7 +103,7 @@ a:hover {
   color: var(--color-text-primary);
 }
 
-/* Uppercase label — used on section headings, badge text, table headers */
+/* Uppercase label  -  used on section headings, badge text, table headers */
 .label-caps {
   font-family: var(--font-mono);
   font-size: var(--text-xs);

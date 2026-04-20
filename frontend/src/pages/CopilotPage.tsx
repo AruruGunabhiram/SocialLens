@@ -46,13 +46,13 @@ CHANNEL:
 - Channel since: ${channel.publishedAt ? formatDate(channel.publishedAt) : 'N/A'}
 
 RECENT SNAPSHOTS (newest first):
-${snapshots.length > 0 ? snapshots.map((s) => `- ${s.date}: ${s.views?.toLocaleString() ?? '—'} views, ${s.subscribers?.toLocaleString() ?? '—'} subscribers`).join('\n') : '- No snapshot data yet'}
+${snapshots.length > 0 ? snapshots.map((s) => `- ${s.date}: ${s.views?.toLocaleString() ?? ' - '} views, ${s.subscribers?.toLocaleString() ?? ' - '} subscribers`).join('\n') : '- No snapshot data yet'}
 
 TOP 10 VIDEOS BY VIEWS:
-${topVideos.length > 0 ? topVideos.map((v, i) => `${i + 1}. "${v.title ?? v.videoId}" — ${v.viewCount?.toLocaleString() ?? '?'} views (published ${v.publishedAt?.slice(0, 10) ?? 'N/A'})`).join('\n') : '- No video data yet'}
+${topVideos.length > 0 ? topVideos.map((v, i) => `${i + 1}. "${v.title ?? v.videoId}"  -  ${v.viewCount?.toLocaleString() ?? '?'} views (published ${v.publishedAt?.slice(0, 10) ?? 'N/A'})`).join('\n') : '- No video data yet'}
 
 LOWEST 5 VIDEOS BY VIEWS:
-${bottomVideos.length > 0 ? bottomVideos.map((v, i) => `${i + 1}. "${v.title ?? v.videoId}" — ${v.viewCount?.toLocaleString() ?? '?'} views`).join('\n') : '- No video data yet'}`
+${bottomVideos.length > 0 ? bottomVideos.map((v, i) => `${i + 1}. "${v.title ?? v.videoId}"  -  ${v.viewCount?.toLocaleString() ?? '?'} views`).join('\n') : '- No video data yet'}`
 }
 
 async function streamClaude(
@@ -113,7 +113,7 @@ async function streamClaude(
           onToken(accumulated)
         }
       } catch {
-        // malformed SSE chunk — skip
+        // malformed SSE chunk  -  skip
       }
     }
   }
@@ -489,7 +489,7 @@ function ContextPanel({
             {[
               { label: 'Subscribers', val: formatCount(analytics.subscriberCount) },
               { label: 'Total views', val: formatCount(analytics.totalViews) },
-              { label: 'Videos', val: analytics.videoCount?.toLocaleString() ?? '—' },
+              { label: 'Videos', val: analytics.videoCount?.toLocaleString() ?? ' - ' },
               {
                 label: 'Snapshots loaded',
                 val: snapshotCount > 0 ? `${snapshotCount} days` : 'None',

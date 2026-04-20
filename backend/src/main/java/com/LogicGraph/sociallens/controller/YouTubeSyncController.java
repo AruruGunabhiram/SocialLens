@@ -14,10 +14,10 @@ import org.springframework.web.bind.annotation.*;
  * Handles all YouTube ingestion and channel-lookup endpoints under {@code /api/v1/youtube}.
  *
  * <ul>
- *   <li>{@code POST /sync} — resolves an identifier, syncs the channel and its videos into the DB.</li>
- *   <li>{@code GET /channel/{identifier}} — raw YouTube API lookup by path-variable identifier
+ *   <li>{@code POST /sync}  -  resolves an identifier, syncs the channel and its videos into the DB.</li>
+ *   <li>{@code GET /channel/{identifier}}  -  raw YouTube API lookup by path-variable identifier
  *       (handle, channel ID, or custom URL); does not touch the DB.</li>
- *   <li>{@code GET /channel?q=} — same lookup via query parameter.</li>
+ *   <li>{@code GET /channel?q=}  -  same lookup via query parameter.</li>
  * </ul>
  */
 @RestController
@@ -49,7 +49,7 @@ public class YouTubeSyncController {
 
     /**
      * Returns a live channel summary directly from the YouTube Data API.
-     * Does not persist anything — useful for previewing channel metadata before syncing.
+     * Does not persist anything  -  useful for previewing channel metadata before syncing.
      *
      * @param identifier handle ({@code @mkbhd}), channel ID ({@code UCxxx}), or custom URL slug
      */

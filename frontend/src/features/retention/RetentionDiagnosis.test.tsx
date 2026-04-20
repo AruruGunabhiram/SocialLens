@@ -1,7 +1,7 @@
 /**
  * Retention Diagnosis UI tests.
  *
- * Tests the InsightsPage using mocked hooks — no real network calls.
+ * Tests the InsightsPage using mocked hooks  -  no real network calls.
  * Covers: not-connected gate, form validation, loading state, error state, success state.
  */
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
@@ -103,7 +103,7 @@ function renderPage(channelDbId = '1') {
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
-describe('InsightsPage — Retention Diagnosis', () => {
+describe('InsightsPage  -  Retention Diagnosis', () => {
   beforeEach(() => {
     vi.mocked(useChannelsQuery).mockReturnValue({
       data: [],

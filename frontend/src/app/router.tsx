@@ -19,7 +19,7 @@ const OAuthCallbackPage = lazy(() => import('@/pages/OAuthCallbackPage'))
 export function AppRouter() {
   return (
     <Routes>
-      {/* Standalone OAuth callback — no app shell, renders in the new tab opened by window.open */}
+      {/* Standalone OAuth callback  -  no app shell, renders in the new tab opened by window.open */}
       <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
 
       <Route element={<AppShell />}>

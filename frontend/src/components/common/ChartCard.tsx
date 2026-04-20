@@ -3,7 +3,7 @@ import { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 
 // ---------------------------------------------------------------------------
-// Recharts style constants — derived from design tokens.
+// Recharts style constants  -  derived from design tokens.
 // Spread these into Recharts props so every chart shares consistent styling.
 //
 // Example:
@@ -68,7 +68,7 @@ export interface ChartCardProps {
    * E.g. "Showing data for: Mar 1 – Apr 30, 2025"
    */
   dataWindow?: string
-  /** Trust badges / data-source attribution — bottom-right. */
+  /** Trust badges / data-source attribution  -  bottom-right. */
   footer?: ReactNode
   /**
    * Height of the chart area in px (or any CSS string like "100%").
@@ -84,7 +84,7 @@ export interface ChartCardProps {
 // ---------------------------------------------------------------------------
 
 /**
- * Standard chart card wrapper — spec §5.6.
+ * Standard chart card wrapper  -  spec §5.6.
  *
  * Layout:
  *   ┌──────────────────────────────────────────────────────┐

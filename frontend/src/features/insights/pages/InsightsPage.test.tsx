@@ -255,7 +255,7 @@ describe('InsightsPage', () => {
 
     renderPage()
 
-    // trend card for views shows a direction — slope is positive so expect "Up"
+    // trend card for views shows a direction  -  slope is positive so expect "Up"
     expect(screen.getByTestId('trend-card-views')).toBeInTheDocument()
     expect(screen.getAllByText('Up').length).toBeGreaterThan(0)
   })

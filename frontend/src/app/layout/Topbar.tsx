@@ -430,7 +430,7 @@ export function Topbar() {
       const authUrl = await fetchOAuthStartUrl(currentUser.id)
       window.open(authUrl, '_blank', 'noopener,noreferrer')
     } catch {
-      // silently fail — the sidebar shows the full error state
+      // silently fail  -  the sidebar shows the full error state
     } finally {
       setIsStartingOAuth(false)
     }
@@ -444,7 +444,7 @@ export function Topbar() {
 
   const errorMessage: string | null = sync.isError
     ? (sync.error as AppError)?.status === 404
-      ? 'Channel not found — check the handle or URL and try again'
+      ? 'Channel not found  -  check the handle or URL and try again'
       : ((sync.error as AppError)?.message ?? 'Failed to load channel')
     : null
 
@@ -466,7 +466,7 @@ export function Topbar() {
           borderBottom: '1px solid var(--color-border-subtle)',
         }}
       >
-        {/* LEFT: Logo — visible on mobile only; sidebar handles desktop */}
+        {/* LEFT: Logo  -  visible on mobile only; sidebar handles desktop */}
         <div className="flex shrink-0 items-center gap-2 lg:hidden">
           <Link
             to="/"
@@ -764,7 +764,7 @@ export function Topbar() {
         </div>
       </header>
 
-      {/* Disconnect confirm dialog — rendered outside header to avoid stacking context issues */}
+      {/* Disconnect confirm dialog  -  rendered outside header to avoid stacking context issues */}
       <DisconnectConfirmDialog
         open={showDisconnectDialog}
         onClose={() => setShowDisconnectDialog(false)}

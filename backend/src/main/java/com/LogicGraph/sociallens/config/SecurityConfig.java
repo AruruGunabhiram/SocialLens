@@ -33,7 +33,7 @@ public class SecurityConfig {
                         headers.frameOptions(frame -> frame.disable()))
                 .addFilterBefore(apiKeyAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
-                        // API-key-protected admin routes — ApiKeyAuthFilter enforces the key
+                        // API-key-protected admin routes  -  ApiKeyAuthFilter enforces the key
                         // and sets a PreAuthenticatedAuthenticationToken on valid requests.
                         // User-facing endpoints carved out of the admin-protected namespaces.
                         // These must be declared before the broader authenticated() rule.

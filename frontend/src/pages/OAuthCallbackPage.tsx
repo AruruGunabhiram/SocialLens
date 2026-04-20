@@ -12,7 +12,7 @@ import { CheckCircle2, XCircle } from 'lucide-react'
 /**
  * Maps raw backend OAuth error strings to user-facing copy.
  * The backend may return Java exception messages, URL-encoded stack traces,
- * or internal state strings — none of which should reach the user verbatim.
+ * or internal state strings  -  none of which should reach the user verbatim.
  */
 function humanizeOAuthError(raw: string | null): string {
   if (!raw) return 'Something went wrong. Please try again from the app.'
@@ -84,7 +84,7 @@ export default function OAuthCallbackPage() {
         <CheckCircle2 size={48} aria-hidden style={{ color: 'var(--color-up)', flexShrink: 0 }} />
         <h1 style={headingStyle}>YouTube connected</h1>
         <p style={bodyStyle}>
-          Your YouTube account is linked. Switch back to SocialLens — your connection status will
+          Your YouTube account is linked. Switch back to SocialLens  -  your connection status will
           update automatically.
         </p>
         <button

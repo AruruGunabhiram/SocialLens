@@ -74,7 +74,7 @@ export async function fetchChannelAnalyticsById(channelDbId: number): Promise<Ch
 }
 
 // ==============================================
-// Channels list/detail — GET /channels
+// Channels list/detail  -  GET /channels
 // ==============================================
 
 export async function fetchChannels(includeInactive = false): Promise<ChannelItem[]> {
@@ -98,7 +98,7 @@ export async function fetchChannelById(channelDbId: number): Promise<ChannelItem
 }
 
 // ==============================================
-// Videos — GET /channels/:id/videos
+// Videos  -  GET /channels/:id/videos
 // ==============================================
 
 export async function fetchChannelVideos(
@@ -114,7 +114,7 @@ export async function fetchChannelVideos(
 }
 
 // ==============================================
-// Timeseries — GET /api/v1/analytics/timeseries/by-id?channelDbId={id}&metric={metric}
+// Timeseries  -  GET /api/v1/analytics/timeseries/by-id?channelDbId={id}&metric={metric}
 // ==============================================
 
 export type TrendMetric = 'VIEWS' | 'SUBSCRIBERS' | 'UPLOADS'
@@ -134,7 +134,7 @@ export async function fetchChannelTimeSeries(
 }
 
 // ==============================================
-// Refresh — POST /api/v1/jobs/refresh/channel?channelDbId={id}
+// Refresh  -  POST /api/v1/jobs/refresh/channel?channelDbId={id}
 // Single entry point; always sends exactly the `channelDbId` query param.
 // ==============================================
 
@@ -154,7 +154,7 @@ export async function refreshChannelById(channelDbId: number): Promise<RefreshCh
     const { data } = await axiosClient.post(
       endpoints.jobs.refreshChannel,
       null, // no request body
-      { params: { channelDbId } } // MUST be `channelDbId` — backend @RequestParam
+      { params: { channelDbId } } // MUST be `channelDbId`  -  backend @RequestParam
     )
     return data as RefreshChannelResult
   } catch (error) {

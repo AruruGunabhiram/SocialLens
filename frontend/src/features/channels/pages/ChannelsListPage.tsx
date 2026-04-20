@@ -17,7 +17,7 @@ import { TrackChannelDialog } from '../components/TrackChannelDialog'
 // ─── Error helpers ────────────────────────────────────────────────────────────
 
 function humanizeError(raw: string | null | undefined): string {
-  if (!raw) return 'Sync failed — no error details available.'
+  if (!raw) return 'Sync failed  -  no error details available.'
   const lower = raw.toLowerCase()
   if (
     lower.includes('i/o error') ||
@@ -30,7 +30,7 @@ function humanizeError(raw: string | null | undefined): string {
   }
   if (lower.includes('403')) return 'API quota exceeded or access denied (HTTP 403).'
   if (lower.includes('404')) return 'Channel not found on YouTube (HTTP 404).'
-  if (lower.includes('401')) return 'Authentication failed — credentials may be invalid.'
+  if (lower.includes('401')) return 'Authentication failed  -  credentials may be invalid.'
   return raw
 }
 
@@ -135,7 +135,7 @@ function ChannelCard({ channel }: { channel: ChannelItem }) {
   const subValue = formatCount(subCount)
   const subLabel = subCount === 1 ? 'subscriber' : 'subscribers'
 
-  // Relative time — no "Synced" prefix, just the time distance
+  // Relative time  -  no "Synced" prefix, just the time distance
   const lastSyncedText = channel.lastSuccessfulRefreshAt
     ? formatRelativeTime(channel.lastSuccessfulRefreshAt)
     : 'Never synced'

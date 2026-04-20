@@ -57,7 +57,7 @@ describe('humanRefreshStatus', () => {
 // Status pill label
 // ---------------------------------------------------------------------------
 
-describe('FreshnessBadge — status pill label', () => {
+describe('FreshnessBadge  -  status pill label', () => {
   it('shows "Never synced" when status is null', () => {
     renderBadge({ status: null })
     expect(screen.getByTestId('freshness-status')).toHaveTextContent('Never synced')
@@ -96,7 +96,7 @@ describe('FreshnessBadge — status pill label', () => {
 // Badge applies variants via inline style (CSS variables), not className.
 // FreshnessBadge mirrors the computed variant into data-variant so tests can
 // assert it without brittle CSS-variable string matching.
-describe('FreshnessBadge — variant logic', () => {
+describe('FreshnessBadge  -  variant logic', () => {
   it('uses danger variant when FAILED with no data', () => {
     renderBadge({ status: 'FAILED', snapshotDayCount: 0, lastSnapshotAt: null })
     expect(screen.getByTestId('freshness-status')).toHaveAttribute('data-variant', 'danger')
@@ -127,7 +127,7 @@ describe('FreshnessBadge — variant logic', () => {
 // Snapshot coverage line
 // ---------------------------------------------------------------------------
 
-describe('FreshnessBadge — snapshot coverage', () => {
+describe('FreshnessBadge  -  snapshot coverage', () => {
   it('shows "No snapshots yet" when both lastSnapshotAt and snapshotDayCount are null', () => {
     renderBadge({ lastSnapshotAt: null, snapshotDayCount: null })
     expect(screen.getByTestId('freshness-snapshot')).toHaveTextContent('No snapshots yet')
@@ -160,7 +160,7 @@ describe('FreshnessBadge — snapshot coverage', () => {
 // Refresh label
 // ---------------------------------------------------------------------------
 
-describe('FreshnessBadge — refresh label', () => {
+describe('FreshnessBadge  -  refresh label', () => {
   it('shows "Never synced" when lastRefreshAt is null', () => {
     renderBadge({ lastRefreshAt: null })
     expect(screen.getByTestId('freshness-refresh')).toHaveTextContent('Never synced')
@@ -181,7 +181,7 @@ describe('FreshnessBadge — refresh label', () => {
 // View error toggle
 // ---------------------------------------------------------------------------
 
-describe('FreshnessBadge — error panel', () => {
+describe('FreshnessBadge  -  error panel', () => {
   it('does NOT render "View error" when status is SUCCESS', () => {
     renderBadge({ status: 'SUCCESS', lastRefreshAt: NOW, snapshotDayCount: 1 })
     expect(screen.queryByRole('button', { name: /view error/i })).not.toBeInTheDocument()

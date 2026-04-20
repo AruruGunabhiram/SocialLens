@@ -116,7 +116,7 @@ describe('normalizeHttpError – ZodError', () => {
 
   it('includes the first Zod issue message as a safe details summary', () => {
     const result = normalizeHttpError(fakeZodError('Expected number, received undefined'))
-    // details is a safe schema summary — no raw data values from the response
+    // details is a safe schema summary  -  no raw data values from the response
     expect(result.details).toBe('Expected number, received undefined')
   })
 

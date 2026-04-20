@@ -29,7 +29,7 @@ function ConnectBanner() {
       const authUrl = await fetchOAuthStartUrl(currentUser.id)
       window.open(authUrl, '_blank', 'noopener,noreferrer')
     } catch {
-      // intentionally silent — user can try via Topbar button
+      // intentionally silent  -  user can try via Topbar button
     } finally {
       setIsStarting(false)
     }

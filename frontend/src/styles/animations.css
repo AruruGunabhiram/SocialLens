@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ANIMATIONS — All @keyframes + animation utility classes
+   ANIMATIONS  -  All @keyframes + animation utility classes
    Depends on: tokens.css (duration + easing tokens)
    ========================================================================== */
 
@@ -7,7 +7,7 @@
    KEYFRAMES
    -------------------------------------------------------------------------- */
 
-/* Pulsing dot — live/active state indicators */
+/* Pulsing dot  -  live/active state indicators */
 @keyframes pulse-dot {
   0%,
   100% {
@@ -20,7 +20,7 @@
   }
 }
 
-/* Subtle breathing glow — Copilot icon */
+/* Subtle breathing glow  -  Copilot icon */
 @keyframes copilot-breathe {
   0%,
   100% {
@@ -65,7 +65,7 @@
   }
 }
 
-/* Number flip — for metric counter enter */
+/* Number flip  -  for metric counter enter */
 @keyframes count-in {
   from {
     opacity: 0;
@@ -81,7 +81,7 @@
    ANIMATION UTILITY CLASSES
    -------------------------------------------------------------------------- */
 
-/* Staggered fade-up — apply to each section with increasing delay */
+/* Staggered fade-up  -  apply to each section with increasing delay */
 .animate-fade-up {
   animation: fade-up var(--duration-slower) var(--ease-decelerate) both;
 }
@@ -165,7 +165,7 @@
   border-color: color-mix(in srgb, var(--accent) 25%, var(--color-border-base));
 }
 
-/* Panel slide (Copilot) — use with Framer Motion or CSS class toggle */
+/* Panel slide (Copilot)  -  use with Framer Motion or CSS class toggle */
 .panel-enter {
   transform: translateX(100%);
 }

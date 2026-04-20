@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 /**
  * Unit tests for {@link ChannelVideosServiceImpl}.
  *
- * Key assertion: null entity stats must pass through as null in VideoRowDto —
+ * Key assertion: null entity stats must pass through as null in VideoRowDto  - 
  * they must NOT be converted to 0. Zero (viewCount=0) is meaningful and
  * distinct from "data unavailable" (likeCount=null when likes are disabled).
  */
@@ -78,7 +78,7 @@ class ChannelVideosServiceImplTest {
 
     /**
      * When YouTube omits a stat field (e.g. likes disabled), the entity stores null.
-     * VideoRowDto must preserve null — not coerce it to 0.
+     * VideoRowDto must preserve null  -  not coerce it to 0.
      * 0 is meaningful (zero views on a brand-new video); null means "unavailable".
      */
     @Test

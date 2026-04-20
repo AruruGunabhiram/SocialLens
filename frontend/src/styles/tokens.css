@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SocialLens / CIPHER — CSS Design Token System
+   SocialLens / CIPHER  -  CSS Design Token System
    Source of truth for all visual variables.
    Import this file first; never hardcode values in components.
    ========================================================================== */
@@ -13,7 +13,7 @@
    ROOT TOKENS
    -------------------------------------------------------------------------- */
 :root {
-  /* === FOUNDATIONS — Surfaces / Backgrounds === */
+  /* === FOUNDATIONS  -  Surfaces / Backgrounds === */
   --color-canvas: #080a0f;
   --color-surface-0: #0d0f17;
   --color-surface-1: #111420;
@@ -77,12 +77,12 @@
   );
   --noise-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
 
-  /* === TYPOGRAPHY — Font Families === */
+  /* === TYPOGRAPHY  -  Font Families === */
   --font-display: 'Syne', sans-serif;
   --font-body: 'Instrument Sans', sans-serif;
   --font-mono: 'DM Mono', monospace;
 
-  /* === TYPOGRAPHY — Type Scale === */
+  /* === TYPOGRAPHY  -  Type Scale === */
   --text-xs: 11px;
   --text-sm: 12px;
   --text-base: 14px;
@@ -93,19 +93,19 @@
   --text-3xl: 30px;
   --text-4xl: 38px;
 
-  /* Metric numbers — always DM Mono, tabular */
+  /* Metric numbers  -  always DM Mono, tabular */
   --text-metric-sm: 20px;
   --text-metric-md: 28px;
   --text-metric-lg: 36px;
   --text-metric-xl: 48px;
 
-  /* === TYPOGRAPHY — Line Heights === */
+  /* === TYPOGRAPHY  -  Line Heights === */
   --leading-tight: 1.2;
   --leading-snug: 1.35;
   --leading-normal: 1.5;
   --leading-relaxed: 1.65;
 
-  /* === TYPOGRAPHY — Letter Spacing === */
+  /* === TYPOGRAPHY  -  Letter Spacing === */
   --tracking-tight: -0.02em;
   --tracking-normal: 0em;
   --tracking-wide: 0.04em;
@@ -146,19 +146,19 @@
   --shadow-glow-amber: 0 0 24px rgba(240, 165, 0, 0.2);
   --shadow-glow-blue: 0 0 24px rgba(59, 130, 246, 0.2);
 
-  /* === MOTION — Duration === */
+  /* === MOTION  -  Duration === */
   --duration-fast: 100ms;
   --duration-base: 200ms;
   --duration-slow: 300ms;
   --duration-slower: 500ms;
 
-  /* === MOTION — Easing === */
+  /* === MOTION  -  Easing === */
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
   --ease-accelerate: cubic-bezier(0.4, 0, 1, 1);
   --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
 
-  /* === BREAKPOINTS (reference only — use in @media queries) === */
+  /* === BREAKPOINTS (reference only  -  use in @media queries) === */
   --bp-sm: 640px;
   --bp-md: 768px;
   --bp-lg: 1024px;
@@ -175,7 +175,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   EXPLORER MODE  — amber accent
+   EXPLORER MODE   -  amber accent
    Apply `.mode-explorer` to <body> or root wrapper
    -------------------------------------------------------------------------- */
 .mode-explorer {
@@ -187,7 +187,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   STUDIO MODE  — electric-blue accent
+   STUDIO MODE   -  electric-blue accent
    Apply `.mode-studio` to <body> or root wrapper
    -------------------------------------------------------------------------- */
 .mode-studio {

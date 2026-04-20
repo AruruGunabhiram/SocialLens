@@ -7,9 +7,9 @@ export type SkeletonShape = 'block' | 'text' | 'circle'
 export interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
    * Visual shape:
-   *  block  — rectangle (cards, chart areas, image placeholders)
-   *  text   — thin strip (text lines, label placeholders)
-   *  circle — disk (avatars, icon placeholders; size via className, e.g. "h-10 w-10")
+   *  block   -  rectangle (cards, chart areas, image placeholders)
+   *  text    -  thin strip (text lines, label placeholders)
+   *  circle  -  disk (avatars, icon placeholders; size via className, e.g. "h-10 w-10")
    */
   shape?: SkeletonShape
 }
@@ -18,7 +18,7 @@ export interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
  * Per-shape border-radius overrides.
  * Width / height are left to the consumer via className or style prop.
  * The `.skeleton` CSS class (animations.css) supplies the shimmer animation
- * and token-based gradient — no hardcoded colors here.
+ * and token-based gradient  -  no hardcoded colors here.
  */
 const SHAPE_STYLE: Record<SkeletonShape, React.CSSProperties> = {
   block: { borderRadius: 'var(--radius-sm)' },

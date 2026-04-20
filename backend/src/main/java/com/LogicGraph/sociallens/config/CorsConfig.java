@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 @Configuration
 public class CorsConfig {
 
-    // Comma-separated explicit origins — no wildcards allowed.
+    // Comma-separated explicit origins  -  no wildcards allowed.
     // Override app.cors.allowed-origins in environment or application-local.properties.
     @Value("${app.cors.allowed-origins:http://localhost:5173}")
     private String allowedOrigins;

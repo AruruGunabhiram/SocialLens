@@ -14,7 +14,7 @@ export interface SparklineProps {
  * Minimal SVG sparkline.
  * Stroke: var(--accent) @ 60% opacity, stroke-width 1.5px (non-scaling).
  * Fill: gradient from accent @ 20% → transparent.
- * No axes, no labels — data-ink only.
+ * No axes, no labels  -  data-ink only.
  */
 export function Sparkline({ data, height = 40, className }: SparklineProps) {
   const uid = useId()

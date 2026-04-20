@@ -39,7 +39,7 @@ public class DefaultChannelResolver implements ChannelResolver {
     }
 
     // -----------------------------------------------------------------------
-    // resolve() — pure detection, no I/O
+    // resolve()  -  pure detection, no I/O
     // -----------------------------------------------------------------------
 
     @Override
@@ -91,7 +91,7 @@ public class DefaultChannelResolver implements ChannelResolver {
     }
 
     // -----------------------------------------------------------------------
-    // resolveToChannel() — resolve + API fetch + DB upsert
+    // resolveToChannel()  -  resolve + API fetch + DB upsert
     // -----------------------------------------------------------------------
 
     @Override

@@ -40,7 +40,7 @@ function humanizeError(raw: string | null | undefined): HumanizedError {
     return { message: 'Channel not found on YouTube (HTTP 404).', isRaw: false }
   if (lower.includes('401'))
     return {
-      message: 'Authentication failed — API credentials may be invalid (HTTP 401).',
+      message: 'Authentication failed  -  API credentials may be invalid (HTTP 401).',
       isRaw: false,
     }
   return { message: raw, isRaw: true }
@@ -73,9 +73,9 @@ function computeUploadFreq(
   publishedAt: string | null | undefined,
   videoCount: number | null | undefined
 ): string {
-  if (!publishedAt || videoCount == null) return '—'
+  if (!publishedAt || videoCount == null) return ' - '
   const created = parseISO(publishedAt)
-  if (!isValid(created)) return '—'
+  if (!isValid(created)) return ' - '
   const days = Math.max(1, differenceInDays(new Date(), created))
   const perWeek = videoCount / (days / 7)
   if (perWeek >= 1) return `${perWeek.toFixed(1).replace(/\.0$/, '')} / week`
@@ -186,7 +186,7 @@ export default function ChannelOverviewPage() {
   const channelId = data?.channelId ?? channelDetail?.channelId ?? legacyChannelId
   const isFailed = channelDetail?.lastRefreshStatus === 'FAILED'
 
-  // Days since last successful sync — used for stale data warning
+  // Days since last successful sync  -  used for stale data warning
   const staleDays = (() => {
     if (!channelDetail?.lastSuccessfulRefreshAt) return 0
     const d = parseISO(channelDetail.lastSuccessfulRefreshAt)
@@ -229,17 +229,17 @@ export default function ChannelOverviewPage() {
     data && channelDbId
       ? [
           { label: 'Database ID', value: String(channelDbId) },
-          { label: 'Channel ID', value: channelId || '—' },
-          { label: 'Title', value: title ?? '—' },
+          { label: 'Channel ID', value: channelId || ' - ' },
+          { label: 'Title', value: title ?? ' - ' },
           {
             label: 'Published at',
             value: formatDate(channelDetail?.publishedAt),
           },
-          { label: 'Videos (YouTube)', value: data.videoCount ?? channelDetail?.videoCount ?? '—' },
-          { label: 'Videos (indexed)', value: indexedVideoCount ?? '—' },
+          { label: 'Videos (YouTube)', value: data.videoCount ?? channelDetail?.videoCount ?? ' - ' },
+          { label: 'Videos (indexed)', value: indexedVideoCount ?? ' - ' },
           {
             label: 'Sync status',
-            value: channelDetail?.lastRefreshStatus ?? '—',
+            value: channelDetail?.lastRefreshStatus ?? ' - ',
           },
           {
             label: 'Last synced',

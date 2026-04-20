@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 // -----------------------------------------------------------------------
-// Channels API — GET /channels, GET /channels/:id
+// Channels API  -  GET /channels, GET /channels/:id
 // -----------------------------------------------------------------------
 
 export const RefreshStatusSchema = z.enum(['NEVER_RUN', 'SUCCESS', 'FAILED', 'PARTIAL'])
@@ -29,7 +29,7 @@ export const ChannelItemSchema = z.object({
 })
 
 // -----------------------------------------------------------------------
-// Videos API — GET /channels/:id/videos
+// Videos API  -  GET /channels/:id/videos
 // -----------------------------------------------------------------------
 
 export const VideoRowSchema = z.object({
@@ -111,7 +111,7 @@ export const ChannelAnalyticsSchema = z
   .passthrough()
 
 // -----------------------------------------------------------------------
-// Timeseries API — GET /analytics/timeseries/by-id
+// Timeseries API  -  GET /analytics/timeseries/by-id
 //
 // Stable backend contract:
 //   { channelDbId, channelId, metric, rangeDays, points: [{date, value}] }
@@ -122,11 +122,11 @@ export const ChannelAnalyticsSchema = z
 // -----------------------------------------------------------------------
 
 // -----------------------------------------------------------------------
-// Account status — GET /api/v1/connected-accounts/status
+// Account status  -  GET /api/v1/connected-accounts/status
 // -----------------------------------------------------------------------
 
 // -----------------------------------------------------------------------
-// Local user — GET /api/v1/users/me
+// Local user  -  GET /api/v1/users/me
 // -----------------------------------------------------------------------
 
 export const LocalUserSchema = z.object({
@@ -148,7 +148,7 @@ export const OAuthStartResponseSchema = z.object({
 })
 
 // -----------------------------------------------------------------------
-// Connected account detail — GET /api/v1/connected-accounts/detail
+// Connected account detail  -  GET /api/v1/connected-accounts/detail
 // -----------------------------------------------------------------------
 
 export const ConnectedAccountDetailSchema = z.object({
@@ -162,7 +162,7 @@ export const ConnectedAccountDetailSchema = z.object({
 })
 
 // -----------------------------------------------------------------------
-// API budget status — GET /api/v1/jobs/budget
+// API budget status  -  GET /api/v1/jobs/budget
 // -----------------------------------------------------------------------
 
 export const BudgetStatusSchema = z.object({
@@ -173,7 +173,7 @@ export const BudgetStatusSchema = z.object({
 })
 
 // -----------------------------------------------------------------------
-// Retention Diagnosis — POST /creator/retention/diagnosis
+// Retention Diagnosis  -  POST /creator/retention/diagnosis
 // -----------------------------------------------------------------------
 
 export const RetentionDropEventSchema = z.object({
