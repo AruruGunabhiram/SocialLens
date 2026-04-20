@@ -193,7 +193,9 @@ describe('TrendsPage', () => {
         ) as any
       )
       renderTrendsPage('1', 'mode=total')
-      expect(screen.queryByText('Need at least 2 snapshots  -  run refresh')).not.toBeInTheDocument()
+      expect(
+        screen.queryByText('Need at least 2 snapshots  -  run refresh')
+      ).not.toBeInTheDocument()
     })
   })
 

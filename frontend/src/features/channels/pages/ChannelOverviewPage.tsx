@@ -235,7 +235,10 @@ export default function ChannelOverviewPage() {
             label: 'Published at',
             value: formatDate(channelDetail?.publishedAt),
           },
-          { label: 'Videos (YouTube)', value: data.videoCount ?? channelDetail?.videoCount ?? ' - ' },
+          {
+            label: 'Videos (YouTube)',
+            value: data.videoCount ?? channelDetail?.videoCount ?? ' - ',
+          },
           { label: 'Videos (indexed)', value: indexedVideoCount ?? ' - ' },
           {
             label: 'Sync status',
