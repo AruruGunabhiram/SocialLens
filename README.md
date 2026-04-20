@@ -10,12 +10,12 @@ A YouTube analytics platform that ingests channel and video metrics via the YouT
 
 SocialLens lets you:
 
-- **Track channels**  -  look up any public YouTube channel by ID, handle, or custom URL
-- **Snapshot metrics daily**  -  subscriber count, view count, and video count are stored once per day per channel via a scheduled job
-- **Explore trends**  -  visualise timeseries data (7 / 30 / 90-day range) with daily-change or cumulative modes
-- **Browse videos**  -  paginated table of synced videos with per-video stats (views, likes, comments)
-- **Connect via OAuth**  -  link a Google/YouTube account to enable analytics-scope data (token refresh handled automatically)
-- **Trigger manual refreshes**  -  hit the jobs API to refresh a specific channel on demand
+- **Track channels** - look up any public YouTube channel by ID, handle, or custom URL
+- **Snapshot metrics daily** - subscriber count, view count, and video count are stored once per day per channel via a scheduled job
+- **Explore trends** - visualise timeseries data (7 / 30 / 90-day range) with daily-change or cumulative modes
+- **Browse videos** - paginated table of synced videos with per-video stats (views, likes, comments)
+- **Connect via OAuth** - link a Google/YouTube account to enable analytics-scope data (token refresh handled automatically)
+- **Trigger manual refreshes** - hit the jobs API to refresh a specific channel on demand
 
 ---
 
@@ -34,7 +34,7 @@ Start the backend and frontend (see Getting Started below), then open `http://lo
 | Framework       | Spring Boot 3.3.0, Java 17                                        |
 | Data            | Spring Data JPA / Hibernate, Flyway, H2 (dev) / PostgreSQL (prod) |
 | API integration | YouTube Data API v3 (REST, key-based)                             |
-| OAuth           | Google OAuth 2.0  -  authorization code flow                        |
+| OAuth           | Google OAuth 2.0 - authorization code flow                        |
 | Scheduling      | Spring `@Scheduled` with configurable CRON expressions            |
 | Build           | Gradle                                                            |
 | Testing         | JUnit 5, Mockito, `@AutoConfigureMockMvc`                         |
@@ -156,14 +156,14 @@ The dev server starts on **port 5173**.
 
 ### 6. Sync a channel
 
-**Option A  -  automatic seed (recommended for local dev)**
+**Option A - automatic seed (recommended for local dev)**
 
 Set `sociallens.seed.enabled=true` in `backend/src/main/resources/application-local.properties`.
 On the next startup, if the `youtube_channel` table is empty, the backend automatically calls
 `syncChannel("@mkbhd")` and logs the result. The seed is a no-op on subsequent restarts once
 the table has rows, so it is safe to leave the flag enabled.
 
-**Option B  -  manual sync via curl**
+**Option B - manual sync via curl**
 
 ```bash
 curl -X POST "http://localhost:8081/api/v1/youtube/sync" \
@@ -179,7 +179,7 @@ Then open `http://localhost:5173` to see the dashboard.
 
 ### Daily Snapshot Strategy
 
-A `DailyRefreshJob` (cron: `0 15 3 * * *`, 3:15 AM server time, configurable via `sociallens.jobs.daily-refresh.cron`) fetches public metrics for every active channel and writes a `channel_metrics_snapshot` row per day. A `UNIQUE(channel_id, captured_day_utc)` constraint enforces exactly one snapshot per channel per UTC day  -  duplicate insertions are caught as `DataIntegrityViolationException` (409) and silently ignored, making the job naturally idempotent.
+A `DailyRefreshJob` (cron: `0 15 3 * * *`, 3:15 AM server time, configurable via `sociallens.jobs.daily-refresh.cron`) fetches public metrics for every active channel and writes a `channel_metrics_snapshot` row per day. A `UNIQUE(channel_id, captured_day_utc)` constraint enforces exactly one snapshot per channel per UTC day - duplicate insertions are caught as `DataIntegrityViolationException` (409) and silently ignored, making the job naturally idempotent.
 
 ### Timeseries Analytics
 
@@ -308,7 +308,7 @@ These are honest limitations to be aware of before production use:
 
 3. **PostgreSQL required locally.** Local dev uses PostgreSQL via `docker-compose.yml`. Tests remain on H2 in-memory with Flyway disabled.
 
-4. **YouTube public API only (no private analytics).** Unless a channel owner connects via OAuth, only publicly available metrics (subscriber count, view count, video count) are tracked. YouTube Analytics API data (watch time, revenue, traffic sources) requires OAuth with the channel owner's consent  -  the backend infrastructure exists but the frontend UI to trigger this flow is not built.
+4. **YouTube public API only (no private analytics).** Unless a channel owner connects via OAuth, only publicly available metrics (subscriber count, view count, video count) are tracked. YouTube Analytics API data (watch time, revenue, traffic sources) requires OAuth with the channel owner's consent - the backend infrastructure exists but the frontend UI to trigger this flow is not built.
 
 5. **No per-video timeseries in the UI.** `video_metrics_snapshot` rows are written daily, but there is no frontend page rendering per-video trend charts.
 

@@ -747,7 +747,7 @@ export default function ChannelVideosPage() {
           data-testid="title-warning-banner"
         >
           <span>
-            Most videos are missing titles  -  metadata enrichment may have failed during the last
+            Most videos are missing titles - metadata enrichment may have failed during the last
             sync. Run a refresh to fix this.
           </span>
           <button

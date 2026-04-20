@@ -917,7 +917,7 @@ export default function InsightsPage() {
                             color: 'var(--color-text-primary)',
                           }}
                         >
-                          {formatDate(viewsCoverage.firstDate)}  - {' '}
+                          {formatDate(viewsCoverage.firstDate)} -{' '}
                           {formatDate(viewsCoverage.lastDate)}
                         </div>
                       </div>
@@ -1197,7 +1197,7 @@ export default function InsightsPage() {
                   }}
                 >
                   Retention Diagnosis reads your YouTube Analytics retention curve and identifies
-                  where viewers stop watching  -  broken down by severity, timestamp, and root cause.
+                  where viewers stop watching - broken down by severity, timestamp, and root cause.
                 </p>
 
                 {/* What you get */}
@@ -1249,7 +1249,7 @@ export default function InsightsPage() {
                       margin: 0,
                     }}
                   >
-                    Sign-in window opened. Complete the flow  -  this page will update automatically.
+                    Sign-in window opened. Complete the flow - this page will update automatically.
                   </p>
                 ) : (
                   <div

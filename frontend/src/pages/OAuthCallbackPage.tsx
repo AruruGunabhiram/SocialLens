@@ -84,7 +84,7 @@ export default function OAuthCallbackPage() {
         <CheckCircle2 size={48} aria-hidden style={{ color: 'var(--color-up)', flexShrink: 0 }} />
         <h1 style={headingStyle}>YouTube connected</h1>
         <p style={bodyStyle}>
-          Your YouTube account is linked. Switch back to SocialLens  -  your connection status will
+          Your YouTube account is linked. Switch back to SocialLens - your connection status will
           update automatically.
         </p>
         <button

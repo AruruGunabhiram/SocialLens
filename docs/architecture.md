@@ -1,4 +1,4 @@
-# SocialLens  -  Architecture
+# SocialLens - Architecture
 
 ---
 
@@ -192,7 +192,7 @@ users
 
 ### Snapshot uniqueness guarantee
 
-The `UNIQUE(channel_id, captured_day_utc)` constraint on `channel_metrics_snapshot` is the primary idempotency guarantee. If the daily job is re-run (or triggered manually) on the same UTC day, the duplicate `INSERT` raises a `DataIntegrityViolationException` which `YouTubeSyncServiceImpl.writeChannelSnapshotIfNeeded()` catches and silently ignores  -  the existing row is preserved. No `SELECT`-before-`INSERT` pattern is used, so there is no race window.
+The `UNIQUE(channel_id, captured_day_utc)` constraint on `channel_metrics_snapshot` is the primary idempotency guarantee. If the daily job is re-run (or triggered manually) on the same UTC day, the duplicate `INSERT` raises a `DataIntegrityViolationException` which `YouTubeSyncServiceImpl.writeChannelSnapshotIfNeeded()` catches and silently ignores - the existing row is preserved. No `SELECT`-before-`INSERT` pattern is used, so there is no race window.
 
 ---
 
@@ -200,7 +200,7 @@ The `UNIQUE(channel_id, captured_day_utc)` constraint on `channel_metrics_snapsh
 
 ### 1. Snapshot-per-day, not raw event streams
 
-Instead of storing every API response as a timestamped event, metrics are bucketed into a single row per (channel, UTC day). This keeps storage bounded (O(channels × days)) and makes timeseries queries trivial  -  one row per date point, no aggregation needed at read time.
+Instead of storing every API response as a timestamped event, metrics are bucketed into a single row per (channel, UTC day). This keeps storage bounded (O(channels × days)) and makes timeseries queries trivial - one row per date point, no aggregation needed at read time.
 
 **Trade-off:** Intra-day changes are not visible. If a video goes viral mid-day, the snapshot will not reflect it until the next run.
 
@@ -214,8 +214,8 @@ Every snapshot stores both an exact `Instant` and a `LocalDate`. The date bucket
 
 ### 4. Two endpoint families
 
-- `/analytics/*?identifier=`  -  resolves identifier first, then queries (used for ad-hoc lookup)
-- `/analytics/*/by-id?channelDbId=`  -  uses internal database ID directly (used by the frontend after navigation)
+- `/analytics/*?identifier=` - resolves identifier first, then queries (used for ad-hoc lookup)
+- `/analytics/*/by-id?channelDbId=` - uses internal database ID directly (used by the frontend after navigation)
 
 The `by-id` family avoids a redundant resolution round-trip once the user has navigated to a channel page.
 
@@ -225,11 +225,11 @@ The `by-id` family avoids a redundant resolution round-trip once the user has na
 
 ### 6. All-or-nothing channel refresh
 
-`DailyRefreshWorker.refreshOneChannel()` runs in `@Transactional(propagation = REQUIRES_NEW)`. The full refresh  -  metadata update, video sync, snapshot writes, cursor advance  -  either succeeds and commits, or rolls back entirely and sets `last_refresh_status = FAILED`. This prevents partial writes where the cursor advances but snapshots were not written.
+`DailyRefreshWorker.refreshOneChannel()` runs in `@Transactional(propagation = REQUIRES_NEW)`. The full refresh - metadata update, video sync, snapshot writes, cursor advance - either succeeds and commits, or rolls back entirely and sets `last_refresh_status = FAILED`. This prevents partial writes where the cursor advances but snapshots were not written.
 
 ### 7. Zod at the API boundary
 
-All API responses pass through Zod schemas before reaching any React component. If parsing fails, `httpError.ts` converts the `ZodError` into an `HttpError` with message "Unsupported response format"  -  not a raw schema dump. TanStack Query surfaces this as an error state rendered by `ErrorState`. A backend contract change is immediately visible as an explicit error rather than silently producing empty charts or `undefined` renders.
+All API responses pass through Zod schemas before reaching any React component. If parsing fails, `httpError.ts` converts the `ZodError` into an `HttpError` with message "Unsupported response format" - not a raw schema dump. TanStack Query surfaces this as an error state rendered by `ErrorState`. A backend contract change is immediately visible as an explicit error rather than silently producing empty charts or `undefined` renders.
 
 ---
 
@@ -301,7 +301,7 @@ All API responses pass through Zod schemas before reaching any React component. 
 
 ### Snapshot idempotency
 
-`writeChannelSnapshotIfNeeded()` catches `DataIntegrityViolationException` from the unique constraint violation. The method is safe to call multiple times on the same UTC day  -  the first call writes, subsequent calls are silent no-ops. No `SELECT`-before-`INSERT` is needed, so there is no race window between check and write.
+`writeChannelSnapshotIfNeeded()` catches `DataIntegrityViolationException` from the unique constraint violation. The method is safe to call multiple times on the same UTC day - the first call writes, subsequent calls are silent no-ops. No `SELECT`-before-`INSERT` is needed, so there is no race window between check and write.
 
 ### Job concurrency guard
 
@@ -309,7 +309,7 @@ All API responses pass through Zod schemas before reaching any React component. 
 
 ### Transactional isolation
 
-Each channel refresh uses `Propagation.REQUIRES_NEW`, so one channel's failure does not affect others in the same job run. The outer `runDailyRefresh()` loop is not itself transactional  -  it collects results from N independent transactions.
+Each channel refresh uses `Propagation.REQUIRES_NEW`, so one channel's failure does not affect others in the same job run. The outer `runDailyRefresh()` loop is not itself transactional - it collects results from N independent transactions.
 
 **Note:** The concurrency guard is in-memory only. In a multi-instance deployment, it would need to be replaced with a distributed lock (e.g., a `jobs_lock` table row with `SELECT FOR UPDATE`).
 
@@ -354,7 +354,7 @@ Frontend                   Backend                          Google
 
 **Token refresh logic (`YouTubeOAuthService.getValidAccessToken`):**
 
-1. Check `expiresAt`  -  if more than 60 seconds away, return stored `accessToken`
+1. Check `expiresAt` - if more than 60 seconds away, return stored `accessToken`
 2. Otherwise POST to `https://oauth2.googleapis.com/token` with `grant_type=refresh_token`
 3. Update `accessToken` and `expiresAt` in DB
 4. If Google returns a new `refreshToken`, overwrite it; otherwise keep the existing one (Google typically omits it on refresh to preserve the original)
@@ -426,7 +426,7 @@ API layer (axiosClient + Zod parse)
 
 ### UI-only state
 
-Metric selector, range selector, and series-mode toggle (total vs. daily change) on TrendsPage are plain `useState`  -  local to the component, not persisted to URL or storage. `localStorage` and `sessionStorage` are explicitly forbidden by project rules.
+Metric selector, range selector, and series-mode toggle (total vs. daily change) on TrendsPage are plain `useState` - local to the component, not persisted to URL or storage. `localStorage` and `sessionStorage` are explicitly forbidden by project rules.
 
 ### Lazy loading
 

@@ -270,7 +270,7 @@ function SnapshotCoverageBanner({
             {dateRange && <span> · {dateRange}</span>}
           </span>
           <p className="mt-0.5" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-warn)' }}>
-            Fewer than {MIN_RELIABLE_DAYS} days  -  trends may not be reliable yet
+            Fewer than {MIN_RELIABLE_DAYS} days - trends may not be reliable yet
           </p>
         </div>
       </div>
