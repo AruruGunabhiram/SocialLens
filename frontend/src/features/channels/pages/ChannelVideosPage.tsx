@@ -1,8 +1,8 @@
-import { formatCount, formatDate } from '@/utils/formatters'
+import { formatCount, formatDate, formatRelativeTime } from '@/utils/formatters'
 import {
+  ArrowUpDown,
   ChevronLeft,
   ChevronRight,
-  ChevronsUpDown,
   ChevronUp,
   ChevronDown,
   Database,
@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Search,
   Video,
+  X,
 } from 'lucide-react'
 import { useRef, useState, type ReactNode } from 'react'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
@@ -69,6 +70,19 @@ function parseSize(raw: string | null): number {
   return Number.isFinite(n) && n >= 1 && n <= 100 ? Math.floor(n) : DEFAULT_SIZE
 }
 
+function getPageRange(current: number, total: number): (number | 'ellipsis')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i)
+  const result: (number | 'ellipsis')[] = []
+  const left = Math.max(1, current - 1)
+  const right = Math.min(total - 2, current + 1)
+  result.push(0)
+  if (left > 1) result.push('ellipsis')
+  for (let i = left; i <= right; i++) result.push(i)
+  if (right < total - 2) result.push('ellipsis')
+  result.push(total - 1)
+  return result
+}
+
 /**
  * Returns the title to display for a video row.
  * Treats empty/whitespace-only title as absent and falls back to videoId.
@@ -110,7 +124,7 @@ function SortableHeader({
     }
   }
 
-  const Icon = isActive ? (currentDir === 'asc' ? ChevronUp : ChevronDown) : ChevronsUpDown
+  const Icon = isActive ? (currentDir === 'asc' ? ChevronUp : ChevronDown) : ArrowUpDown
 
   return (
     <th
@@ -122,17 +136,18 @@ function SortableHeader({
         onClick={handleClick}
         className={cn(
           'flex items-center gap-1 rounded transition-colors hover:text-foreground',
-          isActive && 'text-foreground'
+          isActive && 'font-semibold text-foreground'
         )}
+        aria-label={
+          isActive ? `Sort by ${label}, currently ${currentDir}ending` : `Sort by ${label}`
+        }
       >
-        {/* Visible: compact label + direction icon */}
         <span aria-hidden className="flex items-center gap-1">
           {label}
-          <Icon className="h-3.5 w-3.5 shrink-0" />
-        </span>
-        {/* Screen-reader only: verbose description */}
-        <span className="sr-only">
-          {isActive ? `Sort by ${label}, currently ${currentDir}ending` : `Sort by ${label}`}
+          <Icon
+            className="h-3.5 w-3.5 shrink-0"
+            style={isActive ? { color: 'var(--accent)' } : undefined}
+          />
         </span>
       </button>
       {labelExtra}
@@ -204,8 +219,11 @@ function NaBadge() {
 }
 
 function VideoTableRow({ video }: { video: VideoRow }) {
+  const [thumbError, setThumbError] = useState(false)
   const hasTitle = Boolean(video.title?.trim())
   const ytUrl = `${YT_WATCH}${video.videoId}`
+  const thumbSrc = video.thumbnailUrl ?? `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`
+  const relativeDate = formatRelativeTime(video.publishedAt)
 
   function handleRowClick(e: React.MouseEvent<HTMLTableRowElement>) {
     // Let inner <a> / <button> elements handle their own navigation
@@ -249,12 +267,13 @@ function VideoTableRow({ video }: { video: VideoRow }) {
             flexShrink: 0,
           }}
         >
-          {video.thumbnailUrl ? (
+          {!thumbError ? (
             <img
-              src={video.thumbnailUrl}
+              src={thumbSrc}
               alt=""
               style={{ width: 48, height: 27, objectFit: 'cover', display: 'block' }}
               loading="lazy"
+              onError={() => setThumbError(true)}
             />
           ) : (
             <div
@@ -280,12 +299,34 @@ function VideoTableRow({ video }: { video: VideoRow }) {
       {/* Title — or video ID link + "(title pending)" when not yet enriched */}
       <td className="max-w-xs py-3 pr-4">
         {hasTitle ? (
-          <span
-            className="line-clamp-2 text-sm font-medium leading-snug"
+          <a
+            href={ytUrl}
+            target="_blank"
+            rel="noopener noreferrer"
             title={video.title!.length > 60 ? video.title! : undefined}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'flex-start',
+              gap: 4,
+              textDecoration: 'none',
+              color: 'inherit',
+            }}
+            onMouseEnter={(e) => {
+              const span = e.currentTarget.querySelector('span')
+              if (span) span.style.textDecoration = 'underline'
+            }}
+            onMouseLeave={(e) => {
+              const span = e.currentTarget.querySelector('span')
+              if (span) span.style.textDecoration = 'none'
+            }}
           >
-            {video.title}
-          </span>
+            <span className="line-clamp-2 text-sm font-medium leading-snug">{video.title}</span>
+            <ExternalLink
+              size={11}
+              aria-hidden
+              style={{ flexShrink: 0, marginTop: 3, color: 'var(--color-text-muted)' }}
+            />
+          </a>
         ) : (
           <span className="inline-flex flex-wrap items-center gap-1.5">
             <a
@@ -323,7 +364,12 @@ function VideoTableRow({ video }: { video: VideoRow }) {
 
       {/* Published date */}
       <td className="whitespace-nowrap py-3 pr-4 text-sm text-muted-foreground">
-        {formatDate(video.publishedAt)}
+        <span
+          title={relativeDate !== '—' ? relativeDate : undefined}
+          style={{ cursor: relativeDate !== '—' ? 'help' : undefined }}
+        >
+          {formatDate(video.publishedAt)}
+        </span>
       </td>
 
       {/* Views — "—" when null (formatCount handles this) */}
@@ -346,75 +392,80 @@ function VideoTableRow({ video }: { video: VideoRow }) {
 // Pagination controls
 // ---------------------------------------------------------------------------
 
-const PAGE_SIZES = [25, 50, 100] as const
+const PAGE_SIZES = [10, 25, 50, 100] as const
 
 type PaginationProps = {
   page: number
   totalPages: number
-  totalItems: number
-  size: number
-  onPrev: () => void
-  onNext: () => void
-  onSizeChange: (n: number) => void
+  onPageChange: (page: number) => void
 }
 
-function Pagination({
-  page,
-  totalPages,
-  totalItems,
-  size,
-  onPrev,
-  onNext,
-  onSizeChange,
-}: PaginationProps) {
+function Pagination({ page, totalPages, onPageChange }: PaginationProps) {
   const safeTotal = Math.max(1, totalPages)
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-y-2 text-sm text-muted-foreground">
-      {/* Left: page-size pills */}
-      <div className="flex items-center gap-1">
-        {PAGE_SIZES.map((n) => (
-          <button
-            key={n}
-            type="button"
-            onClick={() => onSizeChange(n)}
-            style={{
-              padding: '2px 10px',
-              borderRadius: 'var(--radius-full)',
-              fontFamily: 'var(--font-body)',
-              fontSize: 'var(--text-xs)',
-              fontWeight: n === size ? 600 : 400,
-              border: '1px solid',
-              borderColor: n === size ? 'var(--color-border-strong)' : 'var(--color-border-subtle)',
-              background: n === size ? 'var(--color-surface-2)' : 'transparent',
-              color: n === size ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
-              cursor: n === size ? 'default' : 'pointer',
-              transition: 'all var(--duration-base)',
-            }}
-          >
-            {n} per page
-          </button>
-        ))}
-      </div>
+  const pageRange = getPageRange(page, safeTotal)
+  const atFirst = page === 0
+  const atLast = page >= safeTotal - 1
 
-      {/* Right: navigation */}
-      <div className="flex items-center gap-3">
+  const pageBtn = (p: number) => (
+    <button
+      key={p}
+      type="button"
+      onClick={() => onPageChange(p)}
+      aria-label={`Page ${p + 1}`}
+      aria-current={p === page ? 'page' : undefined}
+      style={{
+        width: 32,
+        height: 32,
+        borderRadius: 'var(--radius-md)',
+        fontFamily: 'var(--font-mono)',
+        fontSize: 'var(--text-sm)',
+        fontWeight: p === page ? 700 : 400,
+        fontVariantNumeric: 'tabular-nums',
+        background: p === page ? 'var(--accent)' : 'transparent',
+        color: p === page ? 'var(--color-text-inverse)' : 'var(--color-text-secondary)',
+        border: p === page ? 'none' : '1px solid transparent',
+        cursor: p === page ? 'default' : 'pointer',
+        transition: 'background var(--duration-fast), color var(--duration-fast)',
+        flexShrink: 0,
+      }}
+      onMouseEnter={(e) => {
+        if (p !== page) {
+          e.currentTarget.style.background = 'var(--color-surface-2)'
+          e.currentTarget.style.borderColor = 'var(--color-border-subtle)'
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (p !== page) {
+          e.currentTarget.style.background = 'transparent'
+          e.currentTarget.style.borderColor = 'transparent'
+        }
+      }}
+    >
+      {p + 1}
+    </button>
+  )
+
+  return (
+    <>
+      {/* Mobile: simplified */}
+      <div className="flex items-center justify-between sm:hidden">
         <Button
           variant="outline"
           size="sm"
-          onClick={onPrev}
-          disabled={page === 0}
-          className="gap-1"
+          onClick={() => onPageChange(page - 1)}
+          disabled={atFirst}
+          aria-disabled={atFirst}
           aria-label="Previous page"
+          className="gap-1"
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
           Prev
         </Button>
         <span
-          className="tabular-nums"
           style={{
             fontFamily: 'var(--font-body)',
             fontSize: 'var(--text-sm)',
-            whiteSpace: 'nowrap',
+            color: 'var(--color-text-secondary)',
           }}
         >
           Page{' '}
@@ -425,24 +476,70 @@ function Pagination({
           <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
             {safeTotal}
           </span>
-          <span style={{ color: 'var(--color-text-muted)' }}>
-            {' '}
-            ({totalItems.toLocaleString()} video{totalItems !== 1 ? 's' : ''})
-          </span>
         </span>
         <Button
           variant="outline"
           size="sm"
-          onClick={onNext}
-          disabled={page >= totalPages - 1}
-          className="gap-1"
+          onClick={() => onPageChange(page + 1)}
+          disabled={atLast}
+          aria-disabled={atLast}
           aria-label="Next page"
+          className="gap-1"
         >
           Next
           <ChevronRight className="h-4 w-4" aria-hidden />
         </Button>
       </div>
-    </div>
+
+      {/* Desktop: page number buttons */}
+      <div className="hidden items-center gap-1 sm:flex">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(page - 1)}
+          disabled={atFirst}
+          aria-disabled={atFirst}
+          aria-label="Previous page"
+          className="gap-1 mr-1"
+        >
+          <ChevronLeft className="h-4 w-4" aria-hidden />
+          Prev
+        </Button>
+
+        {pageRange.map((p, i) =>
+          p === 'ellipsis' ? (
+            <span
+              key={`ellipsis-${i}`}
+              aria-hidden
+              style={{
+                width: 24,
+                textAlign: 'center',
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--text-sm)',
+                color: 'var(--color-text-muted)',
+              }}
+            >
+              …
+            </span>
+          ) : (
+            pageBtn(p)
+          )
+        )}
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onPageChange(page + 1)}
+          disabled={atLast}
+          aria-disabled={atLast}
+          aria-label="Next page"
+          className="gap-1 ml-1"
+        >
+          Next
+          <ChevronRight className="h-4 w-4" aria-hidden />
+        </Button>
+      </div>
+    </>
   )
 }
 
@@ -510,7 +607,21 @@ export default function ChannelVideosPage() {
         },
         { replace: true }
       )
-    }, 400)
+    }, 300)
+  }
+
+  function handleClearSearch() {
+    setSearchInput('')
+    clearTimeout(debounceRef.current)
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete('q')
+        next.set('page', '0')
+        return next
+      },
+      { replace: true }
+    )
   }
 
   function handleSort(newSort: SortKey, newDir: 'asc' | 'desc') {
@@ -526,11 +637,11 @@ export default function ChannelVideosPage() {
     )
   }
 
-  function handlePage(delta: number) {
+  function handlePageAbsolute(newPage: number) {
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev)
-        next.set('page', String(page + delta))
+        next.set('page', String(newPage))
         return next
       },
       { replace: true }
@@ -676,7 +787,7 @@ export default function ChannelVideosPage() {
 
       {/* Search bar + Refresh Metadata */}
       <div className="flex flex-wrap items-start gap-2">
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-2">
           <div className="relative">
             <Search
               className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
@@ -686,22 +797,55 @@ export default function ChannelVideosPage() {
               value={searchInput}
               onChange={handleSearchChange}
               placeholder="Search by title or video ID…"
-              className="pl-9"
+              className={cn('pl-9', searchInput && 'pr-8')}
               style={{ width: 280 }}
               aria-label="Search videos by title or video ID"
             />
+            {searchInput && (
+              <button
+                type="button"
+                onClick={handleClearSearch}
+                aria-label="Clear search"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center rounded"
+                style={{
+                  color: 'var(--color-text-muted)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 2,
+                  lineHeight: 0,
+                }}
+              >
+                <X className="h-3.5 w-3.5" aria-hidden />
+              </button>
+            )}
           </div>
           {showEnrichmentHint && (
-            <p
+            <div
+              role="note"
               style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 'var(--space-2)',
+                width: 280,
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid color-mix(in srgb, var(--color-warn) 30%, transparent)',
+                background: 'var(--color-warn-muted)',
+                padding: 'var(--space-2) var(--space-3)',
                 fontFamily: 'var(--font-body)',
                 fontSize: 'var(--text-xs)',
-                color: 'var(--color-text-muted)',
+                color: 'var(--color-warn)',
                 lineHeight: 'var(--leading-relaxed)',
               }}
             >
-              Titles will be searchable after metadata enrichment
-            </p>
+              <span aria-hidden style={{ flexShrink: 0 }}>
+                &#9888;
+              </span>
+              <span>
+                Most videos on this channel don&apos;t have titles yet. Search by video ID to find
+                specific videos, or run a metadata refresh first.
+              </span>
+            </div>
           )}
         </div>
 
@@ -755,6 +899,87 @@ export default function ChannelVideosPage() {
               : 'Refresh Metadata'}
         </button>
       </div>
+
+      {/* Results summary + page size selector */}
+      {!isLoading && meta && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p
+            style={{
+              fontFamily: 'var(--font-body)',
+              fontSize: 'var(--text-sm)',
+              color: 'var(--color-text-muted)',
+            }}
+          >
+            {urlQ ? (
+              <>
+                <span style={{ color: 'var(--color-text-primary)', fontWeight: 500 }}>
+                  {meta.totalItems.toLocaleString()} result
+                  {meta.totalItems !== 1 ? 's' : ''}
+                </span>{' '}
+                for &ldquo;{urlQ}&rdquo;
+              </>
+            ) : (
+              <>
+                Showing{' '}
+                <span
+                  style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}
+                >
+                  {(page * size + 1).toLocaleString()}
+                </span>
+                &ndash;
+                <span
+                  style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}
+                >
+                  {(page * size + items.length).toLocaleString()}
+                </span>{' '}
+                of{' '}
+                <span
+                  style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}
+                >
+                  {meta.totalItems.toLocaleString()}
+                </span>{' '}
+                video{meta.totalItems !== 1 ? 's' : ''}
+              </>
+            )}
+          </p>
+
+          <div className="flex items-center gap-2">
+            <label
+              htmlFor="page-size-select"
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--color-text-muted)',
+              }}
+            >
+              Show
+            </label>
+            <select
+              id="page-size-select"
+              value={size}
+              onChange={(e) => handleSize(Number(e.target.value))}
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--color-text-primary)',
+                background: 'var(--color-surface-1)',
+                border: '1px solid var(--color-border-base)',
+                borderRadius: 'var(--radius-md)',
+                padding: '3px var(--space-3) 3px var(--space-2)',
+                cursor: 'pointer',
+                outline: 'none',
+                appearance: 'auto',
+              }}
+            >
+              {PAGE_SIZES.map((n) => (
+                <option key={n} value={n}>
+                  {n} per page
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
 
       {/* Table card */}
       <Card>
@@ -826,12 +1051,14 @@ export default function ChannelVideosPage() {
                     <td colSpan={6} className="py-12">
                       <EmptyState
                         icon={<Video className="h-7 w-7 text-muted-foreground/50" />}
-                        title={urlQ ? 'No results' : 'No videos indexed yet'}
+                        title={urlQ ? `No videos match "${urlQ}"` : 'No videos indexed yet'}
                         description={
                           urlQ
-                            ? `No videos matched "${urlQ}".`
+                            ? 'Try a different title or video ID.'
                             : 'Run a sync to populate video data.'
                         }
+                        actionLabel={urlQ ? 'Clear search' : undefined}
+                        onAction={urlQ ? handleClearSearch : undefined}
                         className="border-0 shadow-none"
                       />
                     </td>
@@ -844,16 +1071,12 @@ export default function ChannelVideosPage() {
           </div>
 
           {/* Pagination */}
-          {meta && meta.totalPages > 0 && (
+          {meta && meta.totalPages > 1 && (
             <div className="border-t px-4 py-3">
               <Pagination
                 page={meta.page}
                 totalPages={meta.totalPages}
-                totalItems={meta.totalItems}
-                size={size}
-                onPrev={() => handlePage(-1)}
-                onNext={() => handlePage(1)}
-                onSizeChange={handleSize}
+                onPageChange={handlePageAbsolute}
               />
             </div>
           )}

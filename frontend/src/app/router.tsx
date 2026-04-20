@@ -23,12 +23,10 @@ export function AppRouter() {
       <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
 
       <Route element={<AppShell />}>
-        <Route index element={<Navigate to="/channels" replace />} />
-        {/* Legacy /channel redirect */}
+        <Route index element={<DashboardPage />} />
+        {/* Legacy redirects */}
         <Route path="/channel" element={<Navigate to="/channels" replace />} />
-
-        {/* Top-level feature pages */}
-        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/dashboard" element={<Navigate to="/" replace />} />
         <Route path="/videos" element={<VideosPage />} />
         <Route path="/trends" element={<GlobalTrendsPage />} />
         <Route path="/insights" element={<InsightsPage />} />

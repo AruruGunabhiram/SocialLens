@@ -217,8 +217,8 @@ describe('ChannelVideosPage', () => {
     it('shows "No results" when the URL q param matches no videos', () => {
       vi.mocked(useVideosQuery).mockReturnValue(success(makeVideosResponse([])) as any)
       renderPage('1', 'q=noresultquery')
-      expect(screen.getByText('No results')).toBeInTheDocument()
-      expect(screen.getByText(/No videos matched "noresultquery"/)).toBeInTheDocument()
+      expect(screen.getByText('No videos match "noresultquery"')).toBeInTheDocument()
+      expect(screen.getByText('Try a different title or video ID.')).toBeInTheDocument()
     })
   })
 
@@ -294,9 +294,7 @@ describe('ChannelVideosPage', () => {
     })
 
     it('refresh button is disabled while refresh is pending', async () => {
-      const mutateAsync = vi.fn(
-        () => new Promise<never>(() => {})
-      )
+      const mutateAsync = vi.fn(() => new Promise<never>(() => {}))
       vi.mocked(useChannelRefreshByIdMutation).mockReturnValue({
         mutate: vi.fn(),
         mutateAsync,
@@ -414,14 +412,16 @@ describe('ChannelVideosPage', () => {
     it('renders Prev and Next buttons when multiple pages exist', () => {
       vi.mocked(useVideosQuery).mockReturnValue(multiPageVideosState() as any)
       renderPage()
-      expect(screen.getByRole('button', { name: /prev/i })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /next/i })).toBeInTheDocument()
+      expect(screen.getAllByRole('button', { name: /prev/i })).toHaveLength(2)
+      expect(screen.getAllByRole('button', { name: /next/i })).toHaveLength(2)
     })
 
     it('disables the Prev button on the first page', () => {
       vi.mocked(useVideosQuery).mockReturnValue(multiPageVideosState() as any)
       renderPage()
-      expect(screen.getByRole('button', { name: /prev/i })).toBeDisabled()
+      screen.getAllByRole('button', { name: /prev/i }).forEach((btn) => {
+        expect(btn).toBeDisabled()
+      })
     })
 
     it('displays the total number of videos', () => {
@@ -429,13 +429,17 @@ describe('ChannelVideosPage', () => {
         success(makeVideosResponse([makeVideo()], { totalItems: 42, totalPages: 2 })) as any
       )
       renderPage()
-      expect(screen.getByText(/42 videos/)).toBeInTheDocument()
+      expect(
+        screen.getByText(
+          (_, node) => node?.tagName === 'P' && (node.textContent ?? '').includes('of 42 videos')
+        )
+      ).toBeInTheDocument()
     })
 
     it('clicking Next calls useVideosQuery with page incremented by 1', () => {
       vi.mocked(useVideosQuery).mockReturnValue(multiPageVideosState() as any)
       renderPage()
-      fireEvent.click(screen.getByRole('button', { name: /next/i }))
+      fireEvent.click(screen.getAllByRole('button', { name: /next/i })[0])
       const calls = vi.mocked(useVideosQuery).mock.calls
       expect(calls.at(-1)![1]).toMatchObject({ page: 1 })
     })
