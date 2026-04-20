@@ -390,7 +390,7 @@ type ActivityEvent = {
 function buildFeed(channels: ChannelItem[]): ActivityEvent[] {
   return channels
     .filter((ch) => ch.lastSuccessfulRefreshAt || ch.lastRefreshStatus === 'FAILED')
-    .map((ch) => ({
+    .map<ActivityEvent>((ch) => ({
       id: ch.id,
       channelName: ch.title ?? ch.channelId,
       channelDbId: ch.id,

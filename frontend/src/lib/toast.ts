@@ -5,7 +5,9 @@ import { addNotification } from './notificationHistory'
 
 export const toastLoading = (message: string): string | number => toast.loading(message)
 
-export const toastDismiss = (id?: string | number): void => toast.dismiss(id)
+export const toastDismiss = (id?: string | number): void => {
+  toast.dismiss(id)
+}
 
 export const toastError = (error: unknown, fallback = 'Something went wrong') => {
   const opts = { duration: 6000, closeButton: true as const }
