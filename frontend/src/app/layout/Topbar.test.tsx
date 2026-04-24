@@ -1,20 +1,20 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Topbar } from './Topbar'
 import { ModeProvider } from '@/lib/ModeContext'
 
-// useChannelSyncMutation depends on React Query context + network; stub it out.
-const mockMutate = vi.fn()
+const mockSyncChannel = vi.fn()
+
+vi.mock('@/features/channels/api', () => ({
+  syncChannel: (...args: unknown[]) => mockSyncChannel(...args),
+}))
+
 vi.mock('@/features/channels/queries', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/features/channels/queries')>()
   return {
     ...actual,
-    useChannelSyncMutation: () => ({
-      mutate: mockMutate,
-      isPending: false,
-      isError: false,
-    }),
   }
 })
 
@@ -27,18 +27,28 @@ vi.mock('@/features/account/queries', () => ({
 }))
 
 function renderTopbar() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  })
+
   return render(
-    <MemoryRouter>
-      <ModeProvider>
-        <Topbar />
-      </ModeProvider>
-    </MemoryRouter>
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <ModeProvider>
+          <Topbar />
+        </ModeProvider>
+      </MemoryRouter>
+    </QueryClientProvider>
   )
 }
 
 describe('Topbar search', () => {
   beforeEach(() => {
-    mockMutate.mockReset()
+    mockSyncChannel.mockReset()
+    mockSyncChannel.mockResolvedValue({ channelDbId: 1, channelId: 'UC123', title: 'MKBHD' })
   })
 
   it('renders a real search input', () => {
@@ -58,18 +68,21 @@ describe('Topbar search', () => {
     expect(input).toHaveValue('@FoodonFarm')
   })
 
-  it('calls mutate with trimmed identifier on form submit', () => {
+  it('calls syncChannel with trimmed identifier on form submit', async () => {
     renderTopbar()
     const input = screen.getByRole('searchbox')
     fireEvent.change(input, { target: { value: '  @mkbhd  ' } })
     fireEvent.submit(input.closest('form')!)
-    expect(mockMutate).toHaveBeenCalledWith('@mkbhd', expect.any(Object))
+
+    await waitFor(() => {
+      expect(mockSyncChannel).toHaveBeenCalledWith('@mkbhd')
+    })
   })
 
   it('does not call mutate when query is blank', () => {
     renderTopbar()
     fireEvent.submit(screen.getByRole('searchbox').closest('form')!)
-    expect(mockMutate).not.toHaveBeenCalled()
+    expect(mockSyncChannel).not.toHaveBeenCalled()
   })
 
   it('clears the value when changed to empty string', () => {

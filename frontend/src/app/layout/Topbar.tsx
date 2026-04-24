@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
+  ArrowRight,
   Check,
   ChevronDown,
+  Clock,
   Link2Off,
   Loader2,
   Lock,
@@ -10,7 +12,9 @@ import {
   Settings,
   Youtube,
 } from 'lucide-react'
-import type { AppError } from '@/api/httpError'
+import { useQueryClient } from '@tanstack/react-query'
+import { isAppError } from '@/api/httpError'
+import type { ChannelItem } from '@/api/types'
 import { fetchOAuthStartUrl } from '@/features/account/api'
 import {
   useAccountDetail,
@@ -18,7 +22,11 @@ import {
   useCurrentUser,
   useDisconnectMutation,
 } from '@/features/account/queries'
-import { useChannelSyncMutation } from '@/features/channels/queries'
+import { syncChannel } from '@/features/channels/api'
+import {
+  channelListQueryKeys,
+  channelQueryKeys,
+} from '@/features/channels/queries'
 import {
   Dialog,
   DialogContent,
@@ -29,6 +37,33 @@ import {
 import { formatDate } from '@/utils/formatters'
 import { toastSuccess } from '@/lib/toast'
 import { NotificationHistoryDropdown } from '@/components/common/NotificationHistoryDropdown'
+
+// ─── Search history helpers ───────────────────────────────────────────────────
+
+const HISTORY_KEY = 'sl_recent_channels'
+const HISTORY_MAX = 5
+
+function loadHistory(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]') as string[]
+  } catch {
+    return []
+  }
+}
+
+function saveToHistory(val: string): string[] {
+  const next = [val, ...loadHistory().filter((h) => h !== val)].slice(0, HISTORY_MAX)
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(next))
+  return next
+}
+
+// ─── Inline error type ────────────────────────────────────────────────────────
+
+type InlineError =
+  | { kind: 'not_found'; input: string }
+  | { kind: 'already_tracked'; channelId: number; channelTitle: string }
+  | { kind: 'api' }
+  | { kind: 'invalid'; message: string }
 
 // ─── DisconnectConfirmDialog ──────────────────────────────────────────────────
 
@@ -374,19 +409,30 @@ export function Topbar() {
   const [query, setQuery] = useState('')
   const [focused, setFocused] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [isPending, setIsPending] = useState(false)
+  const [inlineError, setInlineError] = useState<InlineError | null>(null)
+  const [recentChannels, setRecentChannels] = useState<string[]>([])
+  const [showHistory, setShowHistory] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false)
   const [isStartingOAuth, setIsStartingOAuth] = useState(false)
 
+  const inputRef = useRef<HTMLInputElement>(null)
+  const formWrapRef = useRef<HTMLDivElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
-  const sync = useChannelSyncMutation()
+  const queryClient = useQueryClient()
   const { data: currentUser } = useCurrentUser()
   const { data: accountStatus } = useAccountStatus(currentUser?.id)
   const { data: accountDetail } = useAccountDetail(currentUser?.id)
   const disconnectMutation = useDisconnectMutation()
 
   const connected = accountStatus?.connected ?? false
+
+  // Load history on mount
+  useEffect(() => {
+    setRecentChannels(loadHistory())
+  }, [])
 
   // Fire a toast when OAuth connection is detected (tab polling picks it up)
   const prevConnectedRef = useRef<boolean | undefined>(undefined)
@@ -397,7 +443,7 @@ export function Topbar() {
     prevConnectedRef.current = connected
   }, [connected])
 
-  // Close dropdown on outside click
+  // Close account dropdown on outside click
   useEffect(() => {
     if (!dropdownOpen) return
     function handleOutside(e: MouseEvent) {
@@ -409,18 +455,86 @@ export function Topbar() {
     return () => document.removeEventListener('mousedown', handleOutside)
   }, [dropdownOpen])
 
-  function handleSubmit(e: React.FormEvent) {
+  // Close history dropdown on outside click
+  useEffect(() => {
+    if (!showHistory) return
+    function handleOutside(e: MouseEvent) {
+      if (formWrapRef.current && !formWrapRef.current.contains(e.target as Node)) {
+        setShowHistory(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [showHistory])
+
+  function validateInput(val: string): string | null {
+    if (val.length < 2) return 'Enter a YouTube handle (@name), URL, or channel ID'
+    if (val.startsWith('http') && !val.includes('youtube.com') && !val.includes('youtu.be')) {
+      return 'Only YouTube URLs are supported'
+    }
+    return null
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const trimmed = query.trim()
-    if (!trimmed || sync.isPending) return
-    sync.mutate(trimmed, {
-      onSuccess: (data) => {
-        setQuery('')
-        setShowSuccess(true)
-        setTimeout(() => setShowSuccess(false), 2000)
-        navigate(`/channels/${data.channelDbId}`)
-      },
-    })
+
+    if (!trimmed) {
+      inputRef.current?.focus()
+      return
+    }
+
+    const validationMsg = validateInput(trimmed)
+    if (validationMsg) {
+      setInlineError({ kind: 'invalid', message: validationMsg })
+      return
+    }
+
+    setInlineError(null)
+    setShowHistory(false)
+    setIsPending(true)
+
+    try {
+      const cachedChannels = queryClient.getQueryData<ChannelItem[]>(
+        channelListQueryKeys.list(false)
+      )
+
+      const response = await syncChannel(trimmed)
+
+      void queryClient.invalidateQueries({ queryKey: channelListQueryKeys.root })
+      void queryClient.invalidateQueries({ queryKey: channelQueryKeys.root })
+      void queryClient.invalidateQueries({ queryKey: ['timeseries', response.channelDbId] })
+
+      const channelTitle = response.title ?? response.channelId
+      const existingChannel = cachedChannels?.find((ch) => ch.id === response.channelDbId)
+
+      if (existingChannel) {
+        setIsPending(false)
+        setInlineError({
+          kind: 'already_tracked',
+          channelId: response.channelDbId,
+          channelTitle: existingChannel.title ?? channelTitle,
+        })
+        return
+      }
+
+      // New channel — save history, flash success, navigate
+      const updated = saveToHistory(trimmed)
+      setRecentChannels(updated)
+      setQuery('')
+      setIsPending(false)
+      setShowSuccess(true)
+      setTimeout(() => setShowSuccess(false), 2000)
+      toastSuccess(`${channelTitle} added`, 'Syncing data in the background...')
+      navigate(`/channels/${response.channelDbId}`)
+    } catch (err) {
+      setIsPending(false)
+      if (isAppError(err) && err.status === 404) {
+        setInlineError({ kind: 'not_found', input: trimmed })
+      } else {
+        setInlineError({ kind: 'api' })
+      }
+    }
   }
 
   async function handleConnect() {
@@ -442,19 +556,15 @@ export function Topbar() {
     setShowDisconnectDialog(false)
   }
 
-  const errorMessage: string | null = sync.isError
-    ? (sync.error as AppError)?.status === 404
-      ? 'Channel not found  -  check the handle or URL and try again'
-      : ((sync.error as AppError)?.message ?? 'Failed to load channel')
-    : null
-
-  const inputBorderColor = sync.isError
+  const isErrorBorder = inlineError !== null && inlineError.kind !== 'already_tracked'
+  const inputBorderColor = isErrorBorder
     ? 'var(--color-down)'
     : focused
       ? 'var(--accent)'
       : 'var(--color-border-base)'
 
   const hasQuery = Boolean(query.trim())
+  const showHistoryDropdown = showHistory && !query.trim() && recentChannels.length > 0
 
   return (
     <>
@@ -528,9 +638,13 @@ export function Topbar() {
         </div>
 
         {/* CENTER: Channel track form */}
-        <div className="flex flex-1 justify-center" style={{ position: 'relative' }}>
+        <div
+          ref={formWrapRef}
+          className="flex flex-1 justify-center"
+          style={{ position: 'relative' }}
+        >
           <form
-            onSubmit={handleSubmit}
+            onSubmit={(e) => void handleSubmit(e)}
             className="flex items-center gap-2"
             style={{ width: 480, maxWidth: '100%' }}
           >
@@ -546,7 +660,7 @@ export function Topbar() {
                 transition: 'border-color var(--duration-base) var(--ease-standard)',
               }}
             >
-              {sync.isPending ? (
+              {isPending ? (
                 <Loader2
                   size={14}
                   aria-hidden
@@ -565,17 +679,21 @@ export function Topbar() {
                 />
               )}
               <input
+                ref={inputRef}
                 type="search"
                 aria-label="Track a YouTube channel"
                 placeholder="@handle, channel ID, or URL..."
                 value={query}
                 onChange={(e) => {
                   setQuery(e.target.value)
-                  if (sync.isError) sync.reset()
+                  if (inlineError) setInlineError(null)
                 }}
-                onFocus={() => setFocused(true)}
+                onFocus={() => {
+                  setFocused(true)
+                  setShowHistory(true)
+                }}
                 onBlur={() => setFocused(false)}
-                disabled={sync.isPending}
+                disabled={isPending}
                 style={{
                   flex: 1,
                   minWidth: 0,
@@ -591,7 +709,7 @@ export function Topbar() {
 
             <button
               type="submit"
-              disabled={!hasQuery || sync.isPending || showSuccess}
+              disabled={!hasQuery || isPending || showSuccess}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -605,35 +723,36 @@ export function Topbar() {
                 fontFamily: 'var(--font-body)',
                 background: showSuccess
                   ? 'color-mix(in srgb, var(--color-up) 15%, var(--color-surface-2))'
-                  : hasQuery && !sync.isPending
+                  : hasQuery && !isPending
                     ? 'var(--accent)'
                     : 'var(--color-surface-2)',
                 color: showSuccess
                   ? 'var(--color-up)'
-                  : hasQuery && !sync.isPending
+                  : hasQuery && !isPending
                     ? 'var(--color-text-inverse)'
                     : 'var(--color-text-muted)',
                 border: showSuccess
                   ? '1px solid color-mix(in srgb, var(--color-up) 30%, transparent)'
                   : '1px solid transparent',
-                cursor: hasQuery && !sync.isPending && !showSuccess ? 'pointer' : 'default',
+                cursor: hasQuery && !isPending && !showSuccess ? 'pointer' : 'default',
                 transition:
                   'background var(--duration-base) var(--ease-standard), color var(--duration-base) var(--ease-standard)',
                 whiteSpace: 'nowrap',
               }}
             >
-              {sync.isPending ? (
+              {isPending ? (
                 <Loader2 size={13} className="animate-spin" aria-hidden style={{ flexShrink: 0 }} />
               ) : showSuccess ? (
                 <Check size={13} aria-hidden style={{ flexShrink: 0 }} />
               ) : (
                 <Youtube size={13} aria-hidden style={{ flexShrink: 0 }} />
               )}
-              {sync.isPending ? 'Loading...' : showSuccess ? 'Tracked' : 'Track Channel'}
+              {isPending ? 'Checking...' : showSuccess ? 'Tracked' : 'Track Channel'}
             </button>
           </form>
 
-          {errorMessage && (
+          {/* Loading hint */}
+          {isPending && (
             <p
               style={{
                 position: 'absolute',
@@ -642,19 +761,151 @@ export function Topbar() {
                 transform: 'translateX(-50%)',
                 fontFamily: 'var(--font-body)',
                 fontSize: 'var(--text-xs)',
-                color: 'var(--color-down)',
-                background: 'color-mix(in srgb, var(--color-down) 8%, var(--color-surface-1))',
-                border: '1px solid color-mix(in srgb, var(--color-down) 25%, transparent)',
-                borderRadius: 'var(--radius-md)',
-                padding: '3px var(--space-3)',
+                color: 'var(--color-text-muted)',
                 whiteSpace: 'nowrap',
-                zIndex: 10,
                 pointerEvents: 'none',
               }}
-              role="alert"
             >
-              {errorMessage}
+              Looking up channel...
             </p>
+          )}
+
+          {/* Inline errors */}
+          {!isPending && inlineError && (
+            <div
+              role="alert"
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + var(--space-1))',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--text-xs)',
+                background:
+                  inlineError.kind === 'already_tracked'
+                    ? 'color-mix(in srgb, var(--accent) 8%, var(--color-surface-1))'
+                    : 'color-mix(in srgb, var(--color-down) 8%, var(--color-surface-1))',
+                border:
+                  inlineError.kind === 'already_tracked'
+                    ? '1px solid color-mix(in srgb, var(--accent) 25%, transparent)'
+                    : '1px solid color-mix(in srgb, var(--color-down) 25%, transparent)',
+                borderRadius: 'var(--radius-md)',
+                padding: '4px var(--space-3)',
+                whiteSpace: 'nowrap',
+                zIndex: 10,
+              }}
+            >
+              {inlineError.kind === 'not_found' && (
+                <span style={{ color: 'var(--color-down)' }}>
+                  No YouTube channel found for &lsquo;{inlineError.input}&rsquo;. Check the
+                  spelling and try again.
+                </span>
+              )}
+              {inlineError.kind === 'already_tracked' && (
+                <span style={{ color: 'var(--color-text-secondary)' }}>
+                  Already tracking this channel{' '}
+                  <Link
+                    to={`/channels/${inlineError.channelId}`}
+                    style={{
+                      color: 'var(--accent)',
+                      fontWeight: 600,
+                      textDecoration: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 2,
+                    }}
+                  >
+                    View {inlineError.channelTitle}
+                    <ArrowRight size={11} aria-hidden />
+                  </Link>
+                </span>
+              )}
+              {inlineError.kind === 'api' && (
+                <span style={{ color: 'var(--color-down)' }}>
+                  Something went wrong. Please try again.
+                </span>
+              )}
+              {inlineError.kind === 'invalid' && (
+                <span style={{ color: 'var(--color-down)' }}>{inlineError.message}</span>
+              )}
+            </div>
+          )}
+
+          {/* Recent channels history dropdown */}
+          {showHistoryDropdown && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + var(--space-2))',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 480,
+                maxWidth: '100%',
+                background: 'var(--color-surface-1)',
+                border: '1px solid var(--color-border-base)',
+                borderRadius: 'var(--radius-lg)',
+                boxShadow: 'var(--shadow-md)',
+                overflow: 'hidden',
+                zIndex: 20,
+              }}
+            >
+              <div
+                style={{
+                  padding: 'var(--space-2) var(--space-3) var(--space-1)',
+                  borderBottom: '1px solid var(--color-border-subtle)',
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    fontSize: 'var(--text-xs)',
+                    fontWeight: 600,
+                    color: 'var(--color-text-muted)',
+                    letterSpacing: 'var(--tracking-wide)',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Recent
+                </span>
+              </div>
+              {recentChannels.map((handle) => (
+                <button
+                  key={handle}
+                  type="button"
+                  onClick={() => {
+                    setQuery(handle)
+                    setShowHistory(false)
+                    inputRef.current?.focus()
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--space-2)',
+                    width: '100%',
+                    padding: 'var(--space-2) var(--space-3)',
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-body)',
+                    fontSize: 'var(--text-sm)',
+                    color: 'var(--color-text-secondary)',
+                    textAlign: 'left',
+                    transition: 'background var(--duration-fast) var(--ease-standard)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'var(--color-surface-2)'
+                    e.currentTarget.style.color = 'var(--color-text-primary)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent'
+                    e.currentTarget.style.color = 'var(--color-text-secondary)'
+                  }}
+                >
+                  <Clock size={12} aria-hidden style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
+                  {handle}
+                </button>
+              ))}
+            </div>
           )}
         </div>
 

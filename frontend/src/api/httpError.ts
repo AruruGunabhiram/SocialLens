@@ -7,6 +7,8 @@ export type AppError = {
   message: string
   details?: unknown
   requestId?: string
+  /** Set by the axios interceptor when a global toast has already been shown. */
+  globallyHandled?: boolean
 }
 
 export const isAppError = (value: unknown): value is AppError => {

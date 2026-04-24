@@ -5,7 +5,6 @@ import {
   ChevronRight,
   ChevronUp,
   ChevronDown,
-  Database,
   ExternalLink,
   Loader2,
   Play,
@@ -22,7 +21,6 @@ import type { ChannelItem, VideoRow } from '@/api/types'
 import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { InfoTooltip } from '@/components/common/InfoTooltip'
-import { StatCard } from '@/components/common/StatCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -707,25 +705,133 @@ export default function ChannelVideosPage() {
     <div className="space-y-4">
       <VideosPageHeader channel={channel} channelDbId={channelDbId} />
 
-      {/* Video count stats */}
-      <div className="grid grid-cols-2 gap-4 max-w-sm">
-        <StatCard
-          label="Total Videos"
-          value={channel?.videoCount?.toLocaleString() ?? ' - '}
-          icon={<PlaySquare className="h-4 w-4 text-muted-foreground" />}
-          loading={isChannelLoading}
-        />
-        <StatCard
-          label="Indexed Videos"
-          labelExtra={
-            <InfoTooltip text="Indexed = videos stored in SocialLens DB. Total = YouTube channel lifetime total." />
-          }
-          value={meta?.totalItems?.toLocaleString() ?? ' - '}
-          description="Stored in SocialLens DB"
-          icon={<Database className="h-4 w-4 text-muted-foreground" />}
-          loading={isLoading}
-        />
-      </div>
+      {/* Indexing summary */}
+      {(isChannelLoading || channel?.videoCount != null || meta?.totalItems != null) &&
+        (() => {
+          const ytCount = channel?.videoCount
+          const indexedCount = meta?.totalItems
+          const fullyIndexed = indexedCount != null && ytCount != null && indexedCount >= ytCount
+          const pct =
+            indexedCount != null && ytCount != null && ytCount > 0
+              ? Math.round((indexedCount / ytCount) * 100)
+              : null
+
+          return (
+            <div
+              className="rounded-lg border space-y-2 p-4"
+              style={{ maxWidth: 420, background: 'var(--color-surface-1)' }}
+            >
+              <div className="flex items-center gap-2">
+                <PlaySquare
+                  className="h-4 w-4 shrink-0"
+                  style={{ color: 'var(--color-text-muted)' }}
+                  aria-hidden
+                />
+                {isChannelLoading || isLoading ? (
+                  <div
+                    className="rounded"
+                    style={{ height: 16, width: 200, background: 'var(--color-surface-2)' }}
+                  />
+                ) : fullyIndexed ? (
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-body)',
+                      fontSize: 'var(--text-sm)',
+                      color: 'var(--color-text-primary)',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontVariantNumeric: 'tabular-nums',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {indexedCount?.toLocaleString()}
+                    </span>{' '}
+                    videos{' '}
+                    <span style={{ color: 'var(--color-up)', fontWeight: 500 }}>
+                      · fully indexed
+                    </span>
+                  </span>
+                ) : (
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-body)',
+                      fontSize: 'var(--text-sm)',
+                      color: 'var(--color-text-primary)',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontVariantNumeric: 'tabular-nums',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {(indexedCount ?? 0).toLocaleString()}
+                    </span>{' '}
+                    of{' '}
+                    <span
+                      style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}
+                    >
+                      {ytCount?.toLocaleString() ?? '?'}
+                    </span>{' '}
+                    videos indexed
+                    {pct != null && (
+                      <span
+                        style={{
+                          fontFamily: 'var(--font-mono)',
+                          fontVariantNumeric: 'tabular-nums',
+                          color: 'var(--color-text-muted)',
+                        }}
+                      >
+                        {' '}
+                        ({pct}%)
+                      </span>
+                    )}
+                    <InfoTooltip text="Indexed = videos stored in SocialLens with full metadata. YouTube total = lifetime channel count." />
+                  </span>
+                )}
+              </div>
+
+              {!fullyIndexed && pct != null && (
+                <div
+                  style={{
+                    height: 4,
+                    borderRadius: 9999,
+                    background: 'var(--color-surface-2)',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div
+                    style={{
+                      height: '100%',
+                      width: `${pct}%`,
+                      background: 'var(--accent)',
+                      borderRadius: 9999,
+                      transition: 'width 0.3s ease',
+                    }}
+                  />
+                </div>
+              )}
+
+              {!fullyIndexed && !isLoading && (
+                <p
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--color-text-muted)',
+                    lineHeight: 'var(--leading-relaxed)',
+                  }}
+                >
+                  SocialLens indexes videos in batches. Run a sync to index additional videos from
+                  this channel.
+                </p>
+              )}
+            </div>
+          )
+        })()}
 
       {/* Missing-title warning banner */}
       {showTitleWarning && (

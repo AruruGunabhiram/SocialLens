@@ -9,10 +9,17 @@ export const toastDismiss = (id?: string | number): void => {
   toast.dismiss(id)
 }
 
+export const toastMessage = (message: string, type: 'error' | 'warning' | 'info' = 'error') => {
+  const opts = { duration: 6000, closeButton: true as const }
+  toast[type](message, opts)
+  addNotification({ message, type })
+}
+
 export const toastError = (error: unknown, fallback = 'Something went wrong') => {
   const opts = { duration: 6000, closeButton: true as const }
 
   if (isAppError(error)) {
+    if (error.globallyHandled) return
     const description = typeof error.details === 'string' ? error.details : undefined
     toast.error(error.message, { ...opts, description })
     addNotification({ message: error.message, description, type: 'error' })

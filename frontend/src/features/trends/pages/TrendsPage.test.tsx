@@ -252,24 +252,23 @@ describe('TrendsPage', () => {
   // ── Snapshot coverage banner ─────────────────────────────────────────────
 
   describe('snapshot coverage banner', () => {
-    it('does not render the banner when there are 0 captured days', () => {
+    it('shows 0 / 30 coverage when there are 0 captured days', () => {
       vi.mocked(useTimeSeries).mockReturnValue(tsSuccess(makeTimeSeriesResponse([])) as any)
       renderTrendsPage()
-      expect(screen.queryByTestId('snapshot-coverage-banner')).not.toBeInTheDocument()
+      expect(screen.getByText('Data Coverage')).toBeInTheDocument()
+      expect(screen.getByText(/0\s*\/\s*30\s*days/)).toBeInTheDocument()
     })
 
-    it('renders the banner with correct count for 1 captured day', () => {
+    it('shows coverage row with correct count for 1 captured day', () => {
       vi.mocked(useTimeSeries).mockReturnValue(
         tsSuccess(makeTimeSeriesResponse([{ date: '2024-03-21', value: 100 }])) as any
       )
       renderTrendsPage('1', 'mode=total')
-      const banner = screen.getByTestId('snapshot-coverage-banner')
-      expect(banner).toBeInTheDocument()
-      expect(banner).toHaveTextContent('1')
-      expect(banner).toHaveTextContent('of 30 days captured')
+      expect(screen.getByText('Data Coverage')).toBeInTheDocument()
+      expect(screen.getByText(/1\s*\/\s*30\s*days/)).toBeInTheDocument()
     })
 
-    it('renders the banner with correct count for 2 captured days', () => {
+    it('shows coverage row with correct count for 2 captured days', () => {
       vi.mocked(useTimeSeries).mockReturnValue(
         tsSuccess(
           makeTimeSeriesResponse([
@@ -279,9 +278,8 @@ describe('TrendsPage', () => {
         ) as any
       )
       renderTrendsPage()
-      const banner = screen.getByTestId('snapshot-coverage-banner')
-      expect(banner).toHaveTextContent('2')
-      expect(banner).toHaveTextContent('of 30 days captured')
+      expect(screen.getByText('Data Coverage')).toBeInTheDocument()
+      expect(screen.getByText(/2\s*\/\s*30\s*days/)).toBeInTheDocument()
     })
 
     it('shows "partial window" notice when captured days are fewer than requested range', () => {
@@ -295,9 +293,7 @@ describe('TrendsPage', () => {
       )
       // default range = 30D, only 2 days captured
       renderTrendsPage()
-      expect(screen.getByTestId('snapshot-coverage-banner')).toHaveTextContent(
-        'trends may not be reliable'
-      )
+      expect(screen.getByText(/trends may not be reliable/i)).toBeInTheDocument()
     })
 
     it('does not show "partial window" when captured days match the requested range', () => {

@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 
 import type { ChannelItem } from '@/api/types'
 import { ChannelAvatar } from '@/components/common/ChannelAvatar'
+import { DataCoverageBar } from '@/components/common/DataCoverageBar'
 import { ErrorState } from '@/components/common/ErrorState'
 import { SkeletonBlock } from '@/components/common/SkeletonBlock'
 import { Card } from '@/components/ui/card'
@@ -260,7 +261,7 @@ function ChannelCard({ channel }: { channel: ChannelItem }) {
                 color: 'var(--color-text-muted)',
               }}
             >
-              videos
+              videos on YouTube
             </span>
           </div>
         )}
@@ -380,6 +381,16 @@ function ChannelCard({ channel }: { channel: ChannelItem }) {
           View Analytics
           <ArrowRight size={13} aria-hidden style={{ flexShrink: 0 }} />
         </Link>
+      </div>
+
+      {/* ── Data coverage mini-bar ── */}
+      <div style={{ marginTop: 'var(--space-3)' }}>
+        <DataCoverageBar
+          capturedDays={channel.snapshotDayCount ?? 0}
+          targetDays={30}
+          isFailed={isFailed}
+          variant="mini"
+        />
       </div>
     </Card>
   )

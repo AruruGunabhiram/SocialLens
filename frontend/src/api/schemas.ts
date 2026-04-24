@@ -212,3 +212,34 @@ export const TimeSeriesResponseSchema = z
     points: z.array(TimeSeriesPointSchema),
   })
   .passthrough()
+
+// -----------------------------------------------------------------------
+// Channel Snapshot  -  single daily snapshot row
+// -----------------------------------------------------------------------
+
+export const ChannelSnapshotSchema = z.object({
+  id: z.number(),
+  channelId: z.number(),
+  snapshotDate: z.string(), // ISO date YYYY-MM-DD
+  subscriberCount: z.number(),
+  viewCount: z.number(),
+  videoCount: z.number(),
+})
+
+// -----------------------------------------------------------------------
+// Trends Summary  -  GET /analytics/trends/summary (future endpoint)
+// Describes a derived trend for a single metric over a date range.
+// -----------------------------------------------------------------------
+
+export const TrendsSummarySchema = z.object({
+  metric: z.string(),
+  points: z.array(TimeSeriesPointSchema),
+  growthPerDay: z.number(),
+  peakValue: z.number(),
+  peakDate: z.string(),
+  trendDirection: z.enum(['UP', 'DOWN', 'STABLE']),
+  confidence: z.enum(['LOW', 'MEDIUM', 'HIGH']),
+  capturedDays: z.number(),
+  dateRangeStart: z.string(),
+  dateRangeEnd: z.string(),
+})

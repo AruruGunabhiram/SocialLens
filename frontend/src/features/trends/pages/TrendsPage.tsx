@@ -43,6 +43,7 @@ import {
   mapChannelItemToFreshnessProps,
 } from '@/features/channels/components/FreshnessBadge'
 import { useTimeSeries } from '../queries'
+import { DataCoverageBar } from '@/components/common/DataCoverageBar'
 import {
   normalizeTimeseriesPoints,
   computeDailyDeltas,
@@ -50,10 +51,8 @@ import {
   computeInsights,
   computeSnapshotCoverage,
   isLowConfidenceCoverage,
-  MIN_RELIABLE_DAYS,
   type Insights,
   type SeriesMode,
-  type SnapshotCoverage,
 } from '../utils'
 import type { TrendMetric } from '../api'
 import type { TimeSeriesPoint } from '@/api/types'
@@ -221,82 +220,6 @@ function InsightCard({
         </div>
       </CardContent>
     </Card>
-  )
-}
-
-function SnapshotCoverageBanner({
-  coverage,
-  requestedRange,
-}: {
-  coverage: SnapshotCoverage
-  requestedRange: number
-}) {
-  const { capturedDays, firstDate, lastDate, isSparse } = coverage
-  if (capturedDays === 0) return null // empty state handles the zero case
-  if (!isSparse) return null // full coverage  -  no banner needed
-
-  const dateRange =
-    firstDate && lastDate && firstDate !== lastDate
-      ? `${fmtDateShort(firstDate)} – ${fmtDateShort(lastDate)}`
-      : firstDate
-        ? fmtDateShort(firstDate)
-        : null
-
-  const isLowCoverage = isLowConfidenceCoverage(capturedDays)
-
-  if (isLowCoverage) {
-    return (
-      <div
-        className="flex items-start gap-2 rounded-lg border px-3 py-2.5 text-sm"
-        style={{
-          borderColor: 'var(--color-warn)',
-          background: 'var(--color-warn-muted)',
-          color: 'var(--color-text-secondary)',
-        }}
-        data-testid="snapshot-coverage-banner"
-      >
-        <AlertTriangle
-          className="h-3.5 w-3.5 shrink-0 mt-0.5"
-          aria-hidden
-          style={{ color: 'var(--color-warn)' }}
-        />
-        <div>
-          <span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
-              {capturedDays}
-            </span>{' '}
-            of <span style={{ fontFamily: 'var(--font-mono)' }}>{requestedRange}</span> days
-            captured
-            {dateRange && <span> · {dateRange}</span>}
-          </span>
-          <p className="mt-0.5" style={{ fontSize: 'var(--text-xs)', color: 'var(--color-warn)' }}>
-            Fewer than {MIN_RELIABLE_DAYS} days - trends may not be reliable yet
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div
-      className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
-      style={{ borderColor: 'var(--color-border)', color: 'var(--color-muted-foreground)' }}
-      data-testid="snapshot-coverage-banner"
-    >
-      <Info className="h-3.5 w-3.5 shrink-0" aria-hidden />
-      <span>
-        <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
-          {capturedDays}
-        </span>{' '}
-        of <span style={{ fontFamily: 'var(--font-mono)' }}>{requestedRange}</span> days captured
-        {dateRange && (
-          <span style={{ color: 'var(--color-muted-foreground)', opacity: 0.75 }}>
-            {' '}
-            · {dateRange}
-          </span>
-        )}
-      </span>
-    </div>
   )
 }
 
@@ -605,8 +528,13 @@ export default function TrendsPage() {
         />
       </div>
 
-      {/* ── Snapshot coverage ──────────────────────────────────────────── */}
-      <SnapshotCoverageBanner coverage={coverage} requestedRange={range} />
+      {/* ── Data coverage ──────────────────────────────────────────────── */}
+      <DataCoverageBar
+        capturedDays={coverage.capturedDays}
+        targetDays={range}
+        lastUpdated={channelQuery.data?.lastSnapshotAt}
+        isFailed={channelQuery.data?.lastRefreshStatus === 'FAILED'}
+      />
 
       {/* ── Chart ──────────────────────────────────────────────────────── */}
       <ChartCard

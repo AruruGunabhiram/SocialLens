@@ -6,6 +6,7 @@ PORT=8081
 PID_FILE="/tmp/sociallens-backend.pid"
 LOG_FILE="/tmp/backend.log"
 BACKEND_DIR="$(cd "$(dirname "$0")/../backend" && pwd)"
+DB_PORT="${DB_PORT:-5432}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -79,6 +80,14 @@ if [ -f "$PID_FILE" ]; then
   fi
 fi
 
+# Local development expects PostgreSQL from docker-compose on localhost:5432.
+if ! lsof -Pi :"$DB_PORT" -sTCP:LISTEN -t >/dev/null 2>&1; then
+  echo -e "${RED}PostgreSQL is not listening on port $DB_PORT.${NC}"
+  echo "Start Docker Desktop, then run:"
+  echo "  docker compose up -d db"
+  exit 1
+fi
+
 # Start the backend
 echo -e "${BLUE}Starting backend on port $PORT...${NC}"
 echo "Backend directory: $BACKEND_DIR"
@@ -91,7 +100,7 @@ cd "$BACKEND_DIR"
 > "$LOG_FILE"
 
 # Start the backend in the background
-./gradlew bootRun > "$LOG_FILE" 2>&1 &
+SERVER_PORT="$PORT" SPRING_PROFILES_ACTIVE=local ./gradlew bootRun > "$LOG_FILE" 2>&1 &
 BACKEND_PID=$!
 
 # Save PID
