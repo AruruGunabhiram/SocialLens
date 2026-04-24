@@ -2,7 +2,6 @@ import { differenceInDays, isValid, parseISO } from 'date-fns'
 import {
   AlertTriangle,
   BarChart2,
-  Database,
   ExternalLink,
   Lightbulb,
   Loader2,
@@ -198,6 +197,14 @@ export default function ChannelOverviewPage() {
 
   const indexedVideoCount = videosPage?.page.totalItems
   const recentVideos = videosPage?.items ?? []
+
+  const ytVideoCount = data?.videoCount ?? channelDetail?.videoCount
+  const isFullyIndexed =
+    indexedVideoCount != null && ytVideoCount != null && indexedVideoCount >= ytVideoCount
+  const indexingPct =
+    indexedVideoCount != null && ytVideoCount != null && ytVideoCount > 0
+      ? Math.round((indexedVideoCount / ytVideoCount) * 100)
+      : null
 
   // Subscribers
   const subCount = data?.subscriberCount ?? channelDetail?.subscriberCount
@@ -563,7 +570,7 @@ export default function ChannelOverviewPage() {
       )}
 
       {/* ── SECTION 2: Key Metrics ──────────────────────────────────────── */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {/* Subscribers */}
         <StatCard
           label="Subscribers"
@@ -629,48 +636,70 @@ export default function ChannelOverviewPage() {
           loading={isLoading || isFetching}
         />
 
-        {/* Total Videos */}
+        {/* Videos — merged indexed + YouTube total */}
         <StatCard
-          label="Total Videos"
+          label="Videos"
           value={
             <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
-              {formatCount(data?.videoCount ?? channelDetail?.videoCount)}
+              {formatCount(indexedVideoCount ?? ytVideoCount)}
             </span>
           }
           icon={<PlaySquare className="h-4 w-4 text-muted-foreground" />}
-          description={snapshotDateLabel ? <span>{snapshotDateLabel}</span> : undefined}
-          loading={isLoading || isFetching}
-        />
-
-        {/* Indexed Videos */}
-        <StatCard
-          label="Indexed Videos"
-          labelExtra={
-            <InfoTooltip
-              text={
-                indexedVideoCount != null && (data?.videoCount ?? channelDetail?.videoCount) != null
-                  ? `SocialLens has indexed ${indexedVideoCount} of ${data?.videoCount ?? channelDetail?.videoCount} total videos. Run a sync to index more.`
-                  : 'Indexed = videos stored in SocialLens DB with full metadata.'
-              }
-            />
-          }
-          value={
-            <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
-              {formatCount(indexedVideoCount)}
-            </span>
-          }
-          icon={<Database className="h-4 w-4 text-muted-foreground" />}
           description={
-            (data?.videoCount ?? channelDetail?.videoCount) != null && indexedVideoCount != null ? (
-              <span>
-                of{' '}
-                <span
-                  style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}
-                >
-                  {formatCount(data?.videoCount ?? channelDetail?.videoCount)}
-                </span>{' '}
-                on YouTube
-              </span>
+            isFullyIndexed ? (
+              <span style={{ color: 'var(--color-up)', fontWeight: 500 }}>fully indexed</span>
+            ) : ytVideoCount != null && indexedVideoCount != null ? (
+              <div className="space-y-1.5">
+                <span>
+                  of{' '}
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    {formatCount(ytVideoCount)}
+                  </span>{' '}
+                  on YouTube
+                  <InfoTooltip
+                    text={`SocialLens has indexed ${indexedVideoCount} of ${ytVideoCount} total YouTube videos. Run a sync to index more videos.`}
+                  />
+                </span>
+                {indexingPct != null && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div
+                      style={{
+                        flex: 1,
+                        height: 4,
+                        borderRadius: 9999,
+                        background: 'var(--color-surface-2)',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: '100%',
+                          width: `${indexingPct}%`,
+                          background: 'var(--accent)',
+                          borderRadius: 9999,
+                        }}
+                      />
+                    </div>
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontVariantNumeric: 'tabular-nums',
+                        fontSize: 11,
+                        color: 'var(--color-text-secondary)',
+                      }}
+                    >
+                      {indexingPct}%
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : snapshotDateLabel ? (
+              <span>{snapshotDateLabel}</span>
             ) : undefined
           }
           loading={isLoading || isFetching}

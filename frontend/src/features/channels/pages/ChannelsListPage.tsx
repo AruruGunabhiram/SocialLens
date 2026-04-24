@@ -261,7 +261,7 @@ function ChannelCard({ channel }: { channel: ChannelItem }) {
                 color: 'var(--color-text-muted)',
               }}
             >
-              videos
+              videos on YouTube
             </span>
           </div>
         )}
