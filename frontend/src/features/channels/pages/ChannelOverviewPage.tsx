@@ -58,6 +58,7 @@ import { formatCount, formatDate } from '@/utils/formatters'
 import { toastError } from '@/lib/toast'
 import { useRefreshAction } from '@/hooks/useRefreshAction'
 
+import { DataCoverageBar } from '@/components/common/DataCoverageBar'
 import { ChannelChart } from '../components/ChannelChart'
 import { FreshnessBadge, mapChannelItemToFreshnessProps } from '../components/FreshnessBadge'
 import {
@@ -675,6 +676,18 @@ export default function ChannelOverviewPage() {
           loading={isLoading || isFetching}
         />
       </div>
+
+      {/* ── DATA COVERAGE ───────────────────────────────────────────────── */}
+      {channelDetail?.snapshotDayCount != null && (
+        <div className="rounded-lg border bg-card/60 p-5 shadow-sm">
+          <DataCoverageBar
+            capturedDays={channelDetail.snapshotDayCount}
+            targetDays={30}
+            lastUpdated={channelDetail.lastSnapshotAt}
+            isFailed={isFailed}
+          />
+        </div>
+      )}
 
       {/* ── SECTION 3: Performance Chart ────────────────────────────────── */}
       <div style={{ height: 320 }}>
