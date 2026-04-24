@@ -8,6 +8,7 @@ set -euo pipefail
 
 PORT="${SERVER_PORT:-8081}"
 BACKEND_DIR="$(cd "$(dirname "$0")/../backend" && pwd)"
+DB_PORT="${DB_PORT:-5432}"
 
 # Colors
 RED='\033[0;31m'
@@ -56,6 +57,14 @@ if lsof -Pi :"$PORT" -sTCP:LISTEN -t >/dev/null 2>&1; then
   esac
 fi
 
+# Local development expects PostgreSQL from docker-compose on localhost:5432.
+if ! lsof -Pi :"$DB_PORT" -sTCP:LISTEN -t >/dev/null 2>&1; then
+  echo -e "${RED}PostgreSQL is not listening on port $DB_PORT.${NC}"
+  echo "Start Docker Desktop, then run:"
+  echo "  docker compose up -d db"
+  exit 1
+fi
+
 # Start the backend (foreground so logs go to terminal)
 echo -e "${BLUE}Starting backend on port $PORT...${NC}"
 echo "Stop: Ctrl-C"
@@ -63,4 +72,5 @@ echo ""
 
 cd "$BACKEND_DIR"
 export SERVER_PORT="$PORT"
+export SPRING_PROFILES_ACTIVE=local
 exec ./gradlew bootRun
