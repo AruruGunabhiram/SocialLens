@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom'
 import type { ChannelItem } from '@/api/types'
 import { ChannelAvatar } from '@/components/common/ChannelAvatar'
 import { DataCoverageBar } from '@/components/common/DataCoverageBar'
+import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { SkeletonBlock } from '@/components/common/SkeletonBlock'
 import { Card } from '@/components/ui/card'
@@ -467,82 +468,6 @@ function PageHeader({ count, onTrackClick }: { count?: number; onTrackClick: () 
   )
 }
 
-// ─── Empty state ──────────────────────────────────────────────────────────────
-
-function ChannelsEmptyState({ onTrackClick }: { onTrackClick: () => void }) {
-  return (
-    <div
-      className="flex flex-col items-center text-center"
-      style={{ padding: 'var(--space-16) var(--space-8)', maxWidth: 400, margin: '0 auto' }}
-    >
-      <div
-        style={{
-          width: 72,
-          height: 72,
-          borderRadius: '50%',
-          background: 'var(--color-surface-2)',
-          border: '1px solid var(--color-border-base)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: 'var(--space-6)',
-        }}
-      >
-        <Tv2 size={32} style={{ color: 'var(--color-text-muted)' }} aria-hidden />
-      </div>
-
-      <h2
-        style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: 'var(--text-2xl)',
-          fontWeight: 600,
-          color: 'var(--color-text-primary)',
-          letterSpacing: 'var(--tracking-tight)',
-          marginBottom: 'var(--space-2)',
-        }}
-      >
-        No channels tracked yet
-      </h2>
-      <p
-        style={{
-          fontFamily: 'var(--font-body)',
-          fontSize: 'var(--text-base)',
-          color: 'var(--color-text-secondary)',
-          lineHeight: 'var(--leading-relaxed)',
-          marginBottom: 'var(--space-6)',
-        }}
-      >
-        Add a YouTube channel to start analyzing performance metrics and growth trends.
-      </p>
-
-      <button
-        type="button"
-        onClick={onTrackClick}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 'var(--space-2)',
-          padding: 'var(--space-3) var(--space-6)',
-          background: 'var(--accent)',
-          border: 'none',
-          borderRadius: 'var(--radius-md)',
-          fontFamily: 'var(--font-body)',
-          fontSize: 'var(--text-base)',
-          fontWeight: 600,
-          color: 'var(--color-text-inverse)',
-          cursor: 'pointer',
-          transition: 'opacity var(--duration-base) var(--ease-standard)',
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
-        onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
-      >
-        <Plus size={16} aria-hidden style={{ flexShrink: 0 }} />
-        Track Your First Channel
-      </button>
-    </div>
-  )
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ChannelsListPage() {
@@ -587,7 +512,12 @@ export default function ChannelsListPage() {
     return (
       <div className="space-y-8">
         <PageHeader onTrackClick={openDialog} />
-        <ChannelsEmptyState onTrackClick={openDialog} />
+        <EmptyState
+          icon={Tv2}
+          title="No channels tracked yet"
+          description="Add a YouTube channel handle, URL, or ID to start analyzing performance."
+          action={{ label: '+ Track Your First Channel', onClick: openDialog }}
+        />
         <TrackChannelDialog open={dialogOpen} onOpenChange={setDialogOpen} />
       </div>
     )

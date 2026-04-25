@@ -269,6 +269,7 @@ export default function ChannelOverviewPage() {
   if (!channelDbId) {
     return (
       <EmptyState
+        icon={BarChart2}
         title="No channel loaded"
         description="Use the top bar to enter a channel identifier (@handle, UC..., or URL) and click Load."
       />
@@ -286,10 +287,13 @@ export default function ChannelOverviewPage() {
     if (isNotFound) {
       return (
         <EmptyState
+          icon={AlertTriangle}
           title={`Channel #${channelDbId} not found`}
           description="This channel may have been removed from SocialLens, or the ID is incorrect."
-          actionLabel="View all tracked channels"
-          onAction={() => window.location.assign('/channels')}
+          action={{
+            label: 'View all tracked channels',
+            onClick: () => window.location.assign('/channels'),
+          }}
         />
       )
     }

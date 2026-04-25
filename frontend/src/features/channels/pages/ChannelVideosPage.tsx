@@ -11,7 +11,6 @@ import {
   PlaySquare,
   RefreshCw,
   Search,
-  Video,
   X,
 } from 'lucide-react'
 import { useRef, useState, type ReactNode } from 'react'
@@ -1156,15 +1155,22 @@ export default function ChannelVideosPage() {
                   <tr>
                     <td colSpan={6} className="py-12">
                       <EmptyState
-                        icon={<Video className="h-7 w-7 text-muted-foreground/50" />}
+                        icon={urlQ ? Search : PlaySquare}
                         title={urlQ ? `No videos match "${urlQ}"` : 'No videos indexed yet'}
                         description={
                           urlQ
-                            ? 'Try a different title or video ID.'
-                            : 'Run a sync to populate video data.'
+                            ? 'Try a different search term or video ID.'
+                            : 'Run a sync to index videos from this channel. SocialLens will store metadata and metrics for analysis.'
                         }
-                        actionLabel={urlQ ? 'Clear search' : undefined}
-                        onAction={urlQ ? handleClearSearch : undefined}
+                        action={
+                          urlQ
+                            ? {
+                                label: 'Clear Search',
+                                onClick: handleClearSearch,
+                                variant: 'outline',
+                              }
+                            : { label: '↺ Run Sync Now', onClick: triggerRefresh }
+                        }
                         className="border-0 shadow-none"
                       />
                     </td>
