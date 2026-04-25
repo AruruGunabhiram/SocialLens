@@ -5,8 +5,12 @@ import { X, Youtube } from 'lucide-react'
 
 import { useReduceMotion } from '@/lib/ReduceMotionContext'
 import { useMode } from '@/lib/ModeContext'
+import { KeyboardShortcutsProvider } from '@/lib/KeyboardShortcutsContext'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useAccountStatus, useCurrentUser } from '@/features/account/queries'
 import { fetchOAuthStartUrl } from '@/features/account/api'
+import { CommandPalette } from '@/components/common/CommandPalette'
+import { ShortcutsHelpModal } from '@/components/common/ShortcutsHelpModal'
 import { Topbar } from './Topbar'
 import { Sidebar } from './Sidebar'
 import { CopilotPanel } from '@/components/layout/CopilotPanel'
@@ -137,10 +141,13 @@ function PageFallback() {
   )
 }
 
-export function AppShell() {
+// Inner shell that runs inside KeyboardShortcutsProvider (needs context)
+function AppShellInner() {
   const location = useLocation()
   const { reduceMotion } = useReduceMotion()
   const { mode } = useMode()
+
+  useKeyboardShortcuts()
 
   return (
     <div
@@ -180,6 +187,17 @@ export function AppShell() {
       </div>
 
       <AnimatePresence>{mode === 'studio' && <CopilotPanel />}</AnimatePresence>
+
+      <CommandPalette />
+      <ShortcutsHelpModal />
     </div>
+  )
+}
+
+export function AppShell() {
+  return (
+    <KeyboardShortcutsProvider>
+      <AppShellInner />
+    </KeyboardShortcutsProvider>
   )
 }
