@@ -743,7 +743,7 @@ export default function TrendsPage() {
                 marginTop: 'var(--space-2)',
               }}
             >
-              {rawPoints.length} of {range} day{range !== 1 ? 's' : ''} captured
+              {rawPoints.length} of {range} days captured
             </p>
           </div>
         )}
