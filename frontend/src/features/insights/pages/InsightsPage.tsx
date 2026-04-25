@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
-  AlertCircle,
   CheckCircle2,
   ChevronRight,
+  Lightbulb,
   Lock,
   Loader2,
   Minus,
@@ -27,6 +27,7 @@ import {
 import { fmtDelta } from '@/lib/format'
 import { formatCount, formatDate } from '@/utils/formatters'
 import { normalizeHttpError } from '@/api/httpError'
+import { EmptyState } from '@/components/common/EmptyState'
 import { SkeletonBlock } from '@/components/common/SkeletonBlock'
 import { ErrorState } from '@/components/common/ErrorState'
 import {
@@ -857,25 +858,12 @@ export default function InsightsPage() {
 
       {/* ── No channel selected ───────────────────────────────────────────── */}
       {!channelDbId && (
-        <div
-          style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-3)', ...CARD }}
-          data-testid="no-channel"
-        >
-          <AlertCircle
-            size={16}
-            aria-hidden
-            style={{ color: 'var(--color-text-muted)', marginTop: 2 }}
+        <div data-testid="no-channel">
+          <EmptyState
+            icon={Lightbulb}
+            title="Select a channel to view insights"
+            description="Choose a tracked channel from the dropdown above to run retention diagnosis and view analytics."
           />
-          <p
-            style={{
-              fontFamily: 'var(--font-body)',
-              fontSize: 'var(--text-sm)',
-              color: 'var(--color-text-secondary)',
-              margin: 0,
-            }}
-          >
-            Select a channel above to view insights.
-          </p>
         </div>
       )}
 

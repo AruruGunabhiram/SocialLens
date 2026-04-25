@@ -1,7 +1,7 @@
 import { useQueries } from '@tanstack/react-query'
 import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Play, Search, Video } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Play, PlaySquare, Search, Tv2 } from 'lucide-react'
 
 import { fetchChannelVideos } from '@/features/channels/api'
 import { channelListQueryKeys, useChannelsQuery } from '@/features/channels/queries'
@@ -519,6 +519,13 @@ export default function VideosPage() {
     }, 300)
   }
 
+  function clearSearch() {
+    clearTimeout(debounceRef.current)
+    setSearchInput('')
+    setSearch('')
+    setPage(0)
+  }
+
   function handleSortChange(e: React.ChangeEvent<HTMLSelectElement>) {
     setSort(e.target.value as SortOption)
     setPage(0)
@@ -701,20 +708,25 @@ export default function VideosPage() {
                   <tr>
                     <td colSpan={7} className="py-16">
                       <EmptyState
-                        icon={<Video className="h-7 w-7 text-muted-foreground/50" />}
+                        icon={noChannels ? Tv2 : search ? Search : PlaySquare}
                         title={
                           noChannels
-                            ? 'No channels tracked'
+                            ? 'No channels tracked yet'
                             : search
-                              ? 'No results'
+                              ? `No videos match "${search}"`
                               : 'No videos indexed yet'
                         }
                         description={
                           noChannels
-                            ? 'No videos indexed yet. Track a channel and run a sync to see videos here.'
+                            ? 'Add a YouTube channel handle, URL, or ID to start analyzing performance.'
                             : search
-                              ? `No videos matched "${search}".`
+                              ? 'Try a different search term or video ID.'
                               : 'Track a channel and run a sync to see videos here.'
+                        }
+                        action={
+                          search
+                            ? { label: 'Clear Search', onClick: clearSearch, variant: 'outline' }
+                            : undefined
                         }
                         className="border-0 shadow-none"
                       />

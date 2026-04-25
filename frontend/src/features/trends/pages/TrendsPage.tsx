@@ -92,6 +92,38 @@ function normalizeErrorMessage(error: unknown): string {
   return 'Unknown error'
 }
 
+function getSparseHistoryCopy(pointCount: number, mode: SeriesMode) {
+  if (pointCount === 0) {
+    return {
+      title: 'No snapshot history yet',
+      description:
+        'No snapshots have been captured for this channel yet. Run a sync to capture the first daily snapshot.',
+    }
+  }
+
+  if (mode === 'delta') {
+    return {
+      title: 'Need at least 3 snapshots - run refresh',
+      description:
+        'Daily change trends require at least 3 snapshots so SocialLens can compare consecutive daily changes.',
+    }
+  }
+
+  if (pointCount === 1) {
+    return {
+      title: 'Only 1 snapshot captured - need at least 2',
+      description:
+        'Only 1 day of data captured so far. SocialLens needs at least 2 daily snapshots to draw a trend.',
+    }
+  }
+
+  return {
+    title: 'Not enough data for trends',
+    description:
+      'Trend analysis requires additional daily snapshots. SocialLens will automatically collect snapshots each day this channel is tracked.',
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Sub-components
 // ─────────────────────────────────────────────────────────────────────────────
@@ -473,22 +505,7 @@ export default function TrendsPage() {
     seriesMode === 'delta'
       ? 'Daily change between captured snapshots'
       : `Daily ${config.label.toLowerCase()} snapshots`
-
-  // Title + description for the insufficient-data empty state.
-  // Distinguish: no history at all vs. not enough to draw a line/delta.
-  const insufficientTitle = (() => {
-    if (normalizedPoints.length === 0) return 'No snapshot history yet'
-    if (seriesMode === 'delta') return 'Need at least 3 snapshots  -  run refresh'
-    return 'Only 1 snapshot captured  -  need at least 2'
-  })()
-
-  const insufficientDescription = (() => {
-    if (normalizedPoints.length === 0)
-      return 'No snapshots have been captured for this channel yet. Run a refresh to record the first data point.'
-    if (normalizedPoints.length === 1)
-      return 'Only 1 day of data captured so far. Run refresh again on a different day to start seeing trends.'
-    return 'Run the refresh job for this channel to write more daily snapshots.'
-  })()
+  const sparseHistoryCopy = getSparseHistoryCopy(rawPoints.length, seriesMode)
 
   return (
     <div className="space-y-4 p-4">
@@ -637,22 +654,98 @@ export default function TrendsPage() {
               </LineChart>
             )}
           </ResponsiveContainer>
-        ) : (
+        ) : rawPoints.length === 0 ? (
           <EmptyState
-            title={insufficientTitle}
-            description={insufficientDescription}
-            actionLabel={
-              refreshState.phase === 'success'
-                ? 'Refreshed'
-                : refreshState.phase === 'error'
-                  ? 'Failed  -  try again'
-                  : refreshState.isPending
-                    ? 'Refreshing...'
-                    : 'Refresh now'
-            }
-            onAction={triggerRefresh}
+            icon={BarChart2}
+            title={sparseHistoryCopy.title}
+            description={sparseHistoryCopy.description}
+            action={{
+              label: refreshState.isPending
+                ? 'Syncing...'
+                : refreshState.phase === 'success'
+                  ? 'Synced'
+                  : refreshState.phase === 'error'
+                    ? 'Failed — try again'
+                    : '↺ Sync Now',
+              onClick: triggerRefresh,
+            }}
             className="h-full border-0 shadow-none bg-transparent"
           />
+        ) : (
+          <div
+            className="flex flex-col items-center"
+            style={{ paddingTop: 'var(--space-4)', paddingBottom: 'var(--space-6)' }}
+          >
+            <EmptyState
+              icon={TrendingUp}
+              title={sparseHistoryCopy.title}
+              description={sparseHistoryCopy.description}
+              className="border-0 shadow-none bg-transparent"
+            />
+
+            {/* Day-by-day capture timeline */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+                marginTop: 'var(--space-2)',
+                padding: '0 var(--space-4)',
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '11px',
+                  color: 'var(--color-text-muted)',
+                  flexShrink: 0,
+                }}
+              >
+                Day 1
+              </span>
+              <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+                {Array.from({ length: Math.min(range, 30) }, (_, i) => (
+                  <div
+                    key={i}
+                    title={
+                      i < rawPoints.length
+                        ? `Day ${i + 1}: captured`
+                        : `Day ${i + 1}: not yet captured`
+                    }
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      flexShrink: 0,
+                      background: i < rawPoints.length ? 'var(--accent)' : 'var(--color-surface-2)',
+                      border:
+                        i < rawPoints.length ? 'none' : '1px solid var(--color-border-subtle)',
+                    }}
+                  />
+                ))}
+              </div>
+              <span
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '11px',
+                  color: 'var(--color-text-muted)',
+                  flexShrink: 0,
+                }}
+              >
+                Day {range}
+              </span>
+            </div>
+            <p
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--color-text-muted)',
+                marginTop: 'var(--space-2)',
+              }}
+            >
+              {rawPoints.length} of {range} days captured
+            </p>
+          </div>
         )}
       </ChartCard>
 

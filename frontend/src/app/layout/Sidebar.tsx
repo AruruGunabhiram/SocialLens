@@ -201,15 +201,40 @@ function AccountStatusStrip() {
 // ─── Nav config ───────────────────────────────────────────────────────────────
 
 const PRIMARY_NAV = [
-  { label: 'Dashboard', to: '/', icon: LayoutDashboard },
-  { label: 'Channels', to: '/channels', icon: Tv2 },
-  { label: 'Videos', to: '/videos', icon: PlaySquare },
-  { label: 'Trends', to: '/trends', icon: TrendingUp },
-  { label: 'Insights', to: '/insights', icon: Lightbulb },
-  { label: 'Copilot', to: '/copilot', icon: Bot },
+  { label: 'Dashboard', to: '/', icon: LayoutDashboard, hint: undefined },
+  { label: 'Channels', to: '/channels', icon: Tv2, hint: 'g c' },
+  { label: 'Videos', to: '/videos', icon: PlaySquare, hint: undefined },
+  { label: 'Trends', to: '/trends', icon: TrendingUp, hint: undefined },
+  { label: 'Insights', to: '/insights', icon: Lightbulb, hint: 'g i' },
+  { label: 'Copilot', to: '/copilot', icon: Bot, hint: 'g p' },
 ] as const
 
-const SECONDARY_NAV = [{ label: 'Settings', to: '/settings', icon: Settings }] as const
+const SECONDARY_NAV = [{ label: 'Settings', to: '/settings', icon: Settings, hint: 'g s' }] as const
+
+// ─── ShortcutPill ─────────────────────────────────────────────────────────────
+
+function ShortcutPill({ hint }: { hint: string }) {
+  return (
+    <span
+      aria-hidden
+      style={{
+        marginLeft: 'auto',
+        fontFamily: 'var(--font-mono)',
+        fontSize: '10px',
+        color: 'var(--color-text-muted)',
+        background: 'var(--color-surface-3)',
+        border: '1px solid var(--color-border-subtle)',
+        borderRadius: 'var(--radius-sm)',
+        padding: '1px 5px',
+        lineHeight: 1.4,
+        flexShrink: 0,
+        letterSpacing: '0.02em',
+      }}
+    >
+      {hint}
+    </span>
+  )
+}
 
 // ─── NavItem ──────────────────────────────────────────────────────────────────
 
@@ -217,11 +242,13 @@ function NavItem({
   to,
   icon: Icon,
   label,
+  hint,
   end,
 }: {
   to: string
   icon: React.ElementType
   label: string
+  hint?: string
   end?: boolean
 }) {
   return (
@@ -252,6 +279,7 @@ function NavItem({
             }}
           />
           {label}
+          {hint && <ShortcutPill hint={hint} />}
         </>
       )}
     </NavLink>
@@ -338,8 +366,8 @@ export function Sidebar() {
 
       {/* ── Primary nav ── */}
       <nav className="flex flex-1 flex-col gap-0.5 px-3 pt-3">
-        {PRIMARY_NAV.map(({ label, to, icon }) => (
-          <NavItem key={to} to={to} icon={icon} label={label} end={to === '/'} />
+        {PRIMARY_NAV.map(({ label, to, icon, hint }) => (
+          <NavItem key={to} to={to} icon={icon} label={label} hint={hint} end={to === '/'} />
         ))}
 
         {/* Divider */}
@@ -353,8 +381,8 @@ export function Sidebar() {
         />
 
         {/* Secondary nav */}
-        {SECONDARY_NAV.map(({ label, to, icon }) => (
-          <NavItem key={to} to={to} icon={icon} label={label} />
+        {SECONDARY_NAV.map(({ label, to, icon, hint }) => (
+          <NavItem key={to} to={to} icon={icon} label={label} hint={hint} />
         ))}
       </nav>
 

@@ -681,8 +681,9 @@ export function Topbar() {
               <input
                 ref={inputRef}
                 type="search"
+                data-search-input
                 aria-label="Track a YouTube channel"
-                placeholder="@handle, channel ID, or URL..."
+                placeholder="@handle, channel ID, or URL... (press /)"
                 value={query}
                 onChange={(e) => {
                   setQuery(e.target.value)

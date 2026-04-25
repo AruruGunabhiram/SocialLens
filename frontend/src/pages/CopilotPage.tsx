@@ -8,6 +8,7 @@ import {
   useVideosQuery,
 } from '@/features/channels/queries'
 import { ChannelAvatar } from '@/components/common/ChannelAvatar'
+import { EmptyState } from '@/components/common/EmptyState'
 import { formatCount, formatDate, formatSubscriberCount } from '@/utils/formatters'
 import type { ChannelAnalytics, ChannelItem, VideoRow } from '@/api/types'
 
@@ -688,12 +689,12 @@ export default function CopilotPage() {
         {/* Messages */}
         <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-5)' }}>
           {showNoChannel ? (
-            <div
-              className="flex flex-col items-center justify-center"
-              style={{ height: '100%', gap: 'var(--space-4)' }}
-            >
-              <Bot size={36} style={{ color: 'var(--color-text-muted)' }} aria-hidden />
-              <p style={muted}>Select a channel on the left to start asking questions.</p>
+            <div className="flex items-center justify-center" style={{ height: '100%' }}>
+              <EmptyState
+                icon={Bot}
+                title="Select a channel to start"
+                description="The Copilot analyzes your channel's actual data. Pick a channel above to ask questions."
+              />
             </div>
           ) : showEmpty ? (
             <SuggestedQuestions onPick={(q) => void send(q)} />
