@@ -92,6 +92,38 @@ function normalizeErrorMessage(error: unknown): string {
   return 'Unknown error'
 }
 
+function getSparseHistoryCopy(pointCount: number, mode: SeriesMode) {
+  if (pointCount === 0) {
+    return {
+      title: 'No snapshot history yet',
+      description:
+        'No snapshots have been captured for this channel yet. Run a sync to capture the first daily snapshot.',
+    }
+  }
+
+  if (mode === 'delta') {
+    return {
+      title: 'Need at least 3 snapshots - run refresh',
+      description:
+        'Daily change trends require at least 3 snapshots so SocialLens can compare consecutive daily changes.',
+    }
+  }
+
+  if (pointCount === 1) {
+    return {
+      title: 'Only 1 snapshot captured - need at least 2',
+      description:
+        'Only 1 day of data captured so far. SocialLens needs at least 2 daily snapshots to draw a trend.',
+    }
+  }
+
+  return {
+    title: 'Not enough data for trends',
+    description:
+      'Trend analysis requires additional daily snapshots. SocialLens will automatically collect snapshots each day this channel is tracked.',
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Sub-components
 // ─────────────────────────────────────────────────────────────────────────────
@@ -473,6 +505,7 @@ export default function TrendsPage() {
     seriesMode === 'delta'
       ? 'Daily change between captured snapshots'
       : `Daily ${config.label.toLowerCase()} snapshots`
+  const sparseHistoryCopy = getSparseHistoryCopy(rawPoints.length, seriesMode)
 
   return (
     <div className="space-y-4 p-4">
@@ -624,8 +657,8 @@ export default function TrendsPage() {
         ) : rawPoints.length === 0 ? (
           <EmptyState
             icon={BarChart2}
-            title="No performance data yet"
-            description="SocialLens collects daily snapshots to build trend data. Check back after the first sync completes."
+            title={sparseHistoryCopy.title}
+            description={sparseHistoryCopy.description}
             action={{
               label: refreshState.isPending
                 ? 'Syncing...'
@@ -645,8 +678,8 @@ export default function TrendsPage() {
           >
             <EmptyState
               icon={TrendingUp}
-              title="Not enough data for trends"
-              description="Trend analysis requires at least 2 daily snapshots. SocialLens will automatically collect snapshots each day this channel is tracked."
+              title={sparseHistoryCopy.title}
+              description={sparseHistoryCopy.description}
               className="border-0 shadow-none bg-transparent"
             />
 

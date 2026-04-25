@@ -1159,7 +1159,7 @@ export default function ChannelVideosPage() {
                         title={urlQ ? `No videos match "${urlQ}"` : 'No videos indexed yet'}
                         description={
                           urlQ
-                            ? 'Try a different search term or video ID.'
+                            ? 'Try a different title or video ID.'
                             : 'Run a sync to index videos from this channel. SocialLens will store metadata and metrics for analysis.'
                         }
                         action={
