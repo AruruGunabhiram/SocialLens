@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Topbar } from './Topbar'
 import { ModeProvider } from '@/lib/ModeContext'
+import { DemoModeProvider } from '@/lib/DemoModeContext'
 
 const mockSyncChannel = vi.fn()
 
@@ -37,9 +38,11 @@ function renderTopbar() {
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter>
-        <ModeProvider>
-          <Topbar />
-        </ModeProvider>
+        <DemoModeProvider>
+          <ModeProvider>
+            <Topbar />
+          </ModeProvider>
+        </DemoModeProvider>
       </MemoryRouter>
     </QueryClientProvider>
   )
