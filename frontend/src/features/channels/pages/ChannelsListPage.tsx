@@ -567,11 +567,13 @@ export default function ChannelsListPage() {
     )
   }
 
+  const visibleChannels = channels ?? []
+
   return (
     <div className="space-y-8">
-      <PageHeader count={channels.length} onTrackClick={openDialog} />
+      <PageHeader count={visibleChannels.length} onTrackClick={openDialog} />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {channels.map((ch) => (
+        {visibleChannels.map((ch) => (
           <ChannelCard key={ch.id} channel={ch} />
         ))}
       </div>

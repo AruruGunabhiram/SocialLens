@@ -194,12 +194,7 @@ export function useChannelAnalyticsQuery(
 export function useChannelAnalyticsByIdQuery(
   channelDbId?: number,
   options?: Omit<
-    UseQueryOptions<
-      ChannelAnalytics,
-      unknown,
-      ChannelAnalytics,
-      ReturnType<typeof channelQueryKeys.analyticsById>
-    >,
+    UseQueryOptions<ChannelAnalytics, unknown, ChannelAnalytics>,
     'queryKey' | 'queryFn'
   >
 ) {
