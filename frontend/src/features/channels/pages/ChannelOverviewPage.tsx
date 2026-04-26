@@ -253,7 +253,7 @@ export default function ChannelOverviewPage() {
             value: channelDetail?.lastRefreshStatus ?? ' - ',
           },
           {
-            label: 'Last synced',
+            label: 'Last updated',
             value: formatDate(channelDetail?.lastSuccessfulRefreshAt),
           },
           {
@@ -491,7 +491,7 @@ export default function ChannelOverviewPage() {
               />
               <div className="space-y-1 min-w-0">
                 <p className="font-semibold text-sm" style={{ color: 'var(--color-down)' }}>
-                  Last sync failed
+                  Last update failed
                 </p>
                 {humanErr.isRaw ? (
                   <code
@@ -511,7 +511,7 @@ export default function ChannelOverviewPage() {
                 )}
                 {channelDetail.lastSuccessfulRefreshAt && (
                   <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                    Last successful sync: {formatDate(channelDetail.lastSuccessfulRefreshAt)}
+                    Last successful update: {formatDate(channelDetail.lastSuccessfulRefreshAt)}
                   </p>
                 )}
               </div>

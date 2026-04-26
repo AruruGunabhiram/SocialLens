@@ -130,24 +130,30 @@ export function FreshnessBadge({
   // "has data" = at least one snapshot exists (either we have a count, or a timestamp).
   const hasData = snapshotDayCount != null ? snapshotDayCount > 0 : snapshotDate != null
 
-  // Snapshot coverage line: prefer "N days of data · updated X ago" when count is known.
-  const snapshotLine = snapshotDate
-    ? snapshotDayCount != null && snapshotDayCount > 0
-      ? `${snapshotDayCount} day${snapshotDayCount !== 1 ? 's' : ''} of data · updated ${formatRelativeTime(lastSnapshotAt)}`
-      : `Snapshot ${formatRelativeTime(lastSnapshotAt)}`
-    : 'No snapshots yet'
+  // Single freshness line combining time + data count.
+  // Badge already communicates status; this line answers "when" + "how much data".
+  const countPart =
+    snapshotDayCount != null && snapshotDayCount > 0
+      ? `${snapshotDayCount} day${snapshotDayCount !== 1 ? 's' : ''} of data`
+      : null
 
-  // When FAILED, lastRefreshAt is the last *successful* time  -  label accordingly.
-  // When PARTIAL, lastRefreshAt IS the partial run time (snapshot succeeded).
-  // For SUCCESS, show just the relative time (no "Synced" prefix).
-  const refreshLabel =
-    refreshDate == null
-      ? 'Never synced'
-      : isFailed
-        ? `Last success ${formatRelativeTime(lastRefreshAt)}`
-        : isPartial
-          ? `Partial sync ${formatRelativeTime(lastRefreshAt)}`
-          : formatRelativeTime(lastRefreshAt)
+  let freshnessLine: string
+  if (isFailed) {
+    const timePart = refreshDate
+      ? `Last successful update ${formatRelativeTime(lastRefreshAt)}`
+      : 'No successful updates yet'
+    freshnessLine = countPart ? `${timePart} · ${countPart}` : timePart
+  } else if (isPartial) {
+    const timePart = refreshDate
+      ? `Partial update ${formatRelativeTime(lastRefreshAt)}`
+      : 'Partial update'
+    freshnessLine = countPart ? `${timePart} · ${countPart}` : timePart
+  } else if (refreshDate) {
+    const timePart = `Updated ${formatRelativeTime(lastRefreshAt)}`
+    freshnessLine = countPart ? `${timePart} · ${countPart}` : timePart
+  } else {
+    freshnessLine = countPart ? `Never updated · ${countPart}` : 'Never updated'
+  }
 
   return (
     <div
@@ -165,13 +171,8 @@ export function FreshnessBadge({
           {humanRefreshStatus(status)}
         </Badge>
 
-        {/* Snapshot coverage */}
-        <span data-testid="freshness-snapshot">{snapshotLine}</span>
-
-        {/* Last refresh time */}
-        <span className="text-xs text-muted-foreground/70" data-testid="freshness-refresh">
-          {refreshLabel}
-        </span>
+        {/* Freshness line: time + data count */}
+        <span data-testid="freshness-snapshot">{freshnessLine}</span>
 
         {/* "View error / View details" toggle  -  visible for FAILED and PARTIAL */}
         {showDetailToggle && (

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { useAccountStatus, useCurrentUser } from '@/features/account/queries'
 import { fetchOAuthStartUrl } from '@/features/account/api'
+import { ChangelogBadge } from '@/components/common/ChangelogBadge'
 
 // ─── AccountStatusStrip ───────────────────────────────────────────────────────
 //
@@ -344,24 +345,7 @@ export function Sidebar() {
         >
           SocialLens
         </span>
-        <span
-          style={{
-            fontFamily: 'var(--font-body)',
-            fontSize: '10px',
-            fontWeight: 700,
-            color: 'var(--color-neutral)',
-            background: 'color-mix(in srgb, var(--color-neutral) 10%, transparent)',
-            border: '1px solid color-mix(in srgb, var(--color-neutral) 25%, transparent)',
-            borderRadius: 'var(--radius-full)',
-            padding: '2px 6px',
-            letterSpacing: 'var(--tracking-wide)',
-            lineHeight: 1,
-            alignSelf: 'center',
-            textTransform: 'uppercase',
-          }}
-        >
-          Beta
-        </span>
+        <ChangelogBadge />
       </div>
 
       {/* ── Primary nav ── */}

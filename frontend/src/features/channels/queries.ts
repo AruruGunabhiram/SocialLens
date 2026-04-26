@@ -21,6 +21,13 @@ import {
   type VideoQueryParams,
 } from './api'
 import type { ChannelAnalytics } from './schemas'
+import { useDemoMode } from '@/lib/DemoModeContext'
+import {
+  demoChannels,
+  demoAnalytics,
+  getDemoVideos,
+  type DemoChannelId,
+} from '@/data/demoData'
 import {
   toastDismiss,
   toastError,
@@ -48,9 +55,10 @@ export const channelListQueryKeys = {
 // -----------------------------------------------------------------------
 
 export function useChannelsQuery(includeInactive = false) {
+  const { isDemoMode } = useDemoMode()
   return useQuery<ChannelItem[], AppError>({
-    queryKey: channelListQueryKeys.list(includeInactive),
-    queryFn: () => fetchChannels(includeInactive),
+    queryKey: isDemoMode ? ['demo', 'channels'] : channelListQueryKeys.list(includeInactive),
+    queryFn: isDemoMode ? () => Promise.resolve(demoChannels) : () => fetchChannels(includeInactive),
     staleTime: 2 * 60 * 1000,
   })
 }
@@ -61,10 +69,16 @@ export function useChannelsQuery(includeInactive = false) {
 // -----------------------------------------------------------------------
 
 export function useChannelQuery(channelDbId?: number) {
+  const { isDemoMode } = useDemoMode()
+  const demoChannel = isDemoMode
+    ? demoChannels.find((c) => c.id === channelDbId) ?? null
+    : null
   return useQuery<ChannelItem, AppError>({
-    queryKey: channelListQueryKeys.detail(channelDbId ?? -1),
-    queryFn: () => fetchChannelById(channelDbId!),
-    enabled: Boolean(channelDbId),
+    queryKey: isDemoMode ? ['demo', 'channel', channelDbId] : channelListQueryKeys.detail(channelDbId ?? -1),
+    queryFn: demoChannel
+      ? () => Promise.resolve(demoChannel)
+      : () => fetchChannelById(channelDbId!),
+    enabled: isDemoMode ? Boolean(demoChannel) : Boolean(channelDbId),
     staleTime: 2 * 60 * 1000,
   })
 }
@@ -74,10 +88,15 @@ export function useChannelQuery(channelDbId?: number) {
 // -----------------------------------------------------------------------
 
 export function useVideosQuery(channelDbId: number, params: VideoQueryParams) {
+  const { isDemoMode } = useDemoMode()
   return useQuery<VideosPageResponse, AppError>({
-    queryKey: channelListQueryKeys.videos(channelDbId, params),
-    queryFn: () => fetchChannelVideos(channelDbId, params),
-    enabled: Boolean(channelDbId),
+    queryKey: isDemoMode
+      ? ['demo', 'videos', channelDbId, params]
+      : channelListQueryKeys.videos(channelDbId, params),
+    queryFn: isDemoMode
+      ? () => Promise.resolve(getDemoVideos(channelDbId, params.page, params.size, params.sort, params.dir, params.q))
+      : () => fetchChannelVideos(channelDbId, params),
+    enabled: isDemoMode ? true : Boolean(channelDbId),
     placeholderData: keepPreviousData,
     staleTime: 2 * 60 * 1000,
   })
@@ -184,15 +203,21 @@ export function useChannelAnalyticsByIdQuery(
     'queryKey' | 'queryFn'
   >
 ) {
+  const { isDemoMode } = useDemoMode()
+  const demoEntry = isDemoMode && channelDbId != null
+    ? (demoAnalytics[channelDbId as DemoChannelId] ?? null)
+    : null
   return useQuery({
-    queryKey: channelQueryKeys.analyticsById(channelDbId ?? -1),
-    queryFn: () => {
-      if (!channelDbId) {
-        return Promise.reject(new Error('channelDbId is required'))
-      }
-      return fetchChannelAnalyticsById(channelDbId)
-    },
-    enabled: Boolean(channelDbId),
+    queryKey: isDemoMode
+      ? ['demo', 'analytics', channelDbId]
+      : channelQueryKeys.analyticsById(channelDbId ?? -1),
+    queryFn: demoEntry
+      ? () => Promise.resolve(demoEntry)
+      : () => {
+          if (!channelDbId) return Promise.reject(new Error('channelDbId is required'))
+          return fetchChannelAnalyticsById(channelDbId)
+        },
+    enabled: isDemoMode ? Boolean(demoEntry) : Boolean(channelDbId),
     ...options,
   })
 }

@@ -1,10 +1,11 @@
 import { Suspense, useState } from 'react'
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion'
 import { Outlet, useLocation } from 'react-router-dom'
-import { X, Youtube } from 'lucide-react'
+import { BarChart2, X, Youtube } from 'lucide-react'
 
 import { useReduceMotion } from '@/lib/ReduceMotionContext'
 import { useMode } from '@/lib/ModeContext'
+import { useDemoMode } from '@/lib/DemoModeContext'
 import { KeyboardShortcutsProvider } from '@/lib/KeyboardShortcutsContext'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useAccountStatus, useCurrentUser } from '@/features/account/queries'
@@ -14,6 +15,7 @@ import { ShortcutsHelpModal } from '@/components/common/ShortcutsHelpModal'
 import { Topbar } from './Topbar'
 import { Sidebar } from './Sidebar'
 import { CopilotPanel } from '@/components/layout/CopilotPanel'
+import { AppFooter } from '@/components/layout/AppFooter'
 
 // ─── Connection banner ────────────────────────────────────────────────────────
 
@@ -125,6 +127,97 @@ function ConnectBanner() {
   )
 }
 
+function DemoBanner() {
+  const { isDemoMode, disableDemoMode } = useDemoMode()
+  if (!isDemoMode) return null
+  return (
+    <div
+      role="status"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 'var(--space-3)',
+        padding: 'var(--space-2) var(--space-5)',
+        background: 'color-mix(in srgb, var(--color-warn) 12%, var(--color-surface-1))',
+        borderBottom: '1px solid color-mix(in srgb, var(--color-warn) 30%, transparent)',
+        position: 'relative',
+      }}
+    >
+      <BarChart2
+        size={13}
+        aria-hidden
+        style={{ color: 'var(--color-warn)', flexShrink: 0 }}
+      />
+      <p
+        style={{
+          fontFamily: 'var(--font-body)',
+          fontSize: 'var(--text-xs)',
+          color: 'var(--color-warn)',
+          lineHeight: 1,
+        }}
+      >
+        Demo Mode — showing sample data
+        <span
+          aria-hidden
+          style={{ margin: '0 var(--space-2)', opacity: 0.5 }}
+        >
+          ·
+        </span>
+        <span style={{ opacity: 0.7 }}>
+          Charts, tables, and trends are pre-populated with realistic mock channels
+        </span>
+      </p>
+      <button
+        type="button"
+        onClick={disableDemoMode}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 'var(--space-1)',
+          padding: '2px var(--space-3)',
+          background: 'color-mix(in srgb, var(--color-warn) 15%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--color-warn) 40%, transparent)',
+          borderRadius: 'var(--radius-full)',
+          fontFamily: 'var(--font-body)',
+          fontSize: 'var(--text-xs)',
+          fontWeight: 600,
+          color: 'var(--color-warn)',
+          cursor: 'pointer',
+          flexShrink: 0,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        Exit Demo
+      </button>
+      <button
+        type="button"
+        onClick={disableDemoMode}
+        aria-label="Exit demo mode"
+        style={{
+          position: 'absolute',
+          right: 'var(--space-4)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 20,
+          height: 20,
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          color: 'var(--color-warn)',
+          opacity: 0.6,
+          borderRadius: 'var(--radius-sm)',
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+        onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.6')}
+      >
+        <X size={12} aria-hidden />
+      </button>
+    </div>
+  )
+}
+
 function PageFallback() {
   return (
     <div className="flex flex-col gap-6">
@@ -165,6 +258,7 @@ function AppShellInner() {
         }}
       >
         <Topbar />
+        <DemoBanner />
         <ConnectBanner />
         <main className="flex-1" style={{ padding: 'var(--section-gap)' }} id="main-content">
           <MotionConfig reducedMotion={reduceMotion ? 'always' : 'never'}>
@@ -184,6 +278,7 @@ function AppShellInner() {
             </AnimatePresence>
           </MotionConfig>
         </main>
+        <AppFooter />
       </div>
 
       <AnimatePresence>{mode === 'studio' && <CopilotPanel />}</AnimatePresence>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   ArrowRight,
+  BarChart2,
   Check,
   ChevronDown,
   Clock,
@@ -37,6 +38,8 @@ import {
 import { formatDate } from '@/utils/formatters'
 import { toastSuccess } from '@/lib/toast'
 import { NotificationHistoryDropdown } from '@/components/common/NotificationHistoryDropdown'
+import { ChangelogBadge } from '@/components/common/ChangelogBadge'
+import { useDemoMode } from '@/lib/DemoModeContext'
 
 // ─── Search history helpers ───────────────────────────────────────────────────
 
@@ -422,6 +425,7 @@ export function Topbar() {
   const dropdownRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { isDemoMode, toggleDemoMode } = useDemoMode()
   const { data: currentUser } = useCurrentUser()
   const { data: accountStatus } = useAccountStatus(currentUser?.id)
   const { data: accountDetail } = useAccountDetail(currentUser?.id)
@@ -618,23 +622,7 @@ export function Topbar() {
               SocialLens
             </span>
           </Link>
-          <span
-            style={{
-              fontFamily: 'var(--font-body)',
-              fontSize: '10px',
-              fontWeight: 700,
-              color: 'var(--color-neutral)',
-              background: 'color-mix(in srgb, var(--color-neutral) 10%, transparent)',
-              border: '1px solid color-mix(in srgb, var(--color-neutral) 25%, transparent)',
-              borderRadius: 'var(--radius-full)',
-              padding: '2px 6px',
-              letterSpacing: 'var(--tracking-wide)',
-              lineHeight: 1,
-              textTransform: 'uppercase',
-            }}
-          >
-            Beta
-          </span>
+          <ChangelogBadge />
         </div>
 
         {/* CENTER: Channel track form */}
@@ -910,8 +898,37 @@ export function Topbar() {
           )}
         </div>
 
-        {/* RIGHT: Notifications + Connection status */}
+        {/* RIGHT: Demo toggle + Notifications + Connection status */}
         <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleDemoMode}
+            title={isDemoMode ? 'Exit Demo Mode' : 'Try Demo Mode'}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-1)',
+              height: 28,
+              padding: '0 var(--space-3)',
+              background: isDemoMode
+                ? 'color-mix(in srgb, var(--color-warn) 15%, var(--color-surface-2))'
+                : 'var(--color-surface-2)',
+              border: isDemoMode
+                ? '1px solid color-mix(in srgb, var(--color-warn) 40%, transparent)'
+                : '1px solid var(--color-border-base)',
+              borderRadius: 'var(--radius-full)',
+              fontFamily: 'var(--font-body)',
+              fontSize: 'var(--text-xs)',
+              fontWeight: isDemoMode ? 600 : 500,
+              color: isDemoMode ? 'var(--color-warn)' : 'var(--color-text-muted)',
+              cursor: 'pointer',
+              transition: 'all var(--duration-base) var(--ease-standard)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <BarChart2 size={11} aria-hidden style={{ flexShrink: 0 }} />
+            Demo
+          </button>
           <NotificationHistoryDropdown />
           {connected ? (
             <div ref={dropdownRef} style={{ position: 'relative' }}>

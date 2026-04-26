@@ -14,6 +14,7 @@ const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
 const CopilotPage = lazy(() => import('@/pages/CopilotPage'))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
+const ChangelogPage = lazy(() => import('@/pages/ChangelogPage'))
 const OAuthCallbackPage = lazy(() => import('@/pages/OAuthCallbackPage'))
 
 export function AppRouter() {
@@ -32,6 +33,7 @@ export function AppRouter() {
         <Route path="/insights" element={<InsightsPage />} />
         <Route path="/copilot" element={<CopilotPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/changelog" element={<ChangelogPage />} />
 
         {/* Channels feature */}
         <Route path="/channels" element={<ChannelsListPage />} />

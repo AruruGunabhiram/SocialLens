@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { differenceInHours, isValid, parseISO } from 'date-fns'
 import { ArrowRight, Plus, RefreshCw, Tv2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useDemoMode } from '@/lib/DemoModeContext'
 
 import type { ChannelItem } from '@/api/types'
 import { ChannelAvatar } from '@/components/common/ChannelAvatar'
@@ -137,16 +138,17 @@ function ChannelCard({ channel }: { channel: ChannelItem }) {
   const subValue = formatCount(subCount)
   const subLabel = subCount === 1 ? 'subscriber' : 'subscribers'
 
-  // Relative time  -  no "Synced" prefix, just the time distance
-  const lastSyncedText = channel.lastSuccessfulRefreshAt
-    ? formatRelativeTime(channel.lastSuccessfulRefreshAt)
-    : 'Never synced'
-
   const snapshotCount = channel.snapshotDayCount
   const snapshotText =
     snapshotCount != null && snapshotCount > 0
-      ? `${snapshotCount} day${snapshotCount !== 1 ? 's' : ''} of data`
-      : 'No snapshot data'
+      ? `${snapshotCount} day${snapshotCount !== 1 ? 's' : ''} data`
+      : 'No data yet'
+
+  const verb = isFailed ? 'Failed' : 'Updated'
+  const timeStr = channel.lastSuccessfulRefreshAt
+    ? formatRelativeTime(channel.lastSuccessfulRefreshAt)
+    : null
+  const freshnessText = timeStr ? `${verb} ${timeStr}` : 'Never updated'
 
   // Human-friendly error, truncated to 60 chars for the card
   const humanMsg = isFailed ? humanizeError(channel.lastRefreshError) : null
@@ -280,7 +282,7 @@ function ChannelCard({ channel }: { channel: ChannelItem }) {
             color: 'var(--color-text-secondary)',
           }}
         >
-          {snapshotText}
+          {freshnessText}
         </span>
         <span aria-hidden style={{ color: 'var(--color-border-base)', fontSize: 'var(--text-xs)' }}>
           ·
@@ -292,7 +294,7 @@ function ChannelCard({ channel }: { channel: ChannelItem }) {
             color: 'var(--color-text-muted)',
           }}
         >
-          {lastSyncedText}
+          {snapshotText}
         </span>
       </div>
 
@@ -472,6 +474,7 @@ function PageHeader({ count, onTrackClick }: { count?: number; onTrackClick: () 
 
 export default function ChannelsListPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
+  const { isDemoMode, enableDemoMode } = useDemoMode()
   const { data: channels, isLoading, isError, error, refetch } = useChannelsQuery(false)
 
   const openDialog = () => setDialogOpen(true)
@@ -508,7 +511,7 @@ export default function ChannelsListPage() {
     )
   }
 
-  if (!channels?.length) {
+  if (!channels?.length && !isDemoMode) {
     return (
       <div className="space-y-8">
         <PageHeader onTrackClick={openDialog} />
@@ -518,6 +521,47 @@ export default function ChannelsListPage() {
           description="Add a YouTube channel handle, URL, or ID to start analyzing performance."
           action={{ label: '+ Track Your First Channel', onClick: openDialog }}
         />
+        <div className="flex items-center justify-center gap-3" style={{ marginTop: 'var(--space-4)' }}>
+          <span
+            style={{
+              fontFamily: 'var(--font-body)',
+              fontSize: 'var(--text-sm)',
+              color: 'var(--color-text-muted)',
+            }}
+          >
+            — or —
+          </span>
+          <button
+            type="button"
+            onClick={enableDemoMode}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 'var(--space-2)',
+              padding: 'var(--space-2) var(--space-4)',
+              background: 'var(--color-surface-2)',
+              border: '1px solid var(--color-border-base)',
+              borderRadius: 'var(--radius-md)',
+              fontFamily: 'var(--font-body)',
+              fontSize: 'var(--text-sm)',
+              fontWeight: 600,
+              color: 'var(--color-text-secondary)',
+              cursor: 'pointer',
+              transition: 'all var(--duration-base) var(--ease-standard)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'var(--accent)'
+              e.currentTarget.style.color = 'var(--accent)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'var(--color-border-base)'
+              e.currentTarget.style.color = 'var(--color-text-secondary)'
+            }}
+          >
+            Try Demo Mode
+            <ArrowRight size={13} aria-hidden style={{ flexShrink: 0 }} />
+          </button>
+        </div>
         <TrackChannelDialog open={dialogOpen} onOpenChange={setDialogOpen} />
       </div>
     )
