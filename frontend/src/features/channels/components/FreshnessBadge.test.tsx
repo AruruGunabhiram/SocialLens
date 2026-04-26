@@ -124,56 +124,44 @@ describe('FreshnessBadge  -  variant logic', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Snapshot coverage line
+// Freshness line (single span: time + data count)
 // ---------------------------------------------------------------------------
 
-describe('FreshnessBadge  -  snapshot coverage', () => {
-  it('shows "No snapshots yet" when both lastSnapshotAt and snapshotDayCount are null', () => {
-    renderBadge({ lastSnapshotAt: null, snapshotDayCount: null })
-    expect(screen.getByTestId('freshness-snapshot')).toHaveTextContent('No snapshots yet')
+describe('FreshnessBadge  -  freshness line', () => {
+  it('shows "Never updated" when no refresh date and no data', () => {
+    renderBadge({ lastRefreshAt: null, snapshotDayCount: null })
+    expect(screen.getByTestId('freshness-snapshot')).toHaveTextContent('Never updated')
   })
 
-  it('shows "Snapshot X ago" when snapshotDayCount is null but lastSnapshotAt is set', () => {
-    renderBadge({ lastSnapshotAt: ONE_HOUR_AGO, snapshotDayCount: null })
-    expect(screen.getByTestId('freshness-snapshot')).toHaveTextContent('Snapshot')
-  })
-
-  it('shows "N days of data · updated X ago" when snapshotDayCount>0 and lastSnapshotAt is set', () => {
-    renderBadge({ lastSnapshotAt: ONE_HOUR_AGO, snapshotDayCount: 7 })
+  it('shows "Updated X · N days of data" when SUCCESS with data', () => {
+    renderBadge({ status: 'SUCCESS', lastRefreshAt: ONE_HOUR_AGO, snapshotDayCount: 7 })
     expect(screen.getByTestId('freshness-snapshot')).toHaveTextContent('7 days of data')
-    expect(screen.getByTestId('freshness-snapshot')).toHaveTextContent('updated')
+    expect(screen.getByTestId('freshness-snapshot')).toHaveTextContent('Updated')
   })
 
   it('uses singular "day" when snapshotDayCount is 1', () => {
-    renderBadge({ lastSnapshotAt: ONE_HOUR_AGO, snapshotDayCount: 1 })
+    renderBadge({ status: 'SUCCESS', lastRefreshAt: ONE_HOUR_AGO, snapshotDayCount: 1 })
     expect(screen.getByTestId('freshness-snapshot')).toHaveTextContent('1 day of data')
   })
 
-  it('uses plural "days" when snapshotDayCount is 0 and falls back to timestamp', () => {
-    // snapshotDayCount=0 means no snapshots; should fall back gracefully
-    renderBadge({ lastSnapshotAt: null, snapshotDayCount: 0 })
-    expect(screen.getByTestId('freshness-snapshot')).toHaveTextContent('No snapshots yet')
-  })
-})
-
-// ---------------------------------------------------------------------------
-// Refresh label
-// ---------------------------------------------------------------------------
-
-describe('FreshnessBadge  -  refresh label', () => {
-  it('shows "Never synced" when lastRefreshAt is null', () => {
-    renderBadge({ lastRefreshAt: null })
-    expect(screen.getByTestId('freshness-refresh')).toHaveTextContent('Never synced')
+  it('shows "Never updated" when snapshotDayCount is 0 and no refresh date', () => {
+    renderBadge({ lastRefreshAt: null, snapshotDayCount: 0 })
+    expect(screen.getByTestId('freshness-snapshot')).toHaveTextContent('Never updated')
   })
 
-  it('shows "Last success X ago" when status is FAILED and lastRefreshAt is set', () => {
+  it('shows "Last successful update" when FAILED and lastRefreshAt is set', () => {
     renderBadge({ status: 'FAILED', lastRefreshAt: TWO_DAYS_AGO, snapshotDayCount: 2 })
-    expect(screen.getByTestId('freshness-refresh')).toHaveTextContent('Last success')
+    expect(screen.getByTestId('freshness-snapshot')).toHaveTextContent('Last successful update')
   })
 
-  it('shows relative time only when status is SUCCESS', () => {
+  it('shows relative time when status is SUCCESS', () => {
     renderBadge({ status: 'SUCCESS', lastRefreshAt: ONE_HOUR_AGO, snapshotDayCount: 1 })
-    expect(screen.getByTestId('freshness-refresh')).toHaveTextContent('ago')
+    expect(screen.getByTestId('freshness-snapshot')).toHaveTextContent('ago')
+  })
+
+  it('does not render a freshness-refresh element', () => {
+    renderBadge({ status: 'SUCCESS', lastRefreshAt: ONE_HOUR_AGO, snapshotDayCount: 1 })
+    expect(screen.queryByTestId('freshness-refresh')).not.toBeInTheDocument()
   })
 })
 

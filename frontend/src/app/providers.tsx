@@ -7,6 +7,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { ReduceMotionProvider } from '@/lib/ReduceMotionContext'
 
 import { ModeProvider } from '@/lib/ModeContext'
+import { DemoModeProvider } from '@/lib/DemoModeContext'
 import { queryClient } from './queryClient'
 
 interface ProvidersProps {
@@ -34,6 +35,7 @@ function GlobalErrorFallback({
 
 export function Providers({ children }: ProvidersProps) {
   return (
+    <DemoModeProvider>
     <ModeProvider>
       <ReduceMotionProvider>
         <QueryClientProvider client={queryClient}>
@@ -42,5 +44,6 @@ export function Providers({ children }: ProvidersProps) {
         </QueryClientProvider>
       </ReduceMotionProvider>
     </ModeProvider>
+    </DemoModeProvider>
   )
 }

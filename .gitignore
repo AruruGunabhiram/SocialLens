@@ -37,7 +37,7 @@ backend/build/
 *.db
 *.mv.db
 *.trace.db
-data/
+/data/
 backend/data/
 
 # =========================

@@ -80,14 +80,14 @@ export function formatDate(dateStr: string | null | undefined): string {
 // ─── formatRelativeTime ───────────────────────────────────────────────────────
 
 /**
- * Human-relative time from an ISO date/datetime string.
+ * Compact human-relative time from an ISO date/datetime string.
  *   < 60 s     → "just now"
- *   < 60 min   → "2 minutes ago"
- *   < 24 h     → "1 hour ago" / "3 hours ago"
- *   < 48 h     → "Yesterday"
- *   < 7 days   → "3 days ago"
- *   same year  → "Mar 21"
- *   diff year  → "Mar 21, 2025"
+ *   < 60 min   → "5 min ago"
+ *   < 24 h     → "1h ago" / "3h ago"
+ *   1 day      → "yesterday"
+ *   2–6 days   → "3 days ago"
+ *   7–29 days  → "2 weeks ago"
+ *   30+ days   → "Mar 21" (same year) / "Mar 21, 2025" (different year)
  *   null/bad   → " - "
  */
 export function formatRelativeTime(dateStr: string | null | undefined): string {
@@ -103,10 +103,14 @@ export function formatRelativeTime(dateStr: string | null | undefined): string {
   const diffDays = Math.floor(diffHours / 24)
 
   if (diffSecs < 60) return 'just now'
-  if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`
-  if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`
-  if (diffDays === 1) return 'Yesterday'
+  if (diffMins < 60) return `${diffMins} min ago`
+  if (diffHours < 24) return `${diffHours}h ago`
+  if (diffDays === 1) return 'yesterday'
   if (diffDays < 7) return `${diffDays} days ago`
+  if (diffDays < 30) {
+    const weeks = Math.floor(diffDays / 7)
+    return `${weeks} week${weeks !== 1 ? 's' : ''} ago`
+  }
 
   return d.getFullYear() === now.getFullYear() ? format(d, 'MMM d') : format(d, 'MMM d, yyyy')
 }

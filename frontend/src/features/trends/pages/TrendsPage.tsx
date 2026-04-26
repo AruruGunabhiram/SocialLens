@@ -493,7 +493,7 @@ export default function TrendsPage() {
 
   const windowLabel =
     coverage.isSparse && coverage.capturedDays > 0
-      ? `${coverage.capturedDays} of ${range} days captured`
+      ? `${coverage.capturedDays} of ${range} days recorded`
       : `Last ${range} days`
 
   const chartTitle =
@@ -661,9 +661,9 @@ export default function TrendsPage() {
             description={sparseHistoryCopy.description}
             action={{
               label: refreshState.isPending
-                ? 'Syncing...'
+                ? 'Updating...'
                 : refreshState.phase === 'success'
-                  ? 'Synced'
+                  ? 'Updated'
                   : refreshState.phase === 'error'
                     ? 'Failed — try again'
                     : '↺ Sync Now',
@@ -743,7 +743,7 @@ export default function TrendsPage() {
                 marginTop: 'var(--space-2)',
               }}
             >
-              {rawPoints.length} of {range} days captured
+              {rawPoints.length} of {range} days recorded
             </p>
           </div>
         )}
@@ -759,7 +759,7 @@ export default function TrendsPage() {
                 ? 'medium'
                 : 'high'
             const contextStr = coverage.isSparse
-              ? `across ${coverage.capturedDays} captured ${coverage.capturedDays === 1 ? 'day' : 'days'}`
+              ? `across ${coverage.capturedDays} recorded ${coverage.capturedDays === 1 ? 'day' : 'days'}`
               : `over last ${range} days`
             return (
               <InsightCard

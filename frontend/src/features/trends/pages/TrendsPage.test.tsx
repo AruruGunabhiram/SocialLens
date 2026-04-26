@@ -352,8 +352,8 @@ describe('TrendsPage', () => {
         ) as any
       )
       renderTrendsPage('1', 'mode=total')
-      // isSparse = true (2 < 30), so sub should say "across 2 captured days"
-      expect(screen.getByText(/across 2 captured days/)).toBeInTheDocument()
+      // isSparse = true (2 < 30), so sub should say "across 2 recorded days"
+      expect(screen.getByText(/across 2 recorded days/)).toBeInTheDocument()
     })
   })
 
