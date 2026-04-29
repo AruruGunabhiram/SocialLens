@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { differenceInHours, isValid, parseISO } from 'date-fns'
 import { ChevronDown, ChevronUp } from 'lucide-react'
-import { formatRelativeTime } from '@/utils/formatters'
 
 import { Badge } from '@/components/ui/badge'
+import { RelativeTime } from '@/components/common/RelativeTime'
 import type { ChannelItem } from '@/api/types'
 
 // ---------------------------------------------------------------------------
@@ -137,22 +137,20 @@ export function FreshnessBadge({
       ? `${snapshotDayCount} day${snapshotDayCount !== 1 ? 's' : ''} of data`
       : null
 
-  let freshnessLine: string
+  let freshnessPrefix: string
+  let showRelativeTime: boolean
   if (isFailed) {
-    const timePart = refreshDate
-      ? `Last successful update ${formatRelativeTime(lastRefreshAt)}`
-      : 'No successful updates yet'
-    freshnessLine = countPart ? `${timePart} · ${countPart}` : timePart
+    freshnessPrefix = refreshDate ? 'Last successful update' : 'No successful updates yet'
+    showRelativeTime = Boolean(refreshDate)
   } else if (isPartial) {
-    const timePart = refreshDate
-      ? `Partial update ${formatRelativeTime(lastRefreshAt)}`
-      : 'Partial update'
-    freshnessLine = countPart ? `${timePart} · ${countPart}` : timePart
+    freshnessPrefix = 'Partial update'
+    showRelativeTime = Boolean(refreshDate)
   } else if (refreshDate) {
-    const timePart = `Updated ${formatRelativeTime(lastRefreshAt)}`
-    freshnessLine = countPart ? `${timePart} · ${countPart}` : timePart
+    freshnessPrefix = 'Updated'
+    showRelativeTime = true
   } else {
-    freshnessLine = countPart ? `Never updated · ${countPart}` : 'Never updated'
+    freshnessPrefix = 'Never updated'
+    showRelativeTime = false
   }
 
   return (
@@ -172,7 +170,13 @@ export function FreshnessBadge({
         </Badge>
 
         {/* Freshness line: time + data count */}
-        <span data-testid="freshness-snapshot">{freshnessLine}</span>
+        <span data-testid="freshness-snapshot">
+          {freshnessPrefix}
+          {showRelativeTime && (
+            <> <RelativeTime date={lastRefreshAt ?? undefined} /></>
+          )}
+          {countPart && ` · ${countPart}`}
+        </span>
 
         {/* "View error / View details" toggle  -  visible for FAILED and PARTIAL */}
         {showDetailToggle && (

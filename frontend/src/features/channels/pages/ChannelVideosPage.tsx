@@ -1,4 +1,5 @@
-import { formatCount, formatDate, formatRelativeTime } from '@/utils/formatters'
+import { formatCount, formatDate } from '@/utils/formatters'
+import { useRelativeTime } from '@/hooks/useRelativeTime'
 import {
   ArrowUpDown,
   ChevronLeft,
@@ -221,7 +222,7 @@ function VideoTableRow({ video, channelDbId }: { video: VideoRow; channelDbId: n
   const hasTitle = Boolean(video.title?.trim())
   const ytUrl = `${YT_WATCH}${video.videoId}`
   const thumbSrc = video.thumbnailUrl ?? `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`
-  const relativeDate = formatRelativeTime(video.publishedAt)
+  const relativeDate = useRelativeTime(video.publishedAt ?? undefined)
   const detailPath = `/channels/${channelDbId}/videos/${video.id}`
 
   function handleRowClick(e: React.MouseEvent<HTMLTableRowElement>) {

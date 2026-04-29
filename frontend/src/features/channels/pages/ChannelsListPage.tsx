@@ -31,7 +31,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { formatCount, formatRelativeTime } from '@/utils/formatters'
+import { formatCount } from '@/utils/formatters'
+import { RelativeTime } from '@/components/common/RelativeTime'
 import { toastError, toastSuccess } from '@/lib/toast'
 import { useRefreshAction } from '@/hooks/useRefreshAction'
 import { useChannelRefreshByIdMutation, useChannelsQuery } from '../queries'
@@ -178,10 +179,6 @@ function ChannelCard({ channel }: { channel: ChannelItem }) {
       : 'No data yet'
 
   const verb = isFailed ? 'Failed' : 'Updated'
-  const timeStr = channel.lastSuccessfulRefreshAt
-    ? formatRelativeTime(channel.lastSuccessfulRefreshAt)
-    : null
-  const freshnessText = timeStr ? `${verb} ${timeStr}` : 'Never updated'
 
   // Human-friendly error, truncated to 60 chars for the card
   const humanMsg = isFailed ? humanizeError(channel.lastRefreshError) : null
@@ -410,7 +407,10 @@ function ChannelCard({ channel }: { channel: ChannelItem }) {
             color: 'var(--color-text-secondary)',
           }}
         >
-          {freshnessText}
+          {channel.lastSuccessfulRefreshAt
+            ? <>{verb} <RelativeTime date={channel.lastSuccessfulRefreshAt} /></>
+            : 'Never updated'
+          }
         </span>
         <span aria-hidden style={{ color: 'var(--color-border-base)', fontSize: 'var(--text-xs)' }}>
           ·
