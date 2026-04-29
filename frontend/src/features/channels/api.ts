@@ -134,6 +134,18 @@ export async function fetchChannelTimeSeries(
 }
 
 // ==============================================
+// Delete Channel  -  DELETE /api/v1/channels/:id
+// ==============================================
+
+export async function deleteChannel(channelDbId: number): Promise<void> {
+  try {
+    await axiosClient.delete(`/api/v1/channels/${channelDbId}`)
+  } catch (error) {
+    throw normalizeHttpError(error)
+  }
+}
+
+// ==============================================
 // Refresh  -  POST /api/v1/jobs/refresh/channel?channelDbId={id}
 // Single entry point; always sends exactly the `channelDbId` query param.
 // ==============================================

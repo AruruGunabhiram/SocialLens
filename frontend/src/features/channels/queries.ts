@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-query'
 
 import {
+  deleteChannel,
   fetchChannelAnalytics,
   fetchChannelAnalyticsById,
   fetchChannelById,
@@ -274,6 +275,26 @@ export function useChannelRefreshByIdMutation() {
         return
       }
       toastError(error, 'Failed to trigger refresh')
+    },
+  })
+}
+
+// ==============================================
+// Delete Channel Mutation
+// ==============================================
+
+export function useDeleteChannelMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation<void, unknown, { channelDbId: number }>({
+    mutationFn: ({ channelDbId }) => deleteChannel(channelDbId),
+    onSuccess: (_data, { channelDbId }) => {
+      queryClient.invalidateQueries({ queryKey: channelListQueryKeys.root })
+      queryClient.removeQueries({ queryKey: channelListQueryKeys.detail(channelDbId) })
+      queryClient.removeQueries({ queryKey: channelQueryKeys.analyticsById(channelDbId) })
+    },
+    onError: (error) => {
+      toastError(error, 'Failed to remove channel')
     },
   })
 }
