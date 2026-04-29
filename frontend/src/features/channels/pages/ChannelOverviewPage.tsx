@@ -1,17 +1,21 @@
+import { useState } from 'react'
 import { differenceInDays, isValid, parseISO } from 'date-fns'
 import {
   AlertTriangle,
   BarChart2,
+  Clipboard,
   ExternalLink,
   Lightbulb,
   Loader2,
+  MoreHorizontal,
   PlaySquare,
   RefreshCw,
+  Trash2,
   TrendingUp,
   Video,
   Youtube,
 } from 'lucide-react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 // ─── Error helpers ────────────────────────────────────────────────────────────
 
@@ -54,12 +58,21 @@ import { StatCard } from '@/components/common/StatCard'
 import { normalizeHttpError } from '@/api/httpError'
 import { fmtDelta, fmtDateShort } from '@/lib/format'
 import { formatCount, formatDate } from '@/utils/formatters'
-import { toastError } from '@/lib/toast'
+import { toastError, toastSuccess } from '@/lib/toast'
 import { useRefreshAction } from '@/hooks/useRefreshAction'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 import { DataCoverageBar } from '@/components/common/DataCoverageBar'
 import { ChannelChart } from '../components/ChannelChart'
+import { ChannelSummaryCard } from '../components/ChannelSummaryCard'
 import { FreshnessBadge, mapChannelItemToFreshnessProps } from '../components/FreshnessBadge'
+import { RemoveChannelDialog } from '../components/RemoveChannelDialog'
 import {
   useChannelAnalyticsByIdQuery,
   useChannelQuery,
@@ -160,6 +173,8 @@ function RecentVideoRow({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ChannelOverviewPage() {
+  const navigate = useNavigate()
+  const [removeDialogOpen, setRemoveDialogOpen] = useState(false)
   const { channelDbId: channelDbIdParam } = useParams<{ channelDbId?: string }>()
   const [searchParams] = useSearchParams()
   const channelDbIdStr = channelDbIdParam ?? searchParams.get('channelDbId')
@@ -466,7 +481,80 @@ export default function ChannelOverviewPage() {
               <Lightbulb size={13} aria-hidden="true" />
               Open Insights
             </Link>
+
+            {/* Secondary: YouTube + Copy ID + More */}
+            {(channelDetail?.handle || channelId) && (
+              <a
+                href={
+                  channelDetail?.handle
+                    ? `https://www.youtube.com/@${channelDetail.handle}`
+                    : `https://www.youtube.com/channel/${channelId}`
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors"
+                style={{ color: 'var(--color-text-muted)', textDecoration: 'none' }}
+              >
+                <ExternalLink size={13} aria-hidden="true" />
+                Open on YouTube
+              </a>
+            )}
+            {channelId && (
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(channelId).then(() => {
+                    toastSuccess('Channel ID copied', channelId)
+                  })
+                }}
+                className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
+                <Clipboard size={13} aria-hidden="true" />
+                Copy ID
+              </button>
+            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors"
+                  style={{ color: 'var(--color-text-muted)' }}
+                >
+                  <MoreHorizontal size={13} aria-hidden="true" />
+                  More
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onSelect={() => {
+                    const el = document.getElementById('channel-technical-details')
+                    if (el) {
+                      ;(el as HTMLDetailsElement).open = true
+                      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                    }
+                  }}
+                >
+                  <BarChart2 size={13} aria-hidden />
+                  View Raw Data
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem destructive onSelect={() => setRemoveDialogOpen(true)}>
+                  <Trash2 size={13} aria-hidden />
+                  Remove Channel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
+        )}
+
+        {channelDetail && (
+          <RemoveChannelDialog
+            channel={channelDetail}
+            open={removeDialogOpen}
+            onOpenChange={setRemoveDialogOpen}
+            onSuccess={() => navigate('/channels')}
+          />
         )}
       </div>
 
@@ -710,6 +798,13 @@ export default function ChannelOverviewPage() {
         />
       </div>
 
+      {/* ── CHANNEL SUMMARY ─────────────────────────────────────────────── */}
+      <ChannelSummaryCard
+        data={data}
+        channelDetail={channelDetail}
+        indexedVideoCount={indexedVideoCount}
+      />
+
       {/* ── DATA COVERAGE ───────────────────────────────────────────────── */}
       {channelDetail?.snapshotDayCount != null && (
         <div className="rounded-lg border bg-card/60 p-5 shadow-sm">
@@ -788,7 +883,7 @@ export default function ChannelOverviewPage() {
 
       {/* ── SECTION 5: Technical Details (collapsible) ──────────────────── */}
       {detailsRows.length > 0 && (
-        <details className="rounded-lg border bg-card/60 shadow-sm">
+        <details id="channel-technical-details" className="rounded-lg border bg-card/60 shadow-sm">
           <summary
             className="flex cursor-pointer select-none items-center gap-2 p-5 text-sm font-medium"
             style={{ color: 'var(--color-text-muted)', listStyle: 'none' }}

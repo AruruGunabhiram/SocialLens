@@ -6,17 +6,7 @@ import {
   type NotificationEntry,
   type NotifType,
 } from '@/lib/notificationHistory'
-
-function relativeTime(ts: number): string {
-  const diffMs = Date.now() - ts
-  const diffSec = Math.floor(diffMs / 1000)
-  if (diffSec < 60) return 'just now'
-  const diffMin = Math.floor(diffSec / 60)
-  if (diffMin < 60) return `${diffMin}m ago`
-  const diffHr = Math.floor(diffMin / 60)
-  if (diffHr < 24) return `${diffHr}h ago`
-  return `${Math.floor(diffHr / 24)}d ago`
-}
+import { RelativeTime } from '@/components/common/RelativeTime'
 
 const TYPE_CONFIG: Record<NotifType, { color: string; Icon: typeof CheckCircle2 }> = {
   success: { color: 'var(--color-up)', Icon: CheckCircle2 },
@@ -236,7 +226,7 @@ export function NotificationHistoryDropdown() {
                         fontVariantNumeric: 'tabular-nums',
                       }}
                     >
-                      {relativeTime(entry.timestamp)}
+                      <RelativeTime date={new Date(entry.timestamp).toISOString()} />
                     </span>
                   </li>
                 )

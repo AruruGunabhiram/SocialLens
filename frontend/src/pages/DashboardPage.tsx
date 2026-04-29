@@ -9,7 +9,9 @@ import { Card } from '@/components/ui/card'
 import { TrackChannelDialog } from '@/features/channels/components/TrackChannelDialog'
 import { useChannelRefreshByIdMutation, useChannelsQuery } from '@/features/channels/queries'
 import { useRefreshAction } from '@/hooks/useRefreshAction'
-import { formatCount, formatRelativeTime } from '@/utils/formatters'
+import { formatCount } from '@/utils/formatters'
+import { RelativeTime } from '@/components/common/RelativeTime'
+import { useRelativeTime } from '@/hooks/useRelativeTime'
 
 // ─── Greeting ─────────────────────────────────────────────────────────────────
 
@@ -141,6 +143,7 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
 
 function OverviewStats({ channels }: { channels: ChannelItem[] }) {
   const { totalSubscribers, totalVideos, latestSync } = deriveStats(channels)
+  const latestSyncDisplay = useRelativeTime(latestSync ?? undefined)
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <StatCard label="Channels Tracked" value={String(channels.length)} />
@@ -148,7 +151,7 @@ function OverviewStats({ channels }: { channels: ChannelItem[] }) {
       <StatCard label="Videos Indexed" value={formatCount(totalVideos)} />
       <StatCard
         label="Latest Sync"
-        value={latestSync ? formatRelativeTime(latestSync) : ' - '}
+        value={latestSync ? latestSyncDisplay : ' - '}
         sub={latestSync ? 'most recent across all channels' : 'no syncs yet'}
       />
     </div>
@@ -288,7 +291,7 @@ function ChannelHealthRow({ channel }: { channel: ChannelItem }) {
           textAlign: 'right',
         }}
       >
-        {formatRelativeTime(channel.lastSuccessfulRefreshAt)}
+        <RelativeTime date={channel.lastSuccessfulRefreshAt ?? undefined} />
       </span>
 
       {/* Retry button (failed only) */}
@@ -503,7 +506,7 @@ function ActivityFeedSection({ channels }: { channels: ChannelItem[] }) {
                   flexShrink: 0,
                 }}
               >
-                {formatRelativeTime(ev.timestamp)}
+                <RelativeTime date={ev.timestamp ?? undefined} />
               </span>
             </div>
           )

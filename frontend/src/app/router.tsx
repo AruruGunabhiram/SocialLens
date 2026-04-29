@@ -6,6 +6,7 @@ import { AppShell } from './layout/AppShell'
 const ChannelOverviewPage = lazy(() => import('@/features/channels/pages/ChannelOverviewPage'))
 const ChannelsListPage = lazy(() => import('@/features/channels/pages/ChannelsListPage'))
 const ChannelVideosPage = lazy(() => import('@/features/channels/pages/ChannelVideosPage'))
+const VideoDetailPage = lazy(() => import('@/features/channels/pages/VideoDetailPage'))
 const TrendsPage = lazy(() => import('@/features/trends/pages/TrendsPage'))
 const GlobalTrendsPage = lazy(() => import('@/features/trends/pages/GlobalTrendsPage'))
 const InsightsPage = lazy(() => import('@/features/insights/pages/InsightsPage'))
@@ -39,6 +40,7 @@ export function AppRouter() {
         <Route path="/channels" element={<ChannelsListPage />} />
         <Route path="/channels/:channelDbId" element={<ChannelOverviewPage />} />
         <Route path="/channels/:channelDbId/videos" element={<ChannelVideosPage />} />
+        <Route path="/channels/:channelDbId/videos/:videoDbId" element={<VideoDetailPage />} />
         <Route path="/channels/:channelDbId/trends" element={<TrendsPage />} />
 
         <Route path="*" element={<NotFoundPage />} />

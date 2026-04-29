@@ -1,4 +1,5 @@
-import { formatCount, formatDate, formatRelativeTime } from '@/utils/formatters'
+import { formatCount, formatDate } from '@/utils/formatters'
+import { useRelativeTime } from '@/hooks/useRelativeTime'
 import {
   ArrowUpDown,
   ChevronLeft,
@@ -14,7 +15,7 @@ import {
   X,
 } from 'lucide-react'
 import { useRef, useState, type ReactNode } from 'react'
-import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import type { ChannelItem, VideoRow } from '@/api/types'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -215,23 +216,24 @@ function NaBadge() {
   )
 }
 
-function VideoTableRow({ video }: { video: VideoRow }) {
+function VideoTableRow({ video, channelDbId }: { video: VideoRow; channelDbId: number }) {
   const [thumbError, setThumbError] = useState(false)
+  const navigate = useNavigate()
   const hasTitle = Boolean(video.title?.trim())
   const ytUrl = `${YT_WATCH}${video.videoId}`
   const thumbSrc = video.thumbnailUrl ?? `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`
-  const relativeDate = formatRelativeTime(video.publishedAt)
+  const relativeDate = useRelativeTime(video.publishedAt ?? undefined)
+  const detailPath = `/channels/${channelDbId}/videos/${video.id}`
 
   function handleRowClick(e: React.MouseEvent<HTMLTableRowElement>) {
-    // Let inner <a> / <button> elements handle their own navigation
     if ((e.target as HTMLElement).closest('a, button')) return
-    window.open(ytUrl, '_blank', 'noopener,noreferrer')
+    navigate(detailPath, { state: { video } })
   }
 
   function handleRowKeyDown(e: React.KeyboardEvent<HTMLTableRowElement>) {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
-      window.open(ytUrl, '_blank', 'noopener,noreferrer')
+      navigate(detailPath, { state: { video } })
     }
   }
 
@@ -243,7 +245,7 @@ function VideoTableRow({ video }: { video: VideoRow }) {
       onKeyDown={handleRowKeyDown}
       tabIndex={0}
       aria-label={
-        hasTitle ? `Watch "${video.title}" on YouTube` : `Watch ${video.videoId} on YouTube`
+        hasTitle ? `View details for "${video.title}"` : `View details for ${video.videoId}`
       }
     >
       {/* Thumbnail  -  48×27 (16:9), always links to YouTube */}
@@ -296,10 +298,9 @@ function VideoTableRow({ video }: { video: VideoRow }) {
       {/* Title  -  or video ID link + "(title pending)" when not yet enriched */}
       <td className="max-w-xs py-3 pr-4">
         {hasTitle ? (
-          <a
-            href={ytUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            to={detailPath}
+            state={{ video }}
             title={video.title!.length > 60 ? video.title! : undefined}
             style={{
               display: 'inline-flex',
@@ -318,12 +319,7 @@ function VideoTableRow({ video }: { video: VideoRow }) {
             }}
           >
             <span className="line-clamp-2 text-sm font-medium leading-snug">{video.title}</span>
-            <ExternalLink
-              size={11}
-              aria-hidden
-              style={{ flexShrink: 0, marginTop: 3, color: 'var(--color-text-muted)' }}
-            />
-          </a>
+          </Link>
         ) : (
           <span className="inline-flex flex-wrap items-center gap-1.5">
             <a
@@ -1176,7 +1172,9 @@ export default function ChannelVideosPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredItems.map((video) => <VideoTableRow key={video.id} video={video} />)
+                  filteredItems.map((video) => (
+                    <VideoTableRow key={video.id} video={video} channelDbId={channelDbId} />
+                  ))
                 )}
               </tbody>
             </table>

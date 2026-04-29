@@ -1,7 +1,19 @@
 import { useState } from 'react'
 import { differenceInHours, isValid, parseISO } from 'date-fns'
-import { ArrowRight, Plus, RefreshCw, Tv2 } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import {
+  ArrowRight,
+  BarChart2,
+  Clipboard,
+  ExternalLink,
+  MoreHorizontal,
+  Plus,
+  RefreshCw,
+  Trash2,
+  TrendingUp,
+  Tv2,
+  Video,
+} from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useDemoMode } from '@/lib/DemoModeContext'
 
 import type { ChannelItem } from '@/api/types'
@@ -11,11 +23,21 @@ import { EmptyState } from '@/components/common/EmptyState'
 import { ErrorState } from '@/components/common/ErrorState'
 import { SkeletonBlock } from '@/components/common/SkeletonBlock'
 import { Card } from '@/components/ui/card'
-import { formatCount, formatRelativeTime } from '@/utils/formatters'
-import { toastError } from '@/lib/toast'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { formatCount } from '@/utils/formatters'
+import { RelativeTime } from '@/components/common/RelativeTime'
+import { toastError, toastSuccess } from '@/lib/toast'
 import { useRefreshAction } from '@/hooks/useRefreshAction'
 import { useChannelRefreshByIdMutation, useChannelsQuery } from '../queries'
 import { TrackChannelDialog } from '../components/TrackChannelDialog'
+import { RemoveChannelDialog } from '../components/RemoveChannelDialog'
 
 // ─── Error helpers ────────────────────────────────────────────────────────────
 
@@ -128,11 +150,23 @@ function StatusBadge({
 // ─── Single channel card ──────────────────────────────────────────────────────
 
 function ChannelCard({ channel }: { channel: ChannelItem }) {
+  const navigate = useNavigate()
+  const [removeDialogOpen, setRemoveDialogOpen] = useState(false)
   const refreshMutation = useChannelRefreshByIdMutation()
   const { state: refreshState, trigger: triggerRefresh } = useRefreshAction(() =>
     refreshMutation.mutateAsync({ channelDbId: channel.id })
   )
   const isFailed = channel.lastRefreshStatus === 'FAILED'
+
+  const ytUrl = channel.handle
+    ? `https://www.youtube.com/@${channel.handle}`
+    : `https://www.youtube.com/channel/${channel.channelId}`
+
+  const handleCopyId = () => {
+    navigator.clipboard.writeText(channel.channelId).then(() => {
+      toastSuccess('Channel ID copied', channel.channelId)
+    })
+  }
 
   const subCount = channel.subscriberCount
   const subValue = formatCount(subCount)
@@ -145,10 +179,6 @@ function ChannelCard({ channel }: { channel: ChannelItem }) {
       : 'No data yet'
 
   const verb = isFailed ? 'Failed' : 'Updated'
-  const timeStr = channel.lastSuccessfulRefreshAt
-    ? formatRelativeTime(channel.lastSuccessfulRefreshAt)
-    : null
-  const freshnessText = timeStr ? `${verb} ${timeStr}` : 'Never updated'
 
   // Human-friendly error, truncated to 60 chars for the card
   const humanMsg = isFailed ? humanizeError(channel.lastRefreshError) : null
@@ -167,7 +197,7 @@ function ChannelCard({ channel }: { channel: ChannelItem }) {
         borderLeft: isFailed ? '3px solid var(--color-down)' : undefined,
       }}
     >
-      {/* ── Header: avatar + identity + status ── */}
+      {/* ── Header: avatar + identity + status + actions ── */}
       <div className="flex items-start gap-3">
         <ChannelAvatar
           size="md"
@@ -200,11 +230,106 @@ function ChannelCard({ channel }: { channel: ChannelItem }) {
           </p>
         </div>
 
-        <StatusBadge
-          status={channel.lastRefreshStatus ?? null}
-          lastRefreshAt={channel.lastSuccessfulRefreshAt}
-        />
+        <div className="flex items-center gap-1.5 shrink-0">
+          <StatusBadge
+            status={channel.lastRefreshStatus ?? null}
+            lastRefreshAt={channel.lastSuccessfulRefreshAt}
+          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label="Channel actions"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 26,
+                  height: 26,
+                  borderRadius: 'var(--radius-md)',
+                  background: 'transparent',
+                  border: '1px solid transparent',
+                  color: 'var(--color-text-muted)',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  transition: 'all var(--duration-fast) var(--ease-standard)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'var(--color-surface-2)'
+                  e.currentTarget.style.borderColor = 'var(--color-border-subtle)'
+                  e.currentTarget.style.color = 'var(--color-text-primary)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent'
+                  e.currentTarget.style.borderColor = 'transparent'
+                  e.currentTarget.style.color = 'var(--color-text-muted)'
+                }}
+              >
+                <MoreHorizontal size={14} aria-hidden />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {isFailed ? (
+                <>
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem
+                      onSelect={triggerRefresh}
+                      disabled={refreshState.disabled}
+                    >
+                      <RefreshCw size={13} aria-hidden />
+                      Retry Sync
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                </>
+              ) : (
+                <>
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem onSelect={triggerRefresh} disabled={refreshState.disabled}>
+                      <RefreshCw size={13} aria-hidden />
+                      Refresh Now
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => navigate(`/channels/${channel.id}`)}>
+                      <BarChart2 size={13} aria-hidden />
+                      View Analytics
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => navigate(`/channels/${channel.id}/videos`)}>
+                      <Video size={13} aria-hidden />
+                      View Videos
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => navigate(`/channels/${channel.id}/trends`)}>
+                      <TrendingUp size={13} aria-hidden />
+                      View Trends
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                </>
+              )}
+              <DropdownMenuGroup>
+                <DropdownMenuItem onSelect={() => window.open(ytUrl, '_blank', 'noopener,noreferrer')}>
+                  <ExternalLink size={13} aria-hidden />
+                  Open on YouTube
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={handleCopyId}>
+                  <Clipboard size={13} aria-hidden />
+                  Copy Channel ID
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem destructive onSelect={() => setRemoveDialogOpen(true)}>
+                <Trash2 size={13} aria-hidden />
+                Remove Channel
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
+
+      <RemoveChannelDialog
+        channel={channel}
+        open={removeDialogOpen}
+        onOpenChange={setRemoveDialogOpen}
+      />
 
       {/* ── Stats row ── */}
       <div
@@ -282,7 +407,10 @@ function ChannelCard({ channel }: { channel: ChannelItem }) {
             color: 'var(--color-text-secondary)',
           }}
         >
-          {freshnessText}
+          {channel.lastSuccessfulRefreshAt
+            ? <>{verb} <RelativeTime date={channel.lastSuccessfulRefreshAt} /></>
+            : 'Never updated'
+          }
         </span>
         <span aria-hidden style={{ color: 'var(--color-border-base)', fontSize: 'var(--text-xs)' }}>
           ·
