@@ -16,7 +16,7 @@ type MetricPt = NonNullable<ChannelAnalytics['timeseries']>[number]
 function computeCadence(
   timeseries: MetricPt[],
   publishedAt: string | null | undefined,
-  videoCount: number | null | undefined,
+  videoCount: number | null | undefined
 ): string {
   // Prefer uploads delta from timeseries (cumulative daily snapshots)
   const withUploads = [...timeseries]
@@ -94,11 +94,7 @@ export function ChannelSummaryCard({ data, channelDetail, indexedVideoCount }: P
   const viewsPerVideo =
     views != null && videoCount != null && videoCount > 0 ? views / videoCount : null
 
-  const cadence = computeCadence(
-    timeseries,
-    channelDetail?.publishedAt,
-    channelDetail?.videoCount,
-  )
+  const cadence = computeCadence(timeseries, channelDetail?.publishedAt, channelDetail?.videoCount)
 
   const firstDate = sorted.length > 0 ? sorted[0].date : null
   const snapshotDayCount = channelDetail?.snapshotDayCount
