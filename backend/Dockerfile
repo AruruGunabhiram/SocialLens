@@ -10,7 +10,7 @@ RUN chmod +x ./gradlew && \
     cp $(find build/libs -name '*.jar' ! -name '*-plain.jar') build/libs/app.jar
 
 # ── Stage 2: runtime ──────────────────────────────────────────────────────────
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre
 WORKDIR /app
 COPY --from=builder /app/build/libs/app.jar app.jar
 EXPOSE 8081

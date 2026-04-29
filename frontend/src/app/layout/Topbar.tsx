@@ -428,10 +428,10 @@ export function Topbar() {
   const { isDemoMode, toggleDemoMode } = useDemoMode()
   const { data: currentUser } = useCurrentUser()
   const { data: accountStatus } = useAccountStatus(currentUser?.id)
-  const { data: accountDetail } = useAccountDetail(currentUser?.id)
   const disconnectMutation = useDisconnectMutation()
 
   const connected = accountStatus?.connected ?? false
+  const { data: accountDetail } = useAccountDetail(currentUser?.id, connected)
 
   // Load history on mount
   useEffect(() => {
