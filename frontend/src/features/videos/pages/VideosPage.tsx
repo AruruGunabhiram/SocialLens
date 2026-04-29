@@ -304,7 +304,8 @@ function GlobalVideoRow({ video }: { video: GlobalVideoRow }) {
       <td className="max-w-xs py-2 pr-4">
         {hasTitle ? (
           <Link
-            to={`/channels/${video.channelDbId}/videos`}
+            to={`/channels/${video.channelDbId}/videos/${video.id}`}
+            state={{ video }}
             style={{ textDecoration: 'none', color: 'inherit' }}
           >
             <span
