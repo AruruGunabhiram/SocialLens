@@ -25,6 +25,6 @@ export function useTimeSeries(
       ? () => Promise.resolve(getDemoTimeSeries(channelDbId, metric, rangeDays))
       : () => fetchTimeSeries(channelDbId!, metric, rangeDays),
     enabled: isDemoMode ? channelDbId != null : Boolean(channelDbId),
-    staleTime: 2 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
   })
 }

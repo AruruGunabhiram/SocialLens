@@ -559,9 +559,12 @@ export default function ChannelVideosPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
 
   // Channel metadata (for breadcrumb / title + YouTube total video count)
-  const { data: channel, isLoading: isChannelLoading } = useChannelQuery(
-    Number.isNaN(channelDbId) ? undefined : channelDbId
-  )
+  const {
+    data: channel,
+    isLoading: isChannelLoading,
+    isError: isChannelError,
+    error: channelError,
+  } = useChannelQuery(Number.isNaN(channelDbId) ? undefined : channelDbId)
 
   const queryParams: VideoQueryParams = { q: urlQ || undefined, sort, dir, page, size }
 
@@ -577,6 +580,10 @@ export default function ChannelVideosPage() {
 
   // Invalid route param  -  redirect after all hooks have run
   if (Number.isNaN(channelDbId)) return <Navigate to="/channels" replace />
+
+  // Channel doesn't exist — redirect to overview which shows ChannelNotFound
+  if (isChannelError && channelError?.status === 404)
+    return <Navigate to={`/channels/${channelDbIdStr}`} replace />
 
   // -----------------------------------------------------------------------
   // Handlers
@@ -660,7 +667,7 @@ export default function ChannelVideosPage() {
   if (isError) {
     return (
       <div className="space-y-6">
-        <VideosPageHeader channel={channel} channelDbId={channelDbId} />
+        <VideosPageHeader channel={channel} channelDbId={channelDbId} isChannelLoading={isChannelLoading} />
         <ErrorState
           title="Failed to load videos"
           description={error.message}
@@ -1203,12 +1210,15 @@ export default function ChannelVideosPage() {
 function VideosPageHeader({
   channel,
   channelDbId,
+  isChannelLoading,
 }: {
   channel?: ChannelItem | null
   channelDbId: number
+  isChannelLoading?: boolean
 }) {
-  const channelName =
-    channel?.title ?? (channel?.handle ? `@${channel.handle}` : `Channel ${channelDbId}`)
+  const channelName = isChannelLoading
+    ? 'Loading...'
+    : (channel?.title ?? (channel?.handle ? `@${channel.handle}` : 'Unknown Channel'))
 
   return (
     <div className="space-y-2">

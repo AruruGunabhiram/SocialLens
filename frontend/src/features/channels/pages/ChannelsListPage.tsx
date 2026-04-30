@@ -1,10 +1,12 @@
-import { useState } from 'react'
-import { differenceInHours, isValid, parseISO } from 'date-fns'
+import { useState, useCallback } from 'react'
+import { differenceInHours, differenceInMinutes, isValid, parseISO } from 'date-fns'
 import {
   ArrowRight,
   BarChart2,
+  Check,
   Clipboard,
   ExternalLink,
+  Loader2,
   MoreHorizontal,
   Plus,
   RefreshCw,
@@ -12,8 +14,10 @@ import {
   TrendingUp,
   Tv2,
   Video,
+  X,
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { useDemoMode } from '@/lib/DemoModeContext'
 
 import type { ChannelItem } from '@/api/types'
@@ -24,6 +28,13 @@ import { ErrorState } from '@/components/common/ErrorState'
 import { SkeletonBlock } from '@/components/common/SkeletonBlock'
 import { Card } from '@/components/ui/card'
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
@@ -33,11 +44,16 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { formatCount } from '@/utils/formatters'
 import { RelativeTime } from '@/components/common/RelativeTime'
-import { toastError, toastSuccess } from '@/lib/toast'
+import { toastError, toastInfo, toastSuccess, toastWarning } from '@/lib/toast'
 import { useRefreshAction } from '@/hooks/useRefreshAction'
-import { useChannelRefreshByIdMutation, useChannelsQuery } from '../queries'
+import { refreshChannelById } from '../api'
+import { channelListQueryKeys, useChannelRefreshByIdMutation, useChannelsQuery } from '../queries'
 import { TrackChannelDialog } from '../components/TrackChannelDialog'
 import { RemoveChannelDialog } from '../components/RemoveChannelDialog'
+
+// ─── Bulk sync types ──────────────────────────────────────────────────────────
+
+type BulkSyncStatus = 'pending' | 'done' | 'failed' | 'skipped'
 
 // ─── Error helpers ────────────────────────────────────────────────────────────
 
@@ -149,7 +165,13 @@ function StatusBadge({
 
 // ─── Single channel card ──────────────────────────────────────────────────────
 
-function ChannelCard({ channel }: { channel: ChannelItem }) {
+function ChannelCard({
+  channel,
+  bulkSyncStatus,
+}: {
+  channel: ChannelItem
+  bulkSyncStatus?: BulkSyncStatus
+}) {
   const navigate = useNavigate()
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false)
   const refreshMutation = useChannelRefreshByIdMutation()
@@ -231,10 +253,93 @@ function ChannelCard({ channel }: { channel: ChannelItem }) {
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          <StatusBadge
-            status={channel.lastRefreshStatus ?? null}
-            lastRefreshAt={channel.lastSuccessfulRefreshAt}
-          />
+          {bulkSyncStatus === 'pending' ? (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '3px 8px',
+                borderRadius: 'var(--radius-full)',
+                background: 'color-mix(in srgb, var(--accent) 12%, transparent)',
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--text-xs)',
+                fontWeight: 500,
+                color: 'var(--accent)',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+              }}
+            >
+              <Loader2 size={10} className="animate-spin" aria-hidden style={{ flexShrink: 0 }} />
+              Syncing
+            </span>
+          ) : bulkSyncStatus === 'done' ? (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '3px 8px',
+                borderRadius: 'var(--radius-full)',
+                background: 'color-mix(in srgb, var(--color-up) 12%, transparent)',
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--text-xs)',
+                fontWeight: 500,
+                color: 'var(--color-up)',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+              }}
+            >
+              <Check size={10} aria-hidden style={{ flexShrink: 0 }} />
+              Updated
+            </span>
+          ) : bulkSyncStatus === 'failed' ? (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '3px 8px',
+                borderRadius: 'var(--radius-full)',
+                background: 'color-mix(in srgb, var(--color-down) 12%, transparent)',
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--text-xs)',
+                fontWeight: 500,
+                color: 'var(--color-down)',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+              }}
+            >
+              <X size={10} aria-hidden style={{ flexShrink: 0 }} />
+              Failed
+            </span>
+          ) : bulkSyncStatus === 'skipped' ? (
+            <span
+              title="Recently synced — skipped"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '3px 8px',
+                borderRadius: 'var(--radius-full)',
+                background: 'var(--color-surface-2)',
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--text-xs)',
+                fontWeight: 500,
+                color: 'var(--color-text-muted)',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                cursor: 'default',
+              }}
+            >
+              Skipped
+            </span>
+          ) : (
+            <StatusBadge
+              status={channel.lastRefreshStatus ?? null}
+              lastRefreshAt={channel.lastSuccessfulRefreshAt}
+            />
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -539,7 +644,19 @@ function ChannelCardSkeleton() {
 
 // ─── Page header ─────────────────────────────────────────────────────────────
 
-function PageHeader({ count, onTrackClick }: { count?: number; onTrackClick: () => void }) {
+function PageHeader({
+  count,
+  onTrackClick,
+  onRefreshAll,
+  isBulkRefreshing,
+  bulkProgress,
+}: {
+  count?: number
+  onTrackClick: () => void
+  onRefreshAll?: () => void
+  isBulkRefreshing?: boolean
+  bulkProgress?: { done: number; total: number } | null
+}) {
   return (
     <div className="flex items-center justify-between gap-4">
       <div>
@@ -569,31 +686,79 @@ function PageHeader({ count, onTrackClick }: { count?: number; onTrackClick: () 
         </p>
       </div>
 
-      <button
-        type="button"
-        onClick={onTrackClick}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 'var(--space-2)',
-          padding: 'var(--space-2) var(--space-4)',
-          background: 'var(--accent)',
-          border: 'none',
-          borderRadius: 'var(--radius-md)',
-          fontFamily: 'var(--font-body)',
-          fontSize: 'var(--text-sm)',
-          fontWeight: 600,
-          color: 'var(--color-text-inverse)',
-          cursor: 'pointer',
-          flexShrink: 0,
-          transition: 'opacity var(--duration-base) var(--ease-standard)',
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
-        onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
-      >
-        <Plus size={15} aria-hidden style={{ flexShrink: 0 }} />
-        Track Channel
-      </button>
+      <div className="flex items-center gap-2 shrink-0">
+        {onRefreshAll && count != null && count > 0 && (
+          <button
+            type="button"
+            disabled={isBulkRefreshing}
+            onClick={isBulkRefreshing ? undefined : onRefreshAll}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 'var(--space-1)',
+              padding: 'var(--space-2) var(--space-3)',
+              background: 'transparent',
+              border: '1px solid var(--color-border-base)',
+              borderRadius: 'var(--radius-md)',
+              fontFamily: 'var(--font-body)',
+              fontSize: 'var(--text-sm)',
+              fontWeight: 500,
+              color: isBulkRefreshing ? 'var(--accent)' : 'var(--color-text-secondary)',
+              cursor: isBulkRefreshing ? 'default' : 'pointer',
+              opacity: 1,
+              transition: 'all var(--duration-base) var(--ease-standard)',
+              whiteSpace: 'nowrap',
+            }}
+            onMouseEnter={(e) => {
+              if (!isBulkRefreshing) {
+                e.currentTarget.style.borderColor = 'var(--accent)'
+                e.currentTarget.style.color = 'var(--accent)'
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isBulkRefreshing) {
+                e.currentTarget.style.borderColor = 'var(--color-border-base)'
+                e.currentTarget.style.color = 'var(--color-text-secondary)'
+              }
+            }}
+          >
+            {isBulkRefreshing ? (
+              <Loader2 size={13} className="animate-spin" aria-hidden style={{ flexShrink: 0 }} />
+            ) : (
+              <RefreshCw size={13} aria-hidden style={{ flexShrink: 0 }} />
+            )}
+            {isBulkRefreshing && bulkProgress
+              ? `Refreshing ${bulkProgress.done}/${bulkProgress.total} channels…`
+              : 'Refresh All'}
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={onTrackClick}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+            padding: 'var(--space-2) var(--space-4)',
+            background: 'var(--accent)',
+            border: 'none',
+            borderRadius: 'var(--radius-md)',
+            fontFamily: 'var(--font-body)',
+            fontSize: 'var(--text-sm)',
+            fontWeight: 600,
+            color: 'var(--color-text-inverse)',
+            cursor: 'pointer',
+            flexShrink: 0,
+            transition: 'opacity var(--duration-base) var(--ease-standard)',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.85')}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+        >
+          <Plus size={15} aria-hidden style={{ flexShrink: 0 }} />
+          Track Channel
+        </button>
+      </div>
     </div>
   )
 }
@@ -604,6 +769,106 @@ export default function ChannelsListPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const { isDemoMode, enableDemoMode } = useDemoMode()
   const { data: channels, isLoading, isError, error, refetch } = useChannelsQuery(false)
+  const queryClient = useQueryClient()
+
+  // ── Bulk refresh state ──────────────────────────────────────────────────────
+  const [bulkSyncMap, setBulkSyncMap] = useState<Record<number, BulkSyncStatus>>({})
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [pendingRefreshChannels, setPendingRefreshChannels] = useState<ChannelItem[]>([])
+  const [pendingSkipChannels, setPendingSkipChannels] = useState<ChannelItem[]>([])
+  const [recentChannelNames, setRecentChannelNames] = useState<string[]>([])
+
+  const isBulkRefreshing = Object.values(bulkSyncMap).some((s) => s === 'pending')
+  const bulkTotal = Object.values(bulkSyncMap).filter((s) => s !== 'skipped').length
+  const bulkDone = Object.values(bulkSyncMap).filter(
+    (s) => s === 'done' || s === 'failed'
+  ).length
+  const bulkProgress =
+    isBulkRefreshing && bulkTotal > 0 ? { done: bulkDone, total: bulkTotal } : null
+
+  const executeRefreshAll = useCallback(
+    async (toRefresh: ChannelItem[], toSkip: ChannelItem[]) => {
+      const initialMap: Record<number, BulkSyncStatus> = {}
+      for (const ch of toRefresh) initialMap[ch.id] = 'pending'
+      for (const ch of toSkip) initialMap[ch.id] = 'skipped'
+      setBulkSyncMap(initialMap)
+
+      const results = await Promise.allSettled(
+        toRefresh.map(async (ch) => {
+          try {
+            await refreshChannelById(ch.id)
+            setBulkSyncMap((prev) => ({ ...prev, [ch.id]: 'done' }))
+            queryClient.invalidateQueries({ queryKey: channelListQueryKeys.detail(ch.id) })
+          } catch (err) {
+            setBulkSyncMap((prev) => ({ ...prev, [ch.id]: 'failed' }))
+            throw err
+          }
+        })
+      )
+
+      queryClient.invalidateQueries({ queryKey: channelListQueryKeys.root })
+
+      const failed = results.filter((r) => r.status === 'rejected').length
+      const succeeded = toRefresh.length - failed
+
+      if (failed === 0) {
+        toastSuccess('All channels refreshed')
+      } else if (succeeded === 0) {
+        toastError(null, 'All channels failed to refresh')
+      } else {
+        toastWarning(
+          `${succeeded}/${toRefresh.length} channels refreshed`,
+          `${failed} channel${failed !== 1 ? 's' : ''} failed`
+        )
+      }
+
+      setTimeout(() => setBulkSyncMap({}), 3000)
+    },
+    [queryClient]
+  )
+
+  const handleRefreshAll = useCallback(() => {
+    const all = channels ?? []
+    if (all.length === 0) return
+    const now = new Date()
+    const toRefresh: ChannelItem[] = []
+    const toSkip: ChannelItem[] = []
+    const recentNames: string[] = []
+
+    for (const ch of all) {
+      if (!ch.lastSuccessfulRefreshAt) {
+        toRefresh.push(ch)
+        continue
+      }
+      const d = parseISO(ch.lastSuccessfulRefreshAt)
+      if (!isValid(d)) {
+        toRefresh.push(ch)
+        continue
+      }
+      const mins = differenceInMinutes(now, d)
+      if (mins < 30) {
+        toSkip.push(ch)
+      } else {
+        toRefresh.push(ch)
+        if (mins < 60) recentNames.push(ch.title ?? ch.channelId)
+      }
+    }
+
+    if (toRefresh.length === 0) {
+      toastInfo('All channels recently synced', 'No channels need refreshing right now.')
+      return
+    }
+
+    if (recentNames.length > 0) {
+      setRecentChannelNames(recentNames)
+      setPendingRefreshChannels(toRefresh)
+      setPendingSkipChannels(toSkip)
+      setConfirmOpen(true)
+      return
+    }
+
+    void executeRefreshAll(toRefresh, toSkip)
+  }, [channels, executeRefreshAll])
 
   const openDialog = () => setDialogOpen(true)
 
@@ -623,7 +888,7 @@ export default function ChannelsListPage() {
   if (isError) {
     return (
       <div className="space-y-8">
-        <PageHeader onTrackClick={openDialog} />
+        <PageHeader onTrackClick={openDialog} onRefreshAll={handleRefreshAll} />
         <ErrorState
           title="Failed to load channels"
           description={error.message}
@@ -642,7 +907,7 @@ export default function ChannelsListPage() {
   if (!channels?.length && !isDemoMode) {
     return (
       <div className="space-y-8">
-        <PageHeader onTrackClick={openDialog} />
+        <PageHeader onTrackClick={openDialog} onRefreshAll={handleRefreshAll} />
         <EmptyState
           icon={Tv2}
           title="No channels tracked yet"
@@ -699,13 +964,73 @@ export default function ChannelsListPage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader count={visibleChannels.length} onTrackClick={openDialog} />
+      <PageHeader
+        count={visibleChannels.length}
+        onTrackClick={openDialog}
+        onRefreshAll={handleRefreshAll}
+        isBulkRefreshing={isBulkRefreshing}
+        bulkProgress={bulkProgress}
+      />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {visibleChannels.map((ch) => (
-          <ChannelCard key={ch.id} channel={ch} />
+          <ChannelCard key={ch.id} channel={ch} bulkSyncStatus={bulkSyncMap[ch.id]} />
         ))}
       </div>
       <TrackChannelDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+
+      {/* ── Refresh All confirmation dialog ── */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Refresh all channels?</DialogTitle>
+            <DialogDescription>
+              {recentChannelNames.length === 1
+                ? `${recentChannelNames[0]} was synced less than 1 hour ago.`
+                : `${recentChannelNames.join(', ')} were synced less than 1 hour ago.`}{' '}
+              Refreshing again may use YouTube API quota.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2" style={{ marginTop: 'var(--space-4)' }}>
+            <button
+              type="button"
+              onClick={() => setConfirmOpen(false)}
+              style={{
+                padding: 'var(--space-2) var(--space-4)',
+                background: 'transparent',
+                border: '1px solid var(--color-border-base)',
+                borderRadius: 'var(--radius-md)',
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--text-sm)',
+                fontWeight: 500,
+                color: 'var(--color-text-secondary)',
+                cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setConfirmOpen(false)
+                void executeRefreshAll(pendingRefreshChannels, pendingSkipChannels)
+              }}
+              style={{
+                padding: 'var(--space-2) var(--space-4)',
+                background: 'var(--accent)',
+                border: 'none',
+                borderRadius: 'var(--radius-md)',
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--text-sm)',
+                fontWeight: 600,
+                color: 'var(--color-text-inverse)',
+                cursor: 'pointer',
+              }}
+            >
+              Refresh All
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

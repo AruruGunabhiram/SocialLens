@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { format, parseISO, subDays } from 'date-fns'
 import {
   Bar,
@@ -277,7 +277,6 @@ function TrendsSkeleton() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function TrendsPage() {
-  const navigate = useNavigate()
   const { channelDbId: pathParam } = useParams<{ channelDbId: string }>()
   // setSearchParams lets us persist metric/range/mode in the URL, making every
   // toggle change observable in the address bar and the browser network tab.
@@ -438,21 +437,9 @@ export default function TrendsPage() {
     )
   }
 
-  // ── Channel not found (404) ───────────────────────────────────────────────
-  // Checked before isLoading so it surfaces immediately if the channel detail
-  // query returns 404 (e.g. channel deleted or DB reset between sessions).
-  // "Retry" would loop forever here  -  steer the user back to reload instead.
+  // ── Channel not found (404) — redirect to overview which shows ChannelNotFound
   if (channelQuery.isError && channelQuery.error?.status === 404) {
-    return (
-      <div className="p-4">
-        <ErrorState
-          title="Channel no longer available"
-          description="This channel could not be found. It may have been removed or the database was reset. Load it again from the top bar."
-          actionLabel="Back to Channels"
-          onAction={() => navigate('/channels')}
-        />
-      </div>
-    )
+    return <Navigate to={`/channels/${channelDbId}`} replace />
   }
 
   // ── Loading ──────────────────────────────────────────────────────────────
@@ -460,29 +447,21 @@ export default function TrendsPage() {
 
   // ── Error ────────────────────────────────────────────────────────────────
   if (isError) {
-    // A 404 from the timeseries endpoint means the channel row is gone.
-    // Show the same recovery path instead of a "Retry" that cannot succeed.
-    const isChannelGone = error.status === 404
+    if (error.status === 404) {
+      return <Navigate to={`/channels/${channelDbId}`} replace />
+    }
     return (
       <div className="p-4">
         <ErrorState
-          title={isChannelGone ? 'Channel no longer available' : 'Failed to load trends'}
-          description={
-            isChannelGone
-              ? 'This channel could not be found. Load it again from the top bar.'
-              : normalizeErrorMessage(error)
-          }
-          actionLabel={isChannelGone ? 'Back to Channels' : 'Retry'}
-          onAction={
-            isChannelGone
-              ? () => navigate('/channels')
-              : async () => {
-                  const result = await refetch()
-                  if (result.isError) toastError(result.error, 'Failed to reload trends')
-                }
-          }
-          status={isChannelGone ? undefined : error.status}
-          code={isChannelGone ? undefined : error.code}
+          title="Failed to load trends"
+          description={normalizeErrorMessage(error)}
+          actionLabel="Retry"
+          onAction={async () => {
+            const result = await refetch()
+            if (result.isError) toastError(result.error, 'Failed to reload trends')
+          }}
+          status={error.status}
+          code={error.code}
         />
       </div>
     )
@@ -514,14 +493,10 @@ export default function TrendsPage() {
         <Link to="/channels" className="hover:text-foreground">
           Channels
         </Link>
-        {channelTitle && (
-          <>
-            <ChevronRight className="h-3 w-3" />
-            <Link to={`/channels/${channelDbId}`} className="hover:text-foreground">
-              {channelTitle}
-            </Link>
-          </>
-        )}
+        <ChevronRight className="h-3 w-3" />
+        <Link to={`/channels/${channelDbId}`} className="hover:text-foreground truncate max-w-[200px]">
+          {channelQuery.isLoading ? 'Loading...' : (channelTitle ?? 'Unknown Channel')}
+        </Link>
         <ChevronRight className="h-3 w-3" />
         <span className="font-medium text-foreground">Trends</span>
       </nav>
