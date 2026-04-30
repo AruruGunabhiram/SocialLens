@@ -81,6 +81,10 @@ export function useChannelQuery(channelDbId?: number) {
       : () => fetchChannelById(channelDbId!),
     enabled: isDemoMode ? Boolean(demoChannel) : Boolean(channelDbId),
     staleTime: 2 * 60 * 1000,
+    retry: (failureCount, error) => {
+      if (isAppError(error) && error.status === 404) return false
+      return failureCount < 2
+    },
   })
 }
 
@@ -99,7 +103,7 @@ export function useVideosQuery(channelDbId: number, params: VideoQueryParams) {
       : () => fetchChannelVideos(channelDbId, params),
     enabled: isDemoMode ? true : Boolean(channelDbId),
     placeholderData: keepPreviousData,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,
   })
 }
 
@@ -151,6 +155,7 @@ export function useChannelSyncMutation() {
       // a DB reset) never serve data from a stale cache for the same numeric ID.
       queryClient.invalidateQueries({ queryKey: channelQueryKeys.root })
       queryClient.invalidateQueries({ queryKey: ['timeseries', data.channelDbId] })
+      queryClient.invalidateQueries({ queryKey: ['trends', 'timeseries', data.channelDbId] })
     },
     onError: (error, _vars, context) => {
       toastDismiss(context?.toastId)
@@ -214,6 +219,10 @@ export function useChannelAnalyticsByIdQuery(
           return fetchChannelAnalyticsById(channelDbId)
         },
     enabled: isDemoMode ? Boolean(demoEntry) : Boolean(channelDbId),
+    retry: (failureCount, error) => {
+      if (isAppError(error) && error.status === 404) return false
+      return failureCount < 2
+    },
     ...options,
   })
 }
@@ -265,7 +274,10 @@ export function useChannelRefreshByIdMutation() {
       queryClient.invalidateQueries({ queryKey: channelListQueryKeys.list(false) })
       queryClient.invalidateQueries({ queryKey: channelListQueryKeys.list(true) })
       queryClient.invalidateQueries({ queryKey: ['channelList', 'videos', channelDbId] })
+      // ['timeseries', ...] covers trends/queries.ts timeseriesQueryKeys namespace
       queryClient.invalidateQueries({ queryKey: ['timeseries', channelDbId] })
+      // ['trends', 'timeseries', ...] covers channels/queries.ts trendQueryKeys namespace
+      queryClient.invalidateQueries({ queryKey: ['trends', 'timeseries', channelDbId] })
     },
     onError: (error, _vars, context) => {
       toastDismiss(context?.toastId)
@@ -292,6 +304,9 @@ export function useDeleteChannelMutation() {
       queryClient.invalidateQueries({ queryKey: channelListQueryKeys.root })
       queryClient.removeQueries({ queryKey: channelListQueryKeys.detail(channelDbId) })
       queryClient.removeQueries({ queryKey: channelQueryKeys.analyticsById(channelDbId) })
+      queryClient.removeQueries({ queryKey: ['channelList', 'videos', channelDbId] })
+      queryClient.removeQueries({ queryKey: ['timeseries', channelDbId] })
+      queryClient.removeQueries({ queryKey: ['trends', 'timeseries', channelDbId] })
     },
     onError: (error) => {
       toastError(error, 'Failed to remove channel')

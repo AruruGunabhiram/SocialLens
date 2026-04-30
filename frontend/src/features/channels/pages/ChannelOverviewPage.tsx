@@ -70,6 +70,7 @@ import {
 
 import { DataCoverageBar } from '@/components/common/DataCoverageBar'
 import { ChannelChart } from '../components/ChannelChart'
+import { ChannelNotFound } from '../components/ChannelNotFound'
 import { ChannelSummaryCard } from '../components/ChannelSummaryCard'
 import { FreshnessBadge, mapChannelItemToFreshnessProps } from '../components/FreshnessBadge'
 import { RemoveChannelDialog } from '../components/RemoveChannelDialog'
@@ -300,17 +301,7 @@ export default function ChannelOverviewPage() {
     const isNotFound = err.status === 404
     const requiresAuth = err.status === 401 || err.status === 403
     if (isNotFound) {
-      return (
-        <EmptyState
-          icon={AlertTriangle}
-          title={`Channel #${channelDbId} not found`}
-          description="This channel may have been removed from SocialLens, or the ID is incorrect."
-          action={{
-            label: 'View all tracked channels',
-            onClick: () => window.location.assign('/channels'),
-          }}
-        />
-      )
+      return <ChannelNotFound channelId={channelDbId} />
     }
     return (
       <ErrorState
