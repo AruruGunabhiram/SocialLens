@@ -42,11 +42,11 @@ export function useAccountStatus(userId: number | undefined) {
 }
 
 /** Full connected account details  -  channelId, scopes, expiry, created date. */
-export function useAccountDetail(userId: number | undefined) {
+export function useAccountDetail(userId: number | undefined, enabled = true) {
   return useQuery({
     queryKey: ['account-detail', userId, 'YOUTUBE'],
     queryFn: () => fetchAccountDetail(userId!, 'YOUTUBE'),
-    enabled: userId !== undefined,
+    enabled: enabled && userId !== undefined,
     staleTime: 60_000,
     retry: false,
   })

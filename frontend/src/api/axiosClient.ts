@@ -34,7 +34,6 @@ axiosClient.interceptors.response.use(
       const status = error.response?.status
 
       if (status === 401) {
-        window.location.replace('/connect')
         return Promise.reject(normalizeHttpError(error))
       }
 
