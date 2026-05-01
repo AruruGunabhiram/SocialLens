@@ -16,7 +16,7 @@ public class CorsConfig {
 
     // Comma-separated explicit origins  -  no wildcards allowed.
     // Override app.cors.allowed-origins in environment or application-local.properties.
-    @Value("${app.cors.allowed-origins:http://localhost:5173}")
+    @Value("${app.cors.allowed-origins:http://localhost,http://localhost:80,http://localhost:5173}")
     private String allowedOrigins;
 
     @Bean
@@ -29,7 +29,7 @@ public class CorsConfig {
         CorsConfiguration cfg = new CorsConfiguration();
         cfg.setAllowedOrigins(origins);
         cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        cfg.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
+        cfg.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "X-API-Key"));
         cfg.setAllowCredentials(true);
         cfg.setMaxAge(3600L);
 

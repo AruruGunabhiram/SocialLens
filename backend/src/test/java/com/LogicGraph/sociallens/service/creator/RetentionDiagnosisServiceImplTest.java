@@ -4,9 +4,11 @@ import com.LogicGraph.sociallens.dto.creator.RetentionDiagnosisRequest;
 import com.LogicGraph.sociallens.dto.creator.RetentionDiagnosisResponse;
 import com.LogicGraph.sociallens.dto.creator.RetentionPoint;
 import com.LogicGraph.sociallens.entity.ConnectedAccount;
+import com.LogicGraph.sociallens.entity.YouTubeVideo;
 import com.LogicGraph.sociallens.enums.Platform;
 import com.LogicGraph.sociallens.exception.NotFoundException;
 import com.LogicGraph.sociallens.repository.ConnectedAccountRepository;
+import com.LogicGraph.sociallens.repository.YouTubeVideoRepository;
 import com.LogicGraph.sociallens.service.oauth.YouTubeOAuthService;
 import com.LogicGraph.sociallens.service.youtube.YouTubeAnalyticsClient;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +31,7 @@ import static org.mockito.Mockito.*;
 class RetentionDiagnosisServiceImplTest {
 
     @Mock private ConnectedAccountRepository connectedAccountRepository;
+    @Mock private YouTubeVideoRepository youTubeVideoRepository;
     @Mock private YouTubeOAuthService youTubeOAuthService;
     @Mock private YouTubeAnalyticsClient youTubeAnalyticsClient;
 
@@ -36,7 +40,7 @@ class RetentionDiagnosisServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new RetentionDiagnosisServiceImpl(
-                connectedAccountRepository, youTubeOAuthService, youTubeAnalyticsClient);
+                connectedAccountRepository, youTubeVideoRepository, youTubeOAuthService, youTubeAnalyticsClient);
     }
 
     // -------------------------------------------------------------------------
@@ -79,6 +83,30 @@ class RetentionDiagnosisServiceImplTest {
         assertThat(resp.getDropEvents()).isEmpty();
         assertThat(resp.getDiagnoses()).isEmpty();
         verify(connectedAccountRepository, never()).save(any());
+    }
+
+    @Test
+    void diagnoseRetention_noExplicitDates_usesVideoPublishedDateWhenKnown() {
+        ConnectedAccount account = account("UCtest", "tok");
+        YouTubeVideo video = new YouTubeVideo();
+        video.setVideoId("vidDate");
+        video.setPublishedAt(Instant.parse("2026-01-28T12:00:00Z"));
+
+        when(connectedAccountRepository.findByUser_IdAndPlatform(1L, Platform.YOUTUBE))
+                .thenReturn(Optional.of(account));
+        when(youTubeOAuthService.getValidAccessToken(account)).thenReturn("tok");
+        when(youTubeVideoRepository.findByVideoId("vidDate")).thenReturn(Optional.of(video));
+        when(youTubeAnalyticsClient.fetchAudienceRetentionCurve(any(), any(), any(), any(), any()))
+                .thenReturn(new ArrayList<>());
+
+        service.diagnoseRetention(request(1L, "vidDate"));
+
+        verify(youTubeAnalyticsClient).fetchAudienceRetentionCurve(
+                eq("tok"),
+                eq("UCtest"),
+                eq("vidDate"),
+                eq(LocalDate.of(2026, 1, 28)),
+                any(LocalDate.class));
     }
 
     /**

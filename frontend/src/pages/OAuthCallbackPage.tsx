@@ -1,5 +1,6 @@
 import { useSearchParams } from 'react-router-dom'
 import { CheckCircle2, XCircle } from 'lucide-react'
+import { useEffect } from 'react'
 
 // This page is the browser landing point after Google's OAuth redirect.
 // The backend exchanges the code, stores the token, then sends the browser
@@ -38,6 +39,11 @@ export default function OAuthCallbackPage() {
   const [params] = useSearchParams()
   const connected = params.get('connected') === 'true'
   const message = humanizeOAuthError(params.get('message'))
+
+  useEffect(() => {
+    if (!connected) return
+    localStorage.setItem('sociallens:youtube-connected', String(Date.now()))
+  }, [connected])
 
   const pageStyle: React.CSSProperties = {
     display: 'flex',

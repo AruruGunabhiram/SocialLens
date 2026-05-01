@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   AlertTriangle,
@@ -36,6 +36,12 @@ function AccountStatusStrip() {
   const accountStatus = status?.accountStatus
   const needsReconnect =
     !connected && (accountStatus === 'REFRESH_FAILED' || accountStatus === 'EXPIRED')
+
+  useEffect(() => {
+    if (!connected) return
+    setOauthOpened(false)
+    setConnectError(null)
+  }, [connected])
 
   async function handleConnect() {
     if (!currentUser) {

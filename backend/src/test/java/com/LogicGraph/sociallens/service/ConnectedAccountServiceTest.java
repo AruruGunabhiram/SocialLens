@@ -3,10 +3,10 @@ package com.LogicGraph.sociallens.service;
 import com.LogicGraph.sociallens.dto.account.ConnectAccountRequest;
 import com.LogicGraph.sociallens.entity.ConnectedAccount;
 import com.LogicGraph.sociallens.entity.User;
+import com.LogicGraph.sociallens.enums.ConnectedAccountStatus;
 import com.LogicGraph.sociallens.enums.Platform;
 import com.LogicGraph.sociallens.repository.ConnectedAccountRepository;
 import com.LogicGraph.sociallens.repository.UserRepository;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -66,6 +66,41 @@ class ConnectedAccountServiceTest {
 
         // The refresh token must be unchanged
         assertThat(existing.getRefreshToken()).isEqualTo("existing-refresh-token");
+    }
+
+    /**
+     * Reconnecting after a user-initiated disconnect must reactivate the retained
+     * account row instead of leaving the UI stuck in "Connect YouTube".
+     */
+    @Test
+    void upsertConnection_reactivatesDisconnectedAccount() {
+        User user = new User();
+        ReflectionTestUtils.setField(user, "id", 1L);
+
+        ConnectedAccount existing = new ConnectedAccount(
+                Platform.YOUTUBE, "UC_old", "old-access", null,
+                Instant.now().minusSeconds(60), "scope", user);
+        existing.setStatus(ConnectedAccountStatus.DISCONNECTED);
+        existing.setDisconnectReason("User-initiated disconnect");
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(connectedAccountRepository.findByUser_IdAndPlatform(1L, Platform.YOUTUBE))
+                .thenReturn(Optional.of(existing));
+        when(connectedAccountRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        ConnectAccountRequest req = new ConnectAccountRequest();
+        req.setPlatform(Platform.YOUTUBE);
+        req.setChannelId("UC_new");
+        req.setAccessToken("new-access-token");
+        req.setRefreshToken("new-refresh-token");
+        req.setExpiresAt(Instant.now().plusSeconds(3600));
+        req.setScopes("scope");
+
+        service.upsertConnection(1L, req);
+
+        assertThat(existing.getStatus()).isEqualTo(ConnectedAccountStatus.ACTIVE);
+        assertThat(existing.getDisconnectReason()).isNull();
+        assertThat(existing.getRefreshToken()).isEqualTo("new-refresh-token");
     }
 
     /**

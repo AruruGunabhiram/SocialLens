@@ -68,6 +68,8 @@ public class ConnectedAccountService {
         account.setAccessToken(request.getAccessToken());
         account.setExpiresAt(request.getExpiresAt());
         account.setScopes(request.getScopes());
+        account.setStatus(ConnectedAccountStatus.ACTIVE);
+        account.setDisconnectReason(null);
 
         if (request.getRefreshToken() != null && !request.getRefreshToken().isBlank()) {
             account.setRefreshToken(request.getRefreshToken());

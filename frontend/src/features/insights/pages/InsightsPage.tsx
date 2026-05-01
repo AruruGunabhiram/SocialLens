@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   CheckCircle2,
@@ -697,6 +697,12 @@ export default function InsightsPage() {
   const [isStartingOAuth, setIsStartingOAuth] = useState(false)
   const [oauthOpened, setOauthOpened] = useState(false)
   const [connectError, setConnectError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!isConnected) return
+    setOauthOpened(false)
+    setConnectError(null)
+  }, [isConnected])
 
   async function handleConnectFromInsights() {
     if (!currentUser) {
