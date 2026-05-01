@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import {
   clearAllData,
   disconnectAccount,
@@ -31,14 +32,31 @@ export function useCurrentUser() {
  * - retry: false  -  a connection error ≠ "user is not connected"; don't mask it
  */
 export function useAccountStatus(userId: number | undefined) {
-  return useQuery({
+  const queryClient = useQueryClient()
+  const query = useQuery({
     queryKey: ['account-status', userId, 'YOUTUBE'],
     queryFn: () => fetchAccountStatus(userId!, 'YOUTUBE'),
     enabled: userId !== undefined,
-    staleTime: 60_000,
-    refetchInterval: 30_000,
+    staleTime: 10_000,
+    refetchInterval: 10_000,
+    refetchOnWindowFocus: 'always',
     retry: false,
   })
+
+  useEffect(() => {
+    if (userId === undefined) return
+
+    function handleStorage(event: StorageEvent) {
+      if (event.key !== 'sociallens:youtube-connected') return
+      void queryClient.invalidateQueries({ queryKey: ['account-status', userId, 'YOUTUBE'] })
+      void queryClient.invalidateQueries({ queryKey: ['account-detail', userId, 'YOUTUBE'] })
+    }
+
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [queryClient, userId])
+
+  return query
 }
 
 /** Full connected account details  -  channelId, scopes, expiry, created date. */

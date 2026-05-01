@@ -5,6 +5,7 @@ import com.LogicGraph.sociallens.entity.ConnectedAccount;
 import com.LogicGraph.sociallens.enums.Platform;
 import com.LogicGraph.sociallens.exception.NotFoundException;
 import com.LogicGraph.sociallens.repository.ConnectedAccountRepository;
+import com.LogicGraph.sociallens.repository.YouTubeVideoRepository;
 import com.LogicGraph.sociallens.service.oauth.YouTubeOAuthService;
 import com.LogicGraph.sociallens.service.youtube.YouTubeAnalyticsClient;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -21,22 +23,25 @@ import java.util.List;
 public class RetentionDiagnosisServiceImpl implements RetentionDiagnosisService {
 
     private final ConnectedAccountRepository connectedAccountRepository;
+    private final YouTubeVideoRepository youTubeVideoRepository;
     private final YouTubeOAuthService youTubeOAuthService;
     private final YouTubeAnalyticsClient youTubeAnalyticsClient;
 
     public RetentionDiagnosisServiceImpl(
             ConnectedAccountRepository connectedAccountRepository,
+            YouTubeVideoRepository youTubeVideoRepository,
             YouTubeOAuthService youTubeOAuthService,
             YouTubeAnalyticsClient youTubeAnalyticsClient) {
         this.connectedAccountRepository = connectedAccountRepository;
+        this.youTubeVideoRepository = youTubeVideoRepository;
         this.youTubeOAuthService = youTubeOAuthService;
         this.youTubeAnalyticsClient = youTubeAnalyticsClient;
     }
 
     @Override
     public RetentionDiagnosisResponse diagnoseRetention(RetentionDiagnosisRequest request) {
-        LocalDate start = request.getStartDate() != null ? request.getStartDate() : LocalDate.now().minusDays(28);
         LocalDate end = request.getEndDate() != null ? request.getEndDate() : LocalDate.now();
+        LocalDate start = request.getStartDate() != null ? request.getStartDate() : defaultStartDate(request, end);
 
         ConnectedAccount account = connectedAccountRepository
                 .findByUser_IdAndPlatform(request.getUserId(), Platform.YOUTUBE)
@@ -94,6 +99,14 @@ public class RetentionDiagnosisServiceImpl implements RetentionDiagnosisService 
 
         return new RetentionDiagnosisResponse(request.getVideoId(), summary, drops, diagnoses);
 
+    }
+
+    private LocalDate defaultStartDate(RetentionDiagnosisRequest request, LocalDate end) {
+        return youTubeVideoRepository.findByVideoId(request.getVideoId())
+                .map(video -> video.getPublishedAt())
+                .map(publishedAt -> publishedAt.atZone(ZoneOffset.UTC).toLocalDate())
+                .filter(publishedAt -> !publishedAt.isAfter(end))
+                .orElse(end.minusDays(365));
     }
 
 

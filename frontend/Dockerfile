@@ -8,6 +8,10 @@ RUN npm ci
 
 # Copy source and build the production bundle
 COPY . .
+ARG VITE_API_BASE_URL=http://localhost:8081
+ARG VITE_ADMIN_API_KEY=
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_ADMIN_API_KEY=$VITE_ADMIN_API_KEY
 RUN npm run build
 
 # ── Stage 2: runtime ──────────────────────────────────────────────────────────
