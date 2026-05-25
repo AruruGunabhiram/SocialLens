@@ -85,3 +85,4 @@ docs/BACKEND.md
 claude.md
 .claude/
 .mcp.json
+frontend/.env.development
