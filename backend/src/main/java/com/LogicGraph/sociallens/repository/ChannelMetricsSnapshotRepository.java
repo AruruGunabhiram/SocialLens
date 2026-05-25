@@ -77,6 +77,9 @@ public interface ChannelMetricsSnapshotRepository
         /** Total distinct snapshot days for a single channel. */
         long countByChannel_Id(Long channelDbId);
 
+        /** Deletes all channel snapshots for a given channel DB id. */
+        long deleteByChannel_Id(Long channelDbId);
+
         /**
          * Returns one row per channel: (channelId, snapshotCount).
          * Used to batch-fetch snapshot counts for the channel list without N+1.

@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -51,6 +52,16 @@ public class ChannelsController {
     @GetMapping("/{channelDbId}")
     public ChannelDetailDto getChannel(@PathVariable Long channelDbId) {
         return channelsService.getChannelById(channelDbId);
+    }
+
+    /**
+     * DELETE /channels/{channelDbId}
+     * Permanently removes the channel and all dependent rows.
+     */
+    @DeleteMapping("/{channelDbId}")
+    public ResponseEntity<Void> deleteChannel(@PathVariable Long channelDbId) {
+        channelsService.deleteChannelById(channelDbId);
+        return ResponseEntity.noContent().build();
     }
 
     // -------------------------------------------------------------------------

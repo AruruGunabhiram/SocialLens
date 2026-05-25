@@ -4,12 +4,16 @@ import com.LogicGraph.sociallens.entity.ChannelMetricsSnapshot;
 import com.LogicGraph.sociallens.entity.YouTubeChannel;
 import com.LogicGraph.sociallens.enums.RefreshStatus;
 import com.LogicGraph.sociallens.repository.ChannelMetricsSnapshotRepository;
+import com.LogicGraph.sociallens.repository.VideoMetricsSnapshotRepository;
+import com.LogicGraph.sociallens.repository.VideoHashtagRepository;
+import com.LogicGraph.sociallens.repository.YouTubeVideoRepository;
 import com.LogicGraph.sociallens.repository.YouTubeChannelRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.InOrder;
 
 import java.time.Instant;
 import java.util.List;
@@ -34,13 +38,19 @@ class ChannelsServiceImplTest {
 
     @Mock private YouTubeChannelRepository youTubeChannelRepository;
     @Mock private ChannelMetricsSnapshotRepository channelMetricsSnapshotRepository;
+        @Mock private VideoMetricsSnapshotRepository videoMetricsSnapshotRepository;
+        @Mock private YouTubeVideoRepository youTubeVideoRepository;
+        @Mock private VideoHashtagRepository videoHashtagRepository;
 
     private ChannelsServiceImpl service;
 
     @BeforeEach
     void setUp() {
         service = new ChannelsServiceImpl(youTubeChannelRepository,
-                channelMetricsSnapshotRepository);
+                                channelMetricsSnapshotRepository,
+                videoMetricsSnapshotRepository,
+                                youTubeVideoRepository,
+                                videoHashtagRepository);
     }
 
     // -------------------------------------------------------------------------
@@ -80,6 +90,34 @@ class ChannelsServiceImplTest {
         verify(channelMetricsSnapshotRepository, never())
                 .findTopByChannel_IdOrderByCapturedAtDesc(anyLong());
     }
+
+        @Test
+        void deleteChannelById_deletesDependentsThenChannel() {
+                when(youTubeChannelRepository.existsById(1L)).thenReturn(true);
+
+                service.deleteChannelById(1L);
+
+                InOrder inOrder = inOrder(videoHashtagRepository, channelMetricsSnapshotRepository,
+                        videoMetricsSnapshotRepository, youTubeVideoRepository, youTubeChannelRepository);
+                inOrder.verify(videoHashtagRepository).deleteByVideo_Channel_Id(1L);
+                inOrder.verify(channelMetricsSnapshotRepository).deleteByChannel_Id(1L);
+                inOrder.verify(videoMetricsSnapshotRepository).deleteByVideo_Channel_Id(1L);
+                inOrder.verify(youTubeVideoRepository).deleteByChannel_Id(1L);
+                inOrder.verify(youTubeChannelRepository).deleteById(1L);
+        }
+
+        @Test
+        void deleteChannelById_missingChannel_returns404() {
+                when(youTubeChannelRepository.existsById(99L)).thenReturn(false);
+
+                org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.deleteChannelById(99L))
+                                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class)
+                                .hasMessageContaining("Channel not found with id: 99");
+
+                verifyNoInteractions(channelMetricsSnapshotRepository, videoMetricsSnapshotRepository,
+                        youTubeVideoRepository, videoHashtagRepository);
+                verify(youTubeChannelRepository, never()).deleteById(anyLong());
+        }
 
     // -------------------------------------------------------------------------
 

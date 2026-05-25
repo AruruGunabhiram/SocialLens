@@ -16,7 +16,9 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ChannelsController.class)
@@ -80,5 +82,13 @@ class ChannelsControllerTest {
         mockMvc.perform(get("/api/v1/channels/1/videos")
                         .param("sort", "UNKNOWN_KEY"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void deleteChannel_returns204() throws Exception {
+        mockMvc.perform(delete("/api/v1/channels/12"))
+                .andExpect(status().isNoContent());
+
+        verify(channelsService).deleteChannelById(12L);
     }
 }

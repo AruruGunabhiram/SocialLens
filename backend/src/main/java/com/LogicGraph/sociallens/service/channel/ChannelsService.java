@@ -20,4 +20,11 @@ public interface ChannelsService {
      * @throws org.springframework.web.server.ResponseStatusException 404 if not found.
      */
     ChannelDetailDto getChannelById(Long channelDbId);
+
+    /**
+     * Permanently deletes a channel and its dependent analytics/video rows.
+     *
+     * @throws org.springframework.web.server.ResponseStatusException 404 if not found.
+     */
+    void deleteChannelById(Long channelDbId);
 }
