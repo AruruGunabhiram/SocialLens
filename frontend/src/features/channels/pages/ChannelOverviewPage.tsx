@@ -809,9 +809,7 @@ export default function ChannelOverviewPage() {
       )}
 
       {/* ── SECTION 3: Performance Chart ────────────────────────────────── */}
-      <div style={{ height: 320 }}>
-        <ChannelChart data={data} />
-      </div>
+      <ChannelChart data={data} />
 
       {/* ── SECTION 4: Recent Videos Preview ───────────────────────────── */}
       {(recentVideos.length > 0 || isLoading) && (

@@ -17,13 +17,16 @@ import type { ChannelAnalytics, ChannelItem, VideoRow } from '@/api/types'
 type Role = 'user' | 'assistant'
 type Message = { role: Role; content: string }
 
-// ─── Anthropic streaming ──────────────────────────────────────────────────────
+// ─── Groq/Llama streaming (demo provider swap) ────────────────────────────────
+// Using Groq's OpenAI-compatible endpoint with a Llama model for the demo.
+// Swap VITE_GROQ_API_KEY → VITE_LLAMA_API_KEY if using a different provider.
 
-const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
-const MODEL = 'claude-haiku-4-5-20251001'
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
+const MODEL = 'llama-3.3-70b-versatile'
 
 function getApiKey(): string {
-  return (import.meta as { env: Record<string, string> }).env.VITE_ANTHROPIC_API_KEY ?? ''
+  const env = (import.meta as { env: Record<string, string> }).env
+  return env.VITE_GROQ_API_KEY ?? env.VITE_LLAMA_API_KEY ?? ''
 }
 
 function buildSystemPrompt(
@@ -63,27 +66,25 @@ async function streamClaude(
   onToken: (token: string) => void,
   signal: AbortSignal
 ): Promise<string> {
-  const res = await fetch(ANTHROPIC_URL, {
+  // Groq uses OpenAI-compatible chat completions; system prompt goes as first message.
+  const res = await fetch(GROQ_URL, {
     method: 'POST',
     headers: {
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
+      Authorization: `Bearer ${apiKey}`,
       'content-type': 'application/json',
     },
     body: JSON.stringify({
       model: MODEL,
       max_tokens: 1024,
       stream: true,
-      system: systemPrompt,
-      messages,
+      messages: [{ role: 'system', content: systemPrompt }, ...messages],
     }),
     signal,
   })
 
   if (!res.ok) {
     const text = await res.text()
-    throw new Error(`Anthropic API error ${res.status}: ${text.slice(0, 200)}`)
+    throw new Error(`Groq API error ${res.status}: ${text.slice(0, 200)}`)
   }
 
   const reader = res.body!.getReader()
@@ -96,8 +97,7 @@ async function streamClaude(
     const result = await reader.read()
     done = result.done
     if (done) break
-    const value = result.value
-    buffer += decoder.decode(value, { stream: true })
+    buffer += decoder.decode(result.value, { stream: true })
     const lines = buffer.split('\n')
     buffer = lines.pop() ?? ''
     for (const line of lines) {
@@ -106,15 +106,15 @@ async function streamClaude(
       if (payload === '[DONE]') continue
       try {
         const evt = JSON.parse(payload) as {
-          type: string
-          delta?: { type: string; text: string }
+          choices?: { delta?: { content?: string } }[]
         }
-        if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
-          accumulated += evt.delta.text
+        const token = evt.choices?.[0]?.delta?.content
+        if (token) {
+          accumulated += token
           onToken(accumulated)
         }
       } catch {
-        // malformed SSE chunk  -  skip
+        // malformed SSE chunk — skip
       }
     }
   }
@@ -585,7 +585,7 @@ export default function CopilotPage() {
     abortRef.current = ctrl
 
     try {
-      if (!apiKey) throw new Error('VITE_ANTHROPIC_API_KEY is not set. Add it to your .env file.')
+      if (!apiKey) throw new Error('VITE_GROQ_API_KEY is not set. Add it to your .env file.')
 
       const systemPrompt = buildSystemPrompt(
         selectedChannel!,
@@ -745,9 +745,8 @@ export default function CopilotPage() {
                 fontSize: '11px',
               }}
             >
-              Add <code style={{ fontFamily: 'var(--font-mono)' }}>VITE_ANTHROPIC_API_KEY</code> to
-              your <code style={{ fontFamily: 'var(--font-mono)' }}>.env</code> file to enable the
-              chat.
+              Add <code style={{ fontFamily: 'var(--font-mono)' }}>VITE_GROQ_API_KEY</code> to your{' '}
+              <code style={{ fontFamily: 'var(--font-mono)' }}>.env</code> file to enable the chat.
             </p>
           )}
           <div
