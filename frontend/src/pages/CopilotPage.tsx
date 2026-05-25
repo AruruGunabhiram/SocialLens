@@ -9,50 +9,13 @@ import {
 } from '@/features/channels/queries'
 import { ChannelAvatar } from '@/components/common/ChannelAvatar'
 import { EmptyState } from '@/components/common/EmptyState'
-import { formatCount, formatDate, formatSubscriberCount } from '@/utils/formatters'
-import type { ChannelAnalytics, ChannelItem, VideoRow } from '@/api/types'
+import { formatCount, formatSubscriberCount } from '@/utils/formatters'
+import type { ChannelAnalytics, ChannelItem } from '@/api/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Role = 'user' | 'assistant'
 type Message = { role: Role; content: string }
-
-// ─── Copilot AI ───────────────────────────────────────────────────────────────
-// Direct browser-side LLM API calls (e.g. Groq) are disabled for security —
-// API keys must not be embedded in the frontend bundle or sent from the browser.
-// To re-enable, implement a /api/v1/copilot/chat streaming endpoint in the backend
-// that holds the key server-side and proxies the streamed response.
-
-function buildSystemPrompt(
-  channel: ChannelItem,
-  analytics: ChannelAnalytics,
-  topVideos: VideoRow[],
-  bottomVideos: VideoRow[]
-): string {
-  const snapshots = [...(analytics.timeseries ?? [])]
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 5)
-
-  return `You are SocialLens Copilot, an analytics assistant for YouTube creators. Answer questions about this channel's performance clearly and concisely. Ground all answers in the data provided. If data is unavailable, say so.
-
-CHANNEL:
-- Name: ${channel.title ?? 'Unknown'}
-- Handle: ${channel.handle ?? 'N/A'}
-- Subscribers: ${analytics.subscriberCount?.toLocaleString() ?? 'N/A'}
-- Total Views: ${analytics.totalViews?.toLocaleString() ?? 'N/A'}
-- Videos on YouTube: ${analytics.videoCount ?? 'N/A'}
-- Channel since: ${channel.publishedAt ? formatDate(channel.publishedAt) : 'N/A'}
-
-RECENT SNAPSHOTS (newest first):
-${snapshots.length > 0 ? snapshots.map((s) => `- ${s.date}: ${s.views?.toLocaleString() ?? ' - '} views, ${s.subscribers?.toLocaleString() ?? ' - '} subscribers`).join('\n') : '- No snapshot data yet'}
-
-TOP 10 VIDEOS BY VIEWS:
-${topVideos.length > 0 ? topVideos.map((v, i) => `${i + 1}. "${v.title ?? v.videoId}"  -  ${v.viewCount?.toLocaleString() ?? '?'} views (published ${v.publishedAt?.slice(0, 10) ?? 'N/A'})`).join('\n') : '- No video data yet'}
-
-LOWEST 5 VIDEOS BY VIEWS:
-${bottomVideos.length > 0 ? bottomVideos.map((v, i) => `${i + 1}. "${v.title ?? v.videoId}"  -  ${v.viewCount?.toLocaleString() ?? '?'} views`).join('\n') : '- No video data yet'}`
-}
-
 
 // ─── Shared token styles ──────────────────────────────────────────────────────
 
@@ -475,13 +438,6 @@ export default function CopilotPage() {
     sort: 'views',
     dir: 'desc',
   })
-  const { data: bottomPage } = useVideosQuery(selectedId ?? 0, {
-    page: 0,
-    size: 5,
-    sort: 'views',
-    dir: 'asc',
-  })
-
   const selectedChannel = channels?.find((c) => c.id === selectedId)
 
   // Scroll to bottom on new messages/streaming
