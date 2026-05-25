@@ -9,118 +9,13 @@ import {
 } from '@/features/channels/queries'
 import { ChannelAvatar } from '@/components/common/ChannelAvatar'
 import { EmptyState } from '@/components/common/EmptyState'
-import { formatCount, formatDate, formatSubscriberCount } from '@/utils/formatters'
-import type { ChannelAnalytics, ChannelItem, VideoRow } from '@/api/types'
+import { formatCount, formatSubscriberCount } from '@/utils/formatters'
+import type { ChannelAnalytics, ChannelItem } from '@/api/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Role = 'user' | 'assistant'
 type Message = { role: Role; content: string }
-
-// ─── Anthropic streaming ──────────────────────────────────────────────────────
-
-const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
-const MODEL = 'claude-haiku-4-5-20251001'
-
-function getApiKey(): string {
-  return (import.meta as { env: Record<string, string> }).env.VITE_ANTHROPIC_API_KEY ?? ''
-}
-
-function buildSystemPrompt(
-  channel: ChannelItem,
-  analytics: ChannelAnalytics,
-  topVideos: VideoRow[],
-  bottomVideos: VideoRow[]
-): string {
-  const snapshots = [...(analytics.timeseries ?? [])]
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 5)
-
-  return `You are SocialLens Copilot, an analytics assistant for YouTube creators. Answer questions about this channel's performance clearly and concisely. Ground all answers in the data provided. If data is unavailable, say so.
-
-CHANNEL:
-- Name: ${channel.title ?? 'Unknown'}
-- Handle: ${channel.handle ?? 'N/A'}
-- Subscribers: ${analytics.subscriberCount?.toLocaleString() ?? 'N/A'}
-- Total Views: ${analytics.totalViews?.toLocaleString() ?? 'N/A'}
-- Videos on YouTube: ${analytics.videoCount ?? 'N/A'}
-- Channel since: ${channel.publishedAt ? formatDate(channel.publishedAt) : 'N/A'}
-
-RECENT SNAPSHOTS (newest first):
-${snapshots.length > 0 ? snapshots.map((s) => `- ${s.date}: ${s.views?.toLocaleString() ?? ' - '} views, ${s.subscribers?.toLocaleString() ?? ' - '} subscribers`).join('\n') : '- No snapshot data yet'}
-
-TOP 10 VIDEOS BY VIEWS:
-${topVideos.length > 0 ? topVideos.map((v, i) => `${i + 1}. "${v.title ?? v.videoId}"  -  ${v.viewCount?.toLocaleString() ?? '?'} views (published ${v.publishedAt?.slice(0, 10) ?? 'N/A'})`).join('\n') : '- No video data yet'}
-
-LOWEST 5 VIDEOS BY VIEWS:
-${bottomVideos.length > 0 ? bottomVideos.map((v, i) => `${i + 1}. "${v.title ?? v.videoId}"  -  ${v.viewCount?.toLocaleString() ?? '?'} views`).join('\n') : '- No video data yet'}`
-}
-
-async function streamClaude(
-  apiKey: string,
-  systemPrompt: string,
-  messages: Message[],
-  onToken: (token: string) => void,
-  signal: AbortSignal
-): Promise<string> {
-  const res = await fetch(ANTHROPIC_URL, {
-    method: 'POST',
-    headers: {
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 1024,
-      stream: true,
-      system: systemPrompt,
-      messages,
-    }),
-    signal,
-  })
-
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`Anthropic API error ${res.status}: ${text.slice(0, 200)}`)
-  }
-
-  const reader = res.body!.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ''
-  let accumulated = ''
-
-  let done = false
-  while (!done) {
-    const result = await reader.read()
-    done = result.done
-    if (done) break
-    const value = result.value
-    buffer += decoder.decode(value, { stream: true })
-    const lines = buffer.split('\n')
-    buffer = lines.pop() ?? ''
-    for (const line of lines) {
-      if (!line.startsWith('data: ')) continue
-      const payload = line.slice(6).trim()
-      if (payload === '[DONE]') continue
-      try {
-        const evt = JSON.parse(payload) as {
-          type: string
-          delta?: { type: string; text: string }
-        }
-        if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
-          accumulated += evt.delta.text
-          onToken(accumulated)
-        }
-      } catch {
-        // malformed SSE chunk  -  skip
-      }
-    }
-  }
-
-  return accumulated
-}
 
 // ─── Shared token styles ──────────────────────────────────────────────────────
 
@@ -543,13 +438,6 @@ export default function CopilotPage() {
     sort: 'views',
     dir: 'desc',
   })
-  const { data: bottomPage } = useVideosQuery(selectedId ?? 0, {
-    page: 0,
-    size: 5,
-    sort: 'views',
-    dir: 'asc',
-  })
-
   const selectedChannel = channels?.find((c) => c.id === selectedId)
 
   // Scroll to bottom on new messages/streaming
@@ -564,7 +452,9 @@ export default function CopilotPage() {
     setError(null)
   }, [selectedId])
 
-  const apiKey = getApiKey()
+  // Copilot AI is disabled until a backend proxy endpoint is implemented.
+  // See the comment at the top of this file for details.
+  const apiKey = ''
   const hasContext = Boolean(selectedId && analytics && topPage)
 
   async function send(text: string) {
@@ -585,24 +475,9 @@ export default function CopilotPage() {
     abortRef.current = ctrl
 
     try {
-      if (!apiKey) throw new Error('VITE_ANTHROPIC_API_KEY is not set. Add it to your .env file.')
-
-      const systemPrompt = buildSystemPrompt(
-        selectedChannel!,
-        analytics!,
-        topPage?.items ?? [],
-        bottomPage?.items ?? []
-      )
-
-      const finalText = await streamClaude(
-        apiKey,
-        systemPrompt,
-        nextMessages,
-        (partial) => setStreaming(partial),
-        ctrl.signal
-      )
-
-      setMessages((prev) => [...prev, { role: 'assistant', content: finalText }])
+      // Copilot AI requires a backend proxy endpoint — not yet implemented.
+      // Direct browser-side LLM API calls are disabled for security.
+      throw new Error('Copilot AI is not yet available. A backend proxy endpoint is required.')
     } catch (err) {
       if ((err as { name?: string }).name === 'AbortError') return
       const msg = err instanceof Error ? err.message : 'Unknown error'
@@ -745,9 +620,7 @@ export default function CopilotPage() {
                 fontSize: '11px',
               }}
             >
-              Add <code style={{ fontFamily: 'var(--font-mono)' }}>VITE_ANTHROPIC_API_KEY</code> to
-              your <code style={{ fontFamily: 'var(--font-mono)' }}>.env</code> file to enable the
-              chat.
+              Copilot AI requires a backend proxy endpoint — not yet configured.
             </p>
           )}
           <div

@@ -5,9 +5,13 @@ import com.LogicGraph.sociallens.dto.channels.ChannelListItemDto;
 import com.LogicGraph.sociallens.entity.ChannelMetricsSnapshot;
 import com.LogicGraph.sociallens.entity.YouTubeChannel;
 import com.LogicGraph.sociallens.repository.ChannelMetricsSnapshotRepository;
+import com.LogicGraph.sociallens.repository.VideoMetricsSnapshotRepository;
+import com.LogicGraph.sociallens.repository.VideoHashtagRepository;
+import com.LogicGraph.sociallens.repository.YouTubeVideoRepository;
 import com.LogicGraph.sociallens.repository.YouTubeChannelRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
@@ -21,11 +25,20 @@ public class ChannelsServiceImpl implements ChannelsService {
 
     private final YouTubeChannelRepository youTubeChannelRepository;
     private final ChannelMetricsSnapshotRepository channelMetricsSnapshotRepository;
+        private final VideoMetricsSnapshotRepository videoMetricsSnapshotRepository;
+        private final YouTubeVideoRepository youTubeVideoRepository;
+        private final VideoHashtagRepository videoHashtagRepository;
 
     public ChannelsServiceImpl(YouTubeChannelRepository youTubeChannelRepository,
-                               ChannelMetricsSnapshotRepository channelMetricsSnapshotRepository) {
+                                                           ChannelMetricsSnapshotRepository channelMetricsSnapshotRepository,
+                                                           VideoMetricsSnapshotRepository videoMetricsSnapshotRepository,
+                                                           YouTubeVideoRepository youTubeVideoRepository,
+                                                           VideoHashtagRepository videoHashtagRepository) {
         this.youTubeChannelRepository = youTubeChannelRepository;
         this.channelMetricsSnapshotRepository = channelMetricsSnapshotRepository;
+                this.videoMetricsSnapshotRepository = videoMetricsSnapshotRepository;
+                this.youTubeVideoRepository = youTubeVideoRepository;
+                this.videoHashtagRepository = videoHashtagRepository;
     }
 
     @Override
@@ -68,6 +81,21 @@ public class ChannelsServiceImpl implements ChannelsService {
                         HttpStatus.NOT_FOUND, "Channel not found with id: " + channelDbId));
         return toDetailDto(channel);
     }
+
+        @Override
+        @Transactional
+        public void deleteChannelById(Long channelDbId) {
+                if (!youTubeChannelRepository.existsById(channelDbId)) {
+                        throw new ResponseStatusException(
+                                        HttpStatus.NOT_FOUND, "Channel not found with id: " + channelDbId);
+                }
+
+                videoHashtagRepository.deleteByVideo_Channel_Id(channelDbId);
+                channelMetricsSnapshotRepository.deleteByChannel_Id(channelDbId);
+                videoMetricsSnapshotRepository.deleteByVideo_Channel_Id(channelDbId);
+                youTubeVideoRepository.deleteByChannel_Id(channelDbId);
+                youTubeChannelRepository.deleteById(channelDbId);
+        }
 
     // -------------------------------------------------------------------------
     // Private mappers

@@ -15,6 +15,9 @@ import java.time.LocalDate;
 
 public interface VideoMetricsSnapshotRepository extends JpaRepository<VideoMetricsSnapshot, Long> {
 
+        /** Deletes all video snapshots for videos belonging to a channel. */
+        long deleteByVideo_Channel_Id(Long channelDbId);
+
         boolean existsByVideo_IdAndCapturedDayUtc(Long videoId, LocalDate dayUtc);
 
         Optional<VideoMetricsSnapshot> findFirstByVideo_IdAndCapturedDayUtc(

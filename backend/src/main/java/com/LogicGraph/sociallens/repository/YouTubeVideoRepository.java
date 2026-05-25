@@ -28,6 +28,9 @@ public interface YouTubeVideoRepository extends JpaRepository<YouTubeVideo, Long
     // Database ID-based queries for direct channel DB ID access
     long countByChannel_Id(Long channelDbId);
 
+    /** Deletes all videos for a given channel DB id. */
+    long deleteByChannel_Id(Long channelDbId);
+
     // Top videos queries (ordered by metrics)
     List<YouTubeVideo> findByChannel_ChannelIdOrderByViewCountDesc(String channelId, Pageable pageable);
 

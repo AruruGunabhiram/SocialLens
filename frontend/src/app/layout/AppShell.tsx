@@ -144,11 +144,7 @@ function DemoBanner() {
         position: 'relative',
       }}
     >
-      <BarChart2
-        size={13}
-        aria-hidden
-        style={{ color: 'var(--color-warn)', flexShrink: 0 }}
-      />
+      <BarChart2 size={13} aria-hidden style={{ color: 'var(--color-warn)', flexShrink: 0 }} />
       <p
         style={{
           fontFamily: 'var(--font-body)',
@@ -158,10 +154,7 @@ function DemoBanner() {
         }}
       >
         Demo Mode — showing sample data
-        <span
-          aria-hidden
-          style={{ margin: '0 var(--space-2)', opacity: 0.5 }}
-        >
+        <span aria-hidden style={{ margin: '0 var(--space-2)', opacity: 0.5 }}>
           ·
         </span>
         <span style={{ opacity: 0.7 }}>
