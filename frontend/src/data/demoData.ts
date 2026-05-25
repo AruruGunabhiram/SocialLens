@@ -52,7 +52,7 @@ export const demoChannels: ChannelItem[] = [
     handle: 'TechWithTim',
     active: true,
     description: 'Python, machine learning, and software development tutorials.',
-    thumbnailUrl: 'https://i.ytimg.com/vi/ttim_ch_thumb/mqdefault.jpg',
+    thumbnailUrl: null,
     country: 'CA',
     publishedAt: '2017-03-15T00:00:00Z',
     lastSuccessfulRefreshAt: today,
@@ -71,7 +71,7 @@ export const demoChannels: ChannelItem[] = [
     handle: 'Fireship',
     active: true,
     description: 'High-intensity code tutorials and tech explainers.',
-    thumbnailUrl: 'https://i.ytimg.com/vi/fire_ch_thumb/mqdefault.jpg',
+    thumbnailUrl: null,
     country: 'US',
     publishedAt: '2017-09-20T00:00:00Z',
     lastSuccessfulRefreshAt: today,
@@ -90,7 +90,7 @@ export const demoChannels: ChannelItem[] = [
     handle: 'ThePrimeagen',
     active: true,
     description: 'Neovim, Rust, TypeScript, and raw developer opinions.',
-    thumbnailUrl: 'https://i.ytimg.com/vi/prim_ch_thumb/mqdefault.jpg',
+    thumbnailUrl: null,
     country: 'US',
     publishedAt: '2019-01-10T00:00:00Z',
     lastSuccessfulRefreshAt: today,
@@ -194,10 +194,6 @@ export const demoAnalytics: Record<DemoChannelId, ChannelAnalytics> = {
 
 // ─── Videos ───────────────────────────────────────────────────────────────────
 
-function yt(id: string) {
-  return `https://i.ytimg.com/vi/${id}/mqdefault.jpg`
-}
-
 function daysAgo(n: number) {
   return shiftDate(new Date(), -n) + 'T12:00:00Z'
 }
@@ -277,7 +273,7 @@ function toVideoRows(raw: typeof TECHWITHTTIM_VIDEOS) {
     videoId,
     title,
     publishedAt,
-    thumbnailUrl: yt(videoId),
+    thumbnailUrl: null,
     viewCount: views,
     likeCount: likes,
     commentCount: Math.round(likes * 0.12),
