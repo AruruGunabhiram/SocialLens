@@ -59,21 +59,11 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponseDto(ex.getMessage(), "VIDEO_NOT_FOUND", Instant.now()));
     }
 
-    /**
-     * Handles both RateLimitException (no retry info, thrown by YouTubeService)
-     * and RateLimitExceededException (with retryAfterSeconds, used for structured limits).
-     * Consolidated to eliminate duplicate 429 handlers.
-     */
-    @ExceptionHandler({RateLimitException.class, RateLimitExceededException.class})
-    public ResponseEntity<ErrorResponseDto> handleRateLimit(RuntimeException ex, HttpServletRequest request) {
+    @ExceptionHandler(RateLimitException.class)
+    public ResponseEntity<ErrorResponseDto> handleRateLimit(RateLimitException ex, HttpServletRequest request) {
         log.error("Rate limit exception: {}", ex.getMessage(), ex);
-        HttpHeaders headers = new HttpHeaders();
-        if (ex instanceof RateLimitExceededException rle && rle.getRetryAfterSeconds() > 0) {
-            headers.set("Retry-After", String.valueOf(rle.getRetryAfterSeconds()));
-        }
         Map<String, Object> details = Map.of("path", request.getRequestURI());
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .headers(headers)
                 .body(new ErrorResponseDto(ex.getMessage(), "RATE_LIMIT_EXCEEDED", Instant.now(), details));
     }
 

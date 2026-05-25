@@ -10,7 +10,6 @@ import com.LogicGraph.sociallens.enums.DataSource;
 import com.LogicGraph.sociallens.enums.RefreshStatus;
 import com.LogicGraph.sociallens.exception.InsufficientApiQuotaException;
 import com.LogicGraph.sociallens.exception.RateLimitException;
-import com.LogicGraph.sociallens.exception.RateLimitExceededException;
 import com.LogicGraph.sociallens.repository.ChannelMetricsSnapshotRepository;
 import com.LogicGraph.sociallens.repository.VideoMetricsSnapshotRepository;
 import com.LogicGraph.sociallens.repository.YouTubeChannelRepository;
@@ -85,7 +84,7 @@ public class YouTubeSyncServiceImpl implements YouTubeSyncService {
         try {
             videos = youTubeService.fetchVideosByChannelId(channelId, VIDEO_FETCH_LIMIT);
             apiCallsUsed++;
-        } catch (RateLimitException | RateLimitExceededException | InsufficientApiQuotaException e) {
+        } catch (RateLimitException | InsufficientApiQuotaException e) {
             log.warn("Sync PARTIAL for {}  -  rate limited or quota exhausted: {}", channelId, e.getMessage());
             channel.setLastRefreshStatus(RefreshStatus.FAILED);
             channel.setLastRefreshError(e.getMessage());
