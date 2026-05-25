@@ -4,7 +4,6 @@ import { normalizeHttpError } from './httpError'
 import { toastMessage } from '@/lib/toast'
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081'
-const adminApiKey = import.meta.env.VITE_ADMIN_API_KEY
 
 export const axiosClient = axios.create({
   baseURL,
@@ -25,9 +24,8 @@ axiosClient.interceptors.request.use((config) => {
   // TODO: attach Bearer token here when auth is implemented
   // const token = authStore.getToken()
   // if (token) config.headers.Authorization = `Bearer ${token}`
-  if (adminApiKey) {
-    config.headers.set('X-API-Key', adminApiKey)
-  }
+  // NOTE: X-API-Key / VITE_ADMIN_API_KEY removed — admin keys must not be embedded in the
+  // browser bundle. Backend admin routes should be protected by server-side auth only.
   return config
 })
 

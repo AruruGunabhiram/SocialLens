@@ -17,17 +17,11 @@ import type { ChannelAnalytics, ChannelItem, VideoRow } from '@/api/types'
 type Role = 'user' | 'assistant'
 type Message = { role: Role; content: string }
 
-// ─── Groq/Llama streaming (demo provider swap) ────────────────────────────────
-// Using Groq's OpenAI-compatible endpoint with a Llama model for the demo.
-// Swap VITE_GROQ_API_KEY → VITE_LLAMA_API_KEY if using a different provider.
-
-const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
-const MODEL = 'llama-3.3-70b-versatile'
-
-function getApiKey(): string {
-  const env = (import.meta as { env: Record<string, string> }).env
-  return env.VITE_GROQ_API_KEY ?? env.VITE_LLAMA_API_KEY ?? ''
-}
+// ─── Copilot AI ───────────────────────────────────────────────────────────────
+// Direct browser-side LLM API calls (e.g. Groq) are disabled for security —
+// API keys must not be embedded in the frontend bundle or sent from the browser.
+// To re-enable, implement a /api/v1/copilot/chat streaming endpoint in the backend
+// that holds the key server-side and proxies the streamed response.
 
 function buildSystemPrompt(
   channel: ChannelItem,
@@ -59,68 +53,6 @@ LOWEST 5 VIDEOS BY VIEWS:
 ${bottomVideos.length > 0 ? bottomVideos.map((v, i) => `${i + 1}. "${v.title ?? v.videoId}"  -  ${v.viewCount?.toLocaleString() ?? '?'} views`).join('\n') : '- No video data yet'}`
 }
 
-async function streamClaude(
-  apiKey: string,
-  systemPrompt: string,
-  messages: Message[],
-  onToken: (token: string) => void,
-  signal: AbortSignal
-): Promise<string> {
-  // Groq uses OpenAI-compatible chat completions; system prompt goes as first message.
-  const res = await fetch(GROQ_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 1024,
-      stream: true,
-      messages: [{ role: 'system', content: systemPrompt }, ...messages],
-    }),
-    signal,
-  })
-
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`Groq API error ${res.status}: ${text.slice(0, 200)}`)
-  }
-
-  const reader = res.body!.getReader()
-  const decoder = new TextDecoder()
-  let buffer = ''
-  let accumulated = ''
-
-  let done = false
-  while (!done) {
-    const result = await reader.read()
-    done = result.done
-    if (done) break
-    buffer += decoder.decode(result.value, { stream: true })
-    const lines = buffer.split('\n')
-    buffer = lines.pop() ?? ''
-    for (const line of lines) {
-      if (!line.startsWith('data: ')) continue
-      const payload = line.slice(6).trim()
-      if (payload === '[DONE]') continue
-      try {
-        const evt = JSON.parse(payload) as {
-          choices?: { delta?: { content?: string } }[]
-        }
-        const token = evt.choices?.[0]?.delta?.content
-        if (token) {
-          accumulated += token
-          onToken(accumulated)
-        }
-      } catch {
-        // malformed SSE chunk — skip
-      }
-    }
-  }
-
-  return accumulated
-}
 
 // ─── Shared token styles ──────────────────────────────────────────────────────
 
@@ -564,7 +496,9 @@ export default function CopilotPage() {
     setError(null)
   }, [selectedId])
 
-  const apiKey = getApiKey()
+  // Copilot AI is disabled until a backend proxy endpoint is implemented.
+  // See the comment at the top of this file for details.
+  const apiKey = ''
   const hasContext = Boolean(selectedId && analytics && topPage)
 
   async function send(text: string) {
@@ -585,24 +519,9 @@ export default function CopilotPage() {
     abortRef.current = ctrl
 
     try {
-      if (!apiKey) throw new Error('VITE_GROQ_API_KEY is not set. Add it to your .env file.')
-
-      const systemPrompt = buildSystemPrompt(
-        selectedChannel!,
-        analytics!,
-        topPage?.items ?? [],
-        bottomPage?.items ?? []
-      )
-
-      const finalText = await streamClaude(
-        apiKey,
-        systemPrompt,
-        nextMessages,
-        (partial) => setStreaming(partial),
-        ctrl.signal
-      )
-
-      setMessages((prev) => [...prev, { role: 'assistant', content: finalText }])
+      // Copilot AI requires a backend proxy endpoint — not yet implemented.
+      // Direct browser-side LLM API calls are disabled for security.
+      throw new Error('Copilot AI is not yet available. A backend proxy endpoint is required.')
     } catch (err) {
       if ((err as { name?: string }).name === 'AbortError') return
       const msg = err instanceof Error ? err.message : 'Unknown error'
@@ -745,8 +664,7 @@ export default function CopilotPage() {
                 fontSize: '11px',
               }}
             >
-              Add <code style={{ fontFamily: 'var(--font-mono)' }}>VITE_GROQ_API_KEY</code> to your{' '}
-              <code style={{ fontFamily: 'var(--font-mono)' }}>.env</code> file to enable the chat.
+              Copilot AI requires a backend proxy endpoint — not yet configured.
             </p>
           )}
           <div
