@@ -27,6 +27,8 @@ import java.util.Map;
  *   <li>{@code /api/v1/jobs/**}</li>
  *   <li>{@code /api/v1/connected-accounts/**}</li>
  *   <li>{@code /api/v1/creator/**}</li>
+ *   <li>{@code /api/v1/admin/**} – destructive admin operations (data clear, etc.)</li>
+ *   <li>{@code /api/v1/youtube/sync} – quota-burning YouTube ingestion</li>
  * </ul>
  *
  * <p>For a protected request:
@@ -52,7 +54,9 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
     static final List<String> PROTECTED_PATTERNS = List.of(
             "/api/v1/jobs/**",
             "/api/v1/connected-accounts/**",
-            "/api/v1/creator/**"
+            "/api/v1/creator/**",
+            "/api/v1/admin/**",
+            "/api/v1/youtube/sync"
     );
 
     /**

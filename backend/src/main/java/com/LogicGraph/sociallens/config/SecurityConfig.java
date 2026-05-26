@@ -45,9 +45,11 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/v1/jobs/**",
                                 "/api/v1/connected-accounts/**",
-                                "/api/v1/creator/**")
+                                "/api/v1/creator/**",
+                                "/api/v1/admin/**",
+                                "/api/v1/youtube/sync")
                             .authenticated()
-                        // Public routes: analytics, channels, youtube ingestion, health, OAuth
+                        // Public routes: analytics, channels, youtube channel-lookup, health, OAuth
                         // TODO(auth): migrate to JWT before onboarding external users.
                         .anyRequest().permitAll());
 
