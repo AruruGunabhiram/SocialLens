@@ -29,8 +29,10 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // sameOrigin allows the H2 console (same-origin frames) while blocking
+                // cross-origin framing. Never use disable() in production.
                 .headers(headers ->
-                        headers.frameOptions(frame -> frame.disable()))
+                        headers.frameOptions(frame -> frame.sameOrigin()))
                 .addFilterBefore(apiKeyAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         // API-key-protected admin routes  -  ApiKeyAuthFilter enforces the key
