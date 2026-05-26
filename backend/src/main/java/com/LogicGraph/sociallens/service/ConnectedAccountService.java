@@ -9,21 +9,29 @@ import com.LogicGraph.sociallens.enums.Platform;
 import com.LogicGraph.sociallens.exception.ConnectedAccountNotFoundException;
 import com.LogicGraph.sociallens.repository.ConnectedAccountRepository;
 import com.LogicGraph.sociallens.repository.UserRepository;
+import com.LogicGraph.sociallens.service.oauth.GoogleTokenRevoker;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ConnectedAccountService {
 
+    private static final Logger log = LoggerFactory.getLogger(ConnectedAccountService.class);
+
     private final ConnectedAccountRepository connectedAccountRepository;
     private final UserRepository userRepository;
+    private final GoogleTokenRevoker googleTokenRevoker;
 
     public ConnectedAccountService(
             ConnectedAccountRepository connectedAccountRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            GoogleTokenRevoker googleTokenRevoker) {
         this.connectedAccountRepository = connectedAccountRepository;
         this.userRepository = userRepository;
+        this.googleTokenRevoker = googleTokenRevoker;
     }
 
     /**
@@ -94,6 +102,11 @@ public class ConnectedAccountService {
     /**
      * Marks a connected account as DISCONNECTED and clears its stored tokens.
      * The account row itself is retained so that createdAt / history is preserved.
+     *
+     * <p>Before nulling local tokens, the refresh token (or access token when no
+     * refresh token is available) is revoked at Google's OAuth endpoint.  Revocation
+     * failure is non-fatal: the account is still marked DISCONNECTED locally even if
+     * the remote call fails.
      */
     @Transactional
     public void disconnect(Long userId, Platform platform) {
@@ -101,6 +114,25 @@ public class ConnectedAccountService {
                 .findByUser_IdAndPlatform(userId, platform)
                 .orElseThrow(() -> new ConnectedAccountNotFoundException(
                         "No connected account for userId=" + userId + " platform=" + platform));
+
+        // Capture the token to revoke BEFORE clearing local state.
+        // Prefer the refresh token: revoking it invalidates all access tokens it issued.
+        // Fall back to the access token when no refresh token is stored.
+        String tokenToRevoke = (account.getRefreshToken() != null && !account.getRefreshToken().isBlank())
+                ? account.getRefreshToken()
+                : account.getAccessToken();
+
+        log.info("Revoking Google token for userId={} platform={}", userId, platform);
+        try {
+            googleTokenRevoker.revokeQuietly(tokenToRevoke);
+        } catch (Exception ex) {
+            // revokeQuietly() is designed to never throw, but guard defensively so
+            // revocation bugs can never block a user from disconnecting their account.
+            log.warn("Unexpected exception during token revocation for userId={} platform={} — " +
+                    "proceeding with local disconnect. cause={}: {}",
+                    userId, platform, ex.getClass().getSimpleName(), ex.getMessage());
+        }
+
         account.setStatus(ConnectedAccountStatus.DISCONNECTED);
         account.setDisconnectReason("User-initiated disconnect");
         account.setAccessToken(null);

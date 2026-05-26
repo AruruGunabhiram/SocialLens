@@ -9,8 +9,30 @@ import org.springframework.stereotype.Component;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Tracks the daily YouTube Data API call budget.
+ * Tracks the daily YouTube Data API call budget for this JVM instance.
  * Budget is loaded from {@code app.api.daily-quota} and reset at midnight UTC.
+ *
+ * <h3>Single-instance safety</h3>
+ * <p>The counter is an in-memory {@link java.util.concurrent.atomic.AtomicInteger}.
+ * It is <strong>only safe for single-instance deployments</strong>.  In a multi-instance
+ * (horizontally-scaled) setup each JVM maintains its own independent counter; there is no
+ * coordination between instances.  With N running instances the effective daily quota
+ * consumed could be up to N × {@code app.api.daily-quota} calls before any instance's
+ * local counter reaches zero.
+ *
+ * <p>A distributed quota solution would require a shared counter (e.g. Redis DECRBY with
+ * a TTL-based reset, or a DB row with a daily watermark) and is not implemented here.
+ *
+ * <h3>Current wiring status</h3>
+ * <p>This bean is instantiated by Spring but is <strong>not yet injected into the job
+ * flow</strong>.  Neither {@link DailyRefreshJob} nor {@link DailyRefreshWorker} currently
+ * calls {@link #decrement()}.  The bean therefore resets at midnight but never actually
+ * enforces a limit during a refresh run.
+ *
+ * <p>TODO (single-instance wiring): inject this bean into {@link DailyRefreshWorker} and
+ * call {@link #decrement()} before each YouTube Data API call.  When the budget is
+ * exhausted ({@link #decrement()} returns {@code false}), stop processing further channels
+ * and record a QUOTA_EXHAUSTED status so the next run can resume.
  */
 @Component
 public class ApiCallBudget {
