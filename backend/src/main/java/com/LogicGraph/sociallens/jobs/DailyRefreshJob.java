@@ -51,10 +51,8 @@ public class DailyRefreshJob {
                 ok++;
             } catch (Exception ex) {
                 failed++;
-                log.warn("DailyRefreshJob failed channelId={}: {}", ch.getChannelId(), ex.getMessage(), ex);
                 log.warn("DailyRefreshJob failed channelDbId={} channelId={} err={}",
                         ch.getId(), ch.getChannelId(), ex.getMessage(), ex);
-
             }
         }
 
