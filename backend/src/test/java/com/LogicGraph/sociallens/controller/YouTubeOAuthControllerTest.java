@@ -11,6 +11,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -79,11 +80,12 @@ class YouTubeOAuthControllerTest {
 
     /**
      * OAuthStateInvalidException (expired state) → 302 with connected=false.
+     * The raw exception message must NOT appear in the redirect URL.
      * Previously returned 400 via GlobalExceptionHandler; now the controller
      * catches it and redirects so the user sees a proper UI.
      */
     @Test
-    void callback_withExpiredState_redirectsWithConnectedFalse() throws Exception {
+    void callback_withExpiredState_redirectsWithSafeMessage() throws Exception {
         when(youTubeOAuthService.handleCallback(eq("valid-code"), eq("expired-state")))
                 .thenThrow(new OAuthStateInvalidException("OAuth state expired"));
 
@@ -92,14 +94,18 @@ class YouTubeOAuthControllerTest {
                         .param("state", "expired-state"))
                 .andExpect(status().isFound())
                 .andExpect(header().string("Location", containsString("/oauth/callback?connected=false")))
-                .andExpect(header().string("Location", containsString("message=")));
+                // Safe fixed message must be present
+                .andExpect(header().string("Location", containsString("OAuth+connection+failed")))
+                // Raw internal detail must NOT be present
+                .andExpect(header().string("Location", not(containsString("expired"))));
     }
 
     /**
      * OAuthStateInvalidException (already-used state) → 302 with connected=false.
+     * Raw exception message ("already used") must NOT leak into the redirect URL.
      */
     @Test
-    void callback_withUsedState_redirectsWithConnectedFalse() throws Exception {
+    void callback_withUsedState_redirectsWithSafeMessage() throws Exception {
         when(youTubeOAuthService.handleCallback(eq("valid-code"), eq("used-state")))
                 .thenThrow(new OAuthStateInvalidException("OAuth state already used"));
 
@@ -107,20 +113,54 @@ class YouTubeOAuthControllerTest {
                         .param("code", "valid-code")
                         .param("state", "used-state"))
                 .andExpect(status().isFound())
-                .andExpect(header().string("Location", containsString("/oauth/callback?connected=false")));
+                .andExpect(header().string("Location", containsString("/oauth/callback?connected=false")))
+                // Safe fixed message must be present
+                .andExpect(header().string("Location", containsString("OAuth+connection+failed")))
+                // Raw internal detail must NOT be present
+                .andExpect(header().string("Location", not(containsString("already+used"))))
+                .andExpect(header().string("Location", not(containsString("already%20used"))));
     }
 
     /**
-     * Google sends error=access_denied → 302 with connected=false and message.
+     * Google sends error=access_denied → 302 with connected=false and safe message.
+     * The raw Google error code and description must NOT be forwarded to the frontend URL.
      */
     @Test
-    void callback_withGoogleError_redirectsWithConnectedFalse() throws Exception {
+    void callback_withGoogleError_redirectsWithSafeMessage() throws Exception {
         mockMvc.perform(get("/api/v1/oauth/youtube/callback")
                         .param("error", "access_denied")
                         .param("error_description", "User denied access"))
                 .andExpect(status().isFound())
                 .andExpect(header().string("Location", containsString("/oauth/callback?connected=false")))
-                .andExpect(header().string("Location", containsString("message=")));
+                // Safe fixed message must be present
+                .andExpect(header().string("Location", containsString("OAuth+connection+failed")))
+                // Raw Google error values must NOT be forwarded
+                .andExpect(header().string("Location", not(containsString("access_denied"))))
+                .andExpect(header().string("Location", not(containsString("denied"))))
+                .andExpect(header().string("Location", not(containsString("User"))));
+    }
+
+    /**
+     * An unexpected backend exception (e.g. DB failure) during token exchange →
+     * 302 with connected=false and the safe fixed message.
+     * The raw exception message must NOT appear in the redirect URL.
+     */
+    @Test
+    void callback_withUnexpectedException_redirectsWithSafeMessage() throws Exception {
+        when(youTubeOAuthService.handleCallback(eq("valid-code"), eq("valid-state")))
+                .thenThrow(new RuntimeException("Connection to DB timed out after 30s"));
+
+        mockMvc.perform(get("/api/v1/oauth/youtube/callback")
+                        .param("code", "valid-code")
+                        .param("state", "valid-state"))
+                .andExpect(status().isFound())
+                .andExpect(header().string("Location", containsString("/oauth/callback?connected=false")))
+                // Safe fixed message must be present
+                .andExpect(header().string("Location", containsString("OAuth+connection+failed")))
+                // Raw exception text must NOT leak through
+                .andExpect(header().string("Location", not(containsString("DB"))))
+                .andExpect(header().string("Location", not(containsString("timed+out"))))
+                .andExpect(header().string("Location", not(containsString("timed%20out"))));
     }
 
     /**

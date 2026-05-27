@@ -19,6 +19,13 @@ import java.nio.charset.StandardCharsets;
 @RequiredArgsConstructor
 public class YouTubeOAuthController {
 
+    /**
+     * Generic safe message sent to the frontend on any OAuth failure.
+     * Never expose raw exception messages or Google error codes here —
+     * those are logged server-side only.
+     */
+    static final String SAFE_ERROR_MESSAGE = "OAuth connection failed. Please try again.";
+
     private final YouTubeOAuthService youTubeOAuthService;
 
     @Value("${app.frontend.url:http://localhost:5173}")
@@ -51,9 +58,9 @@ public class YouTubeOAuthController {
                 code != null, state, error, errorDescription);
 
         if (error != null) {
-            String msg = "Google OAuth error: " + error;
-            if (errorDescription != null) msg += " \u2014 " + errorDescription;
-            return redirectToFrontend(false, msg);
+            // Raw Google error codes are already captured in the log line above.
+            // Do NOT forward them to the frontend URL \u2014 they can expose internal detail.
+            return redirectToFrontend(false, SAFE_ERROR_MESSAGE);
         }
 
         if (code == null || state == null) {
@@ -64,10 +71,11 @@ public class YouTubeOAuthController {
             youTubeOAuthService.handleCallback(code, state);
             return redirectToFrontend(true, null);
         } catch (OAuthStateInvalidException e) {
-            return redirectToFrontend(false, e.getMessage());
+            log.warn("OAuth state validation failed. state={} reason={}", state, e.getMessage());
+            return redirectToFrontend(false, SAFE_ERROR_MESSAGE);
         } catch (Exception e) {
             log.error("OAuth callback failed. state={}, codePresent=true", state, e);
-            return redirectToFrontend(false, "OAuth callback failed: " + e.getMessage());
+            return redirectToFrontend(false, SAFE_ERROR_MESSAGE);
         }
     }
 

@@ -1,6 +1,7 @@
 package com.LogicGraph.sociallens.entity;
 
 import com.LogicGraph.sociallens.enums.Platform;
+import com.LogicGraph.sociallens.security.EncryptedTokenConverter;
 import jakarta.persistence.*;
 import java.time.Instant;
 import com.LogicGraph.sociallens.enums.ConnectedAccountStatus;
@@ -25,9 +26,11 @@ public class ConnectedAccount {
     private String channelId;
 
     @Column(name = "access_token", columnDefinition = "TEXT")
+    @Convert(converter = EncryptedTokenConverter.class)
     private String accessToken;
 
     @Column(name = "refresh_token", columnDefinition = "TEXT")
+    @Convert(converter = EncryptedTokenConverter.class)
     private String refreshToken;
 
     @Column(name = "expires_at")

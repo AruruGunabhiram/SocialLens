@@ -35,12 +35,24 @@ public class OAuthAnalyticsRefreshJob {
         }
 
         var accounts = connectedAccountRepository.findByStatus(ConnectedAccountStatus.ACTIVE);
-        log.info("OAuthAnalyticsRefreshJob starting: connectedAccounts={}", accounts.size());
+        int maxAccounts = props.getOauthRefresh().getMaxAccountsPerRun();
 
+        log.info("OAuthAnalyticsRefreshJob starting: connectedAccounts={} maxAccountsPerRun={}",
+                accounts.size(), maxAccounts);
+
+        int processed = 0;
         int refreshed = 0;
         int failed = 0;
 
         for (var acc : accounts) {
+            if (processed >= maxAccounts) {
+                log.info("OAuthAnalyticsRefreshJob reached maxAccountsPerRun={}: stopping early " +
+                        "(remaining={} accounts skipped this run)",
+                        maxAccounts, accounts.size() - processed);
+                break;
+            }
+            processed++;
+
             try {
                 boolean didRefresh = oauthService.refreshIfNeeded(acc);
                 if (didRefresh) refreshed++;
@@ -50,7 +62,7 @@ public class OAuthAnalyticsRefreshJob {
             }
         }
 
-        log.info("OAuthAnalyticsRefreshJob finished: refreshed={} failed={} total={}",
-                refreshed, failed, accounts.size());
+        log.info("OAuthAnalyticsRefreshJob finished: processed={} refreshed={} failed={} total={}",
+                processed, refreshed, failed, accounts.size());
     }
 }

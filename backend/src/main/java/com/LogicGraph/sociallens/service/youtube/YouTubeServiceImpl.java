@@ -133,8 +133,8 @@ public class YouTubeServiceImpl implements YouTubeService {
         log.debug("fetchVideosByChannelId channelId={} maxResults={}", channelId, maxResults);
 
         try {
-            // Step 1: resolve uploads playlist ID
-            String uploadsPlaylistId = resolveUploadsPlaylistId(channelId);
+            // Step 1: resolve uploads playlist ID (internal helper, no extra budget charge)
+            String uploadsPlaylistId = resolveUploadsPlaylistIdInternal(channelId);
             if (uploadsPlaylistId == null) {
                 log.debug("fetchVideosByChannelId channelId={}  -  no uploads playlist found", channelId);
                 return Collections.emptyList();
@@ -191,11 +191,210 @@ public class YouTubeServiceImpl implements YouTubeService {
     }
 
     // -------------------------------------------------------------------------
+    // Additional public interface methods
+    // -------------------------------------------------------------------------
+
+    @Override
+    public Optional<ChannelDto> fetchChannelByVideoId(String videoId) {
+        checkAndDecrementBudget(); // budget unit for the video fetch
+        log.debug("fetchChannelByVideoId videoId={}", videoId);
+
+        String videoUrl = UriComponentsBuilder
+                .fromHttpUrl(YouTubeApiConfig.BASE_URL + "/videos")
+                .queryParam("part", "snippet")
+                .queryParam("id", videoId)
+                .queryParam("key", apiKey)
+                .toUriString();
+
+        try {
+            YouTubeVideosResponse videoResponse = ytGet(videoUrl, YouTubeVideosResponse.class);
+            if (videoResponse == null || videoResponse.items == null || videoResponse.items.isEmpty()) {
+                log.debug("fetchChannelByVideoId videoId={} - video not found", videoId);
+                return Optional.empty();
+            }
+
+            String channelId = videoResponse.items.get(0).snippet != null
+                    ? videoResponse.items.get(0).snippet.channelId
+                    : null;
+            if (channelId == null || channelId.isBlank()) {
+                log.debug("fetchChannelByVideoId videoId={} - video has no channelId", videoId);
+                return Optional.empty();
+            }
+
+            // second API call to fetch channel details  -  consume an additional budget unit
+            checkAndDecrementBudget();
+            return fetchChannelByChannelIdInternal(channelId);
+
+        } catch (RateLimitException | InsufficientApiQuotaException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("fetchChannelByVideoId failed videoId={}: {}", videoId, e.getMessage(), e);
+            throw toServiceException("fetchChannelByVideoId", videoId, e);
+        }
+    }
+
+    @Override
+    public String resolveUploadsPlaylistId(String channelId) {
+        checkAndDecrementBudget();
+        log.debug("resolveUploadsPlaylistId channelId={}", channelId);
+
+        String url = UriComponentsBuilder
+                .fromHttpUrl(YouTubeApiConfig.BASE_URL + "/channels")
+                .queryParam("part", "contentDetails")
+                .queryParam("id", channelId)
+                .queryParam("key", apiKey)
+                .toUriString();
+
+        try {
+            YouTubeChannelResponse response = ytGet(url, YouTubeChannelResponse.class);
+            if (response == null || response.items == null || response.items.isEmpty()) {
+                throw new RuntimeException("No channel found for channelId: " + channelId);
+            }
+            YouTubeChannelResponse.Item item = response.items.get(0);
+            if (item.contentDetails == null
+                    || item.contentDetails.relatedPlaylists == null
+                    || item.contentDetails.relatedPlaylists.uploads == null
+                    || item.contentDetails.relatedPlaylists.uploads.isBlank()) {
+                throw new RuntimeException("Uploads playlist not found for channelId: " + channelId);
+            }
+            log.debug("resolveUploadsPlaylistId channelId={} -> {}", channelId,
+                    item.contentDetails.relatedPlaylists.uploads);
+            return item.contentDetails.relatedPlaylists.uploads;
+
+        } catch (RateLimitException | InsufficientApiQuotaException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("resolveUploadsPlaylistId failed channelId={}: {}", channelId, e.getMessage(), e);
+            throw toServiceException("resolveUploadsPlaylistId", channelId, e);
+        }
+    }
+
+    @Override
+    public YouTubePlaylistItemsResponse fetchPlaylistPage(String playlistId, String pageToken, int maxResults) {
+        checkAndDecrementBudget();
+        log.debug("fetchPlaylistPage playlistId={} pageToken={} maxResults={}", playlistId, pageToken, maxResults);
+
+        UriComponentsBuilder builder = UriComponentsBuilder
+                .fromHttpUrl("https://www.googleapis.com/youtube/v3/playlistItems")
+                .queryParam("part", "contentDetails,snippet")
+                .queryParam("playlistId", playlistId)
+                .queryParam("maxResults", maxResults)
+                .queryParam("key", apiKey);
+
+        if (pageToken != null && !pageToken.isBlank()) {
+            builder.queryParam("pageToken", pageToken);
+        }
+
+        // build(true).toUri() passes the assembled string as already-encoded  -  commas
+        // in multi-value params are transmitted literally instead of being percent-encoded.
+        java.net.URI uri = builder.build(true).toUri();
+
+        try {
+            YouTubePlaylistItemsResponse response = restTemplate.getForObject(uri, YouTubePlaylistItemsResponse.class);
+            if (response == null) {
+                throw new RuntimeException("YouTube API returned null playlistItems response for playlistId=" + playlistId);
+            }
+            log.debug("fetchPlaylistPage playlistId={} items={} nextPage={}",
+                    playlistId, response.items != null ? response.items.size() : 0, response.nextPageToken);
+            return response;
+
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            String body = e.getResponseBodyAsString() == null ? "" : e.getResponseBodyAsString();
+            if (body.contains("quotaExceeded")
+                    || body.contains("rateLimitExceeded")
+                    || body.contains("userRateLimitExceeded")) {
+                throw new RateLimitException("YouTube API quota/rate limit exceeded.", e);
+            }
+            throw new RuntimeException("YouTube API client error: " + e.getStatusCode() + " - " + body, e);
+        } catch (org.springframework.web.client.HttpServerErrorException e) {
+            throw new RuntimeException("YouTube API server error: " + e.getStatusCode(), e);
+        } catch (RateLimitException | InsufficientApiQuotaException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("fetchPlaylistPage failed playlistId={}: {}", playlistId, e.getMessage(), e);
+            throw toServiceException("fetchPlaylistPage", playlistId, e);
+        }
+    }
+
+    @Override
+    public List<YouTubeVideosResponse.Item> fetchVideoDetailItems(List<String> videoIds) {
+        if (videoIds == null || videoIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        checkAndDecrementBudget();
+        log.debug("fetchVideoDetailItems count={}", videoIds.size());
+
+        List<YouTubeVideosResponse.Item> result = new ArrayList<>();
+        int batchSize = 50;
+        int totalBatches = (videoIds.size() + batchSize - 1) / batchSize;
+        int failedBatches = 0;
+
+        for (int i = 0; i < videoIds.size(); i += batchSize) {
+            int batchNum = i / batchSize + 1;
+            List<String> batch = videoIds.subList(i, Math.min(i + batchSize, videoIds.size()));
+            String ids = String.join(",", batch);
+
+            // build(true).toUri() keeps commas literal so YouTube receives id=abc,def
+            // rather than the percent-encoded id=abc%2Cdef which YouTube rejects with 400.
+            java.net.URI uri = UriComponentsBuilder
+                    .fromHttpUrl(YouTubeApiConfig.BASE_URL + "/videos")
+                    .queryParam("part", "snippet,contentDetails,statistics")
+                    .queryParam("id", ids)
+                    .queryParam("key", apiKey)
+                    .build(true)
+                    .toUri();
+
+            try {
+                YouTubeVideosResponse response = restTemplate.getForObject(uri, YouTubeVideosResponse.class);
+                if (response != null && response.items != null) {
+                    result.addAll(response.items);
+                    log.debug("fetchVideoDetailItems batch {}/{} returned {} items",
+                            batchNum, totalBatches, response.items.size());
+                }
+            } catch (Exception e) {
+                failedBatches++;
+                log.warn("fetchVideoDetailItems: batch {}/{} failed (ids[{}..{}]): {}",
+                        batchNum, totalBatches, i, Math.min(i + batchSize, videoIds.size()) - 1,
+                        e.getMessage(), e);
+            }
+        }
+
+        if (failedBatches > 0) {
+            log.warn("fetchVideoDetailItems: {}/{} batches failed; {} items returned from successful batches",
+                    failedBatches, totalBatches, result.size());
+        } else {
+            log.debug("fetchVideoDetailItems: all {} batches succeeded; {} total items", totalBatches, result.size());
+        }
+        return result;
+    }
+
+    // -------------------------------------------------------------------------
     // Private helpers  -  no budget interaction
     // -------------------------------------------------------------------------
 
-    /** Resolves the uploads playlist ID for a given channel ID (no budget charge). */
-    private String resolveUploadsPlaylistId(String channelId) {
+    /**
+     * Internal channel-by-ID fetch (no budget check).
+     * Used by {@link #fetchChannelByVideoId} after it has already checked the budget for the video call.
+     */
+    private Optional<ChannelDto> fetchChannelByChannelIdInternal(String channelId) {
+        String url = UriComponentsBuilder
+                .fromHttpUrl(YouTubeApiConfig.BASE_URL + "/channels")
+                .queryParam("part", CHANNEL_PARTS)
+                .queryParam("id", channelId)
+                .queryParam("key", apiKey)
+                .toUriString();
+
+        YouTubeChannelResponse response = ytGet(url, YouTubeChannelResponse.class);
+        return mapFirstChannel(response);
+    }
+
+    /**
+     * Resolves the uploads playlist ID for a given channel ID.
+     * Private variant — no budget charge. Used only by {@link #fetchVideosByChannelId}.
+     */
+    private String resolveUploadsPlaylistIdInternal(String channelId) {
         String url = UriComponentsBuilder
                 .fromHttpUrl(YouTubeApiConfig.BASE_URL + "/channels")
                 .queryParam("part", "contentDetails")

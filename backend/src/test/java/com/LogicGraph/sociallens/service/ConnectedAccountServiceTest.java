@@ -7,6 +7,7 @@ import com.LogicGraph.sociallens.enums.ConnectedAccountStatus;
 import com.LogicGraph.sociallens.enums.Platform;
 import com.LogicGraph.sociallens.repository.ConnectedAccountRepository;
 import com.LogicGraph.sociallens.repository.UserRepository;
+import com.LogicGraph.sociallens.service.oauth.GoogleTokenRevoker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,12 +27,13 @@ class ConnectedAccountServiceTest {
 
     @Mock private ConnectedAccountRepository connectedAccountRepository;
     @Mock private UserRepository userRepository;
+    @Mock private GoogleTokenRevoker googleTokenRevoker;
 
     private ConnectedAccountService service;
 
     @BeforeEach
     void setUp() {
-        service = new ConnectedAccountService(connectedAccountRepository, userRepository);
+        service = new ConnectedAccountService(connectedAccountRepository, userRepository, googleTokenRevoker);
     }
 
     // -------------------------------------------------------------------------
@@ -140,6 +142,87 @@ class ConnectedAccountServiceTest {
                 .thenReturn(Optional.of(account));
 
         assertThat(service.findAccount(1L, Platform.YOUTUBE)).isPresent();
+    }
+
+    // -------------------------------------------------------------------------
+    // disconnect — Google token revocation
+    // -------------------------------------------------------------------------
+
+    /**
+     * When a refresh token is present, disconnect() must pass it to the revoker
+     * (refresh token preferred over access token), then mark the account
+     * DISCONNECTED and null both tokens locally.
+     */
+    @Test
+    void disconnect_revokesRefreshToken_andMarksAccountDisconnected() {
+        User user = new User();
+        ConnectedAccount account = new ConnectedAccount(
+                Platform.YOUTUBE, "UCxxx", "access-token", "refresh-token",
+                Instant.now().plusSeconds(3600), "scope", user);
+
+        when(connectedAccountRepository.findByUser_IdAndPlatform(1L, Platform.YOUTUBE))
+                .thenReturn(Optional.of(account));
+        when(connectedAccountRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        // revoker is a no-op mock by default — just verify it's called
+
+        service.disconnect(1L, Platform.YOUTUBE);
+
+        // Revoker must be called with the refresh token (not the access token)
+        verify(googleTokenRevoker, times(1)).revokeQuietly("refresh-token");
+
+        // Local account state must be cleaned up regardless
+        assertThat(account.getStatus()).isEqualTo(ConnectedAccountStatus.DISCONNECTED);
+        assertThat(account.getAccessToken()).isNull();
+        assertThat(account.getRefreshToken()).isNull();
+        assertThat(account.getDisconnectReason()).isEqualTo("User-initiated disconnect");
+    }
+
+    /**
+     * When no refresh token is present, disconnect() falls back to revoking the
+     * access token.
+     */
+    @Test
+    void disconnect_revokesAccessToken_whenNoRefreshTokenPresent() {
+        User user = new User();
+        ConnectedAccount account = new ConnectedAccount(
+                Platform.YOUTUBE, "UCxxx", "access-token", null /* no refresh token */,
+                Instant.now().plusSeconds(3600), "scope", user);
+
+        when(connectedAccountRepository.findByUser_IdAndPlatform(1L, Platform.YOUTUBE))
+                .thenReturn(Optional.of(account));
+        when(connectedAccountRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.disconnect(1L, Platform.YOUTUBE);
+
+        verify(googleTokenRevoker, times(1)).revokeQuietly("access-token");
+        assertThat(account.getStatus()).isEqualTo(ConnectedAccountStatus.DISCONNECTED);
+    }
+
+    /**
+     * If the revoker throws (e.g. network failure), disconnect() must still
+     * complete successfully — the local account must be marked DISCONNECTED.
+     */
+    @Test
+    void disconnect_succeeds_whenRevocationFails() {
+        User user = new User();
+        ConnectedAccount account = new ConnectedAccount(
+                Platform.YOUTUBE, "UCxxx", "access-token", "refresh-token",
+                Instant.now().plusSeconds(3600), "scope", user);
+
+        when(connectedAccountRepository.findByUser_IdAndPlatform(1L, Platform.YOUTUBE))
+                .thenReturn(Optional.of(account));
+        when(connectedAccountRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        // revokeQuietly() itself never throws by design, but guard against accidental throws
+        doThrow(new RuntimeException("simulated revocation failure"))
+                .when(googleTokenRevoker).revokeQuietly(anyString());
+
+        // disconnect must not propagate the revoker's exception
+        assertThatNoException().isThrownBy(() -> service.disconnect(1L, Platform.YOUTUBE));
+
+        assertThat(account.getStatus()).isEqualTo(ConnectedAccountStatus.DISCONNECTED);
+        assertThat(account.getAccessToken()).isNull();
+        assertThat(account.getRefreshToken()).isNull();
     }
 
 }

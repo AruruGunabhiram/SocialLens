@@ -10,6 +10,7 @@ youtube.api.key=YOUR_YOUTUBE_API_KEY
 google.oauth.client-id=YOUR_GOOGLE_CLIENT_ID
 google.oauth.client-secret=YOUR_GOOGLE_CLIENT_SECRET
 google.oauth.redirect-uri=http://localhost:8081/api/v1/oauth/youtube/callback
+sociallens.security.token-encryption-key=replace-with-a-long-random-secret
 
 # PostgreSQL datasource (matches docker-compose.yml defaults)
 spring.datasource.url=jdbc:postgresql://localhost:5432/sociallens

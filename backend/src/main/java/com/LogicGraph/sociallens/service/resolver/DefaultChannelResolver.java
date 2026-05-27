@@ -1,9 +1,10 @@
 package com.LogicGraph.sociallens.service.resolver;
 
-import com.LogicGraph.sociallens.dto.youtube.ChannelSummaryDto;
 import com.LogicGraph.sociallens.entity.YouTubeChannel;
+import com.LogicGraph.sociallens.exception.NotFoundException;
 import com.LogicGraph.sociallens.repository.YouTubeChannelRepository;
-import com.LogicGraph.sociallens.service.YouTubeService;
+import com.LogicGraph.sociallens.service.youtube.ChannelDto;
+import com.LogicGraph.sociallens.service.youtube.YouTubeService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -99,12 +100,7 @@ public class DefaultChannelResolver implements ChannelResolver {
     public YouTubeChannel resolveToChannel(String input) {
         ResolvedChannelIdentifier resolved = resolve(input);
 
-        ChannelSummaryDto dto = switch (resolved.type()) {
-            case CHANNEL_ID -> youTubeService.getChannelSummaryByChannelId(resolved.resolvedChannelId());
-            case HANDLE     -> youTubeService.getChannelSummaryByHandle(resolved.resolvedChannelId());
-            case CUSTOM_URL -> youTubeService.getChannelSummaryByUsername(resolved.resolvedChannelId());
-            case VIDEO_URL  -> youTubeService.getChannelSummaryFromVideoId(resolved.resolvedChannelId());
-        };
+        ChannelDto dto = fetchByResolved(resolved);
 
         YouTubeChannel channel = channelRepository
                 .findByChannelId(dto.channelId())
@@ -118,5 +114,26 @@ public class DefaultChannelResolver implements ChannelResolver {
         channel.setVideoCount(dto.videoCount());
 
         return channelRepository.save(channel);
+    }
+
+    // -------------------------------------------------------------------------
+    // Private helpers
+    // -------------------------------------------------------------------------
+
+    private ChannelDto fetchByResolved(ResolvedChannelIdentifier resolved) {
+        return switch (resolved.type()) {
+            case CHANNEL_ID -> youTubeService.fetchChannelByChannelId(resolved.resolvedChannelId())
+                    .orElseThrow(() -> new NotFoundException(
+                            "Channel not found for channelId: " + resolved.resolvedChannelId()));
+            case HANDLE     -> youTubeService.fetchChannelByHandle(resolved.resolvedChannelId())
+                    .orElseThrow(() -> new NotFoundException(
+                            "Channel not found for handle: " + resolved.resolvedChannelId()));
+            case CUSTOM_URL -> youTubeService.fetchChannelByCustomUrl(resolved.resolvedChannelId())
+                    .orElseThrow(() -> new NotFoundException(
+                            "Channel not found for customUrl: " + resolved.resolvedChannelId()));
+            case VIDEO_URL  -> youTubeService.fetchChannelByVideoId(resolved.resolvedChannelId())
+                    .orElseThrow(() -> new NotFoundException(
+                            "Channel not found for videoId: " + resolved.resolvedChannelId()));
+        };
     }
 }

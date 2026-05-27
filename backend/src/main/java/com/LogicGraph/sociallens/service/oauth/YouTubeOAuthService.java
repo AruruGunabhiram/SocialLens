@@ -152,7 +152,7 @@ public class YouTubeOAuthService {
         try {
             refreshed = refreshAccessToken(refreshToken);
         } catch (IllegalStateException ex) {
-            throw new TokenRefreshFailedException(String.valueOf(account.getId()), ex.getMessage());
+            throw new TokenRefreshFailedException(String.valueOf(account.getId()), ex.getMessage(), ex);
         }
 
         Instant newExpiresAt = Instant.now().plusSeconds(refreshed.expiresInSeconds());
@@ -185,7 +185,7 @@ public class YouTubeOAuthService {
         try {
             result = refreshAccessToken(refreshToken);
         } catch (IllegalStateException ex) {
-            throw new TokenRefreshFailedException(String.valueOf(acc.getId()), ex.getMessage());
+            throw new TokenRefreshFailedException(String.valueOf(acc.getId()), ex.getMessage(), ex);
         }
 
         Instant newExpiresAt = Instant.now().plusSeconds(result.expiresInSeconds());
@@ -219,8 +219,9 @@ public class YouTubeOAuthService {
             return body;
 
         } catch (RestClientResponseException ex) {
+            // Do NOT include the response body - it may contain OAuth error details.
             throw new IllegalStateException(
-                    "Token exchange failed: HTTP " + ex.getRawStatusCode() + " - " + ex.getResponseBodyAsString(), ex);
+                    "Token exchange failed: HTTP " + ex.getRawStatusCode(), ex);
         }
     }
 
@@ -251,8 +252,9 @@ public class YouTubeOAuthService {
             return new TokenRefreshResult(accessToken, expiresIn);
 
         } catch (RestClientResponseException ex) {
+            // Do NOT include the response body - it may contain OAuth error details.
             throw new IllegalStateException(
-                    "Token refresh failed: HTTP " + ex.getRawStatusCode() + " - " + ex.getResponseBodyAsString(), ex);
+                    "Token refresh failed: HTTP " + ex.getRawStatusCode(), ex);
         }
     }
 
@@ -295,8 +297,9 @@ public class YouTubeOAuthService {
             return idObj.toString();
 
         } catch (RestClientResponseException ex) {
+            // Do NOT include the response body - it may contain OAuth error details.
             throw new IllegalStateException(
-                    "YouTube channel lookup failed: HTTP " + ex.getRawStatusCode() + " - " + ex.getResponseBodyAsString(), ex);
+                    "YouTube channel lookup failed: HTTP " + ex.getRawStatusCode(), ex);
         }
     }
 
