@@ -150,6 +150,97 @@ class YouTubeOAuthServiceTest {
     }
 
     // -------------------------------------------------------------------------
+    // OAuth error sanitization - raw response bodies must not leak
+    // -------------------------------------------------------------------------
+
+    /**
+     * When the token exchange endpoint returns an error, the exception message
+     * must contain the HTTP status code but must NOT include the raw response body.
+     * Raw bodies can contain OAuth error_description fields or token values.
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void exchangeCodeForTokens_failureMessage_doesNotContainResponseBody() {
+        OAuthState state = validState(1L);
+        when(oAuthStateRepository.findByState("state-abc")).thenReturn(Optional.of(state));
+
+        String rawBody = "{\"error\":\"invalid_client\",\"error_description\":\"Unauthorized\"}";
+        when(mockRestTemplate.exchange(
+                contains("oauth2.googleapis.com/token"), eq(HttpMethod.POST), any(), eq(Map.class)))
+                .thenThrow(new org.springframework.web.client.RestClientResponseException(
+                        "400 Bad Request", 400, "Bad Request",
+                        null, rawBody.getBytes(), null));
+
+        assertThatThrownBy(() -> service.handleCallback("auth-code", "state-abc"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("400")
+                .hasMessageNotContaining(rawBody)
+                .hasMessageNotContaining("error_description")
+                .hasMessageNotContaining("invalid_client");
+    }
+
+    /**
+     * When the token refresh endpoint returns an error, the exception message
+     * must contain only the HTTP status code - no raw response body.
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void refreshAccessToken_failureMessage_doesNotContainResponseBody() {
+        ConnectedAccount account = connectedAccount("old-token", "valid-refresh-token",
+                Instant.now().minusSeconds(120)); // expired
+
+        String rawBody = "{\"error\":\"invalid_grant\",\"error_description\":\"Token has been expired\"}";
+        when(mockRestTemplate.exchange(
+                contains("oauth2.googleapis.com/token"), eq(HttpMethod.POST), any(), eq(Map.class)))
+                .thenThrow(new org.springframework.web.client.RestClientResponseException(
+                        "400 Bad Request", 400, "Bad Request",
+                        null, rawBody.getBytes(), null));
+
+        assertThatThrownBy(() -> service.getValidAccessToken(account))
+                .isInstanceOf(TokenRefreshFailedException.class)
+                .cause()
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("400")
+                .hasMessageNotContaining(rawBody)
+                .hasMessageNotContaining("error_description")
+                .hasMessageNotContaining("invalid_grant");
+    }
+
+    /**
+     * When the YouTube channel lookup fails, the exception message must contain
+     * only the HTTP status code - no raw response body (which could include token info).
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void fetchChannelId_failureMessage_doesNotContainResponseBody() {
+        OAuthState state = validState(1L);
+        when(oAuthStateRepository.findByState("state-abc")).thenReturn(Optional.of(state));
+
+        // Token exchange succeeds
+        Map<String, Object> tokenBody = Map.of(
+                "access_token", "access-token-xyz",
+                "refresh_token", "refresh-token-xyz",
+                "expires_in", "3600");
+        when(mockRestTemplate.exchange(
+                contains("oauth2.googleapis.com/token"), eq(HttpMethod.POST), any(), eq(Map.class)))
+                .thenReturn(ResponseEntity.ok(tokenBody));
+
+        // Channel lookup fails with a body containing the access token
+        String rawBody = "{\"error\":{\"code\":403,\"message\":\"The caller does not have permission\"}}";
+        when(mockRestTemplate.exchange(
+                contains("youtube/v3/channels"), eq(HttpMethod.GET), any(), eq(Map.class)))
+                .thenThrow(new org.springframework.web.client.RestClientResponseException(
+                        "403 Forbidden", 403, "Forbidden",
+                        null, rawBody.getBytes(), null));
+
+        assertThatThrownBy(() -> service.handleCallback("auth-code", "state-abc"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("403")
+                .hasMessageNotContaining(rawBody)
+                .hasMessageNotContaining("caller does not have permission");
+    }
+
+    // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
 
