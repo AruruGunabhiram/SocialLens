@@ -28,7 +28,7 @@ import java.util.Map;
  *   <li>{@code /api/v1/connected-accounts/**}</li>
  *   <li>{@code /api/v1/creator/**}</li>
  *   <li>{@code /api/v1/admin/**} – destructive admin operations (data clear, etc.)</li>
- *   <li>{@code /api/v1/youtube/sync} – quota-burning YouTube ingestion</li>
+ *   <li>{@code /api/v1/youtube/**} – all YouTube endpoints (sync + live channel lookups)</li>
  * </ul>
  *
  * <p>For a protected request:
@@ -56,7 +56,9 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
             "/api/v1/connected-accounts/**",
             "/api/v1/creator/**",
             "/api/v1/admin/**",
-            "/api/v1/youtube/sync"
+            // All /youtube/** endpoints trigger YouTube Data API calls and burn quota.
+            // Widens the old /api/v1/youtube/sync entry to cover GET /channel lookups too.
+            "/api/v1/youtube/**"
     );
 
     /**
