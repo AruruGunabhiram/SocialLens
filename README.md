@@ -336,6 +336,61 @@ These are honest limitations to be aware of before production use:
 
 ---
 
+## Verification Checklist
+
+Use these steps after any port, health, or config change to confirm everything is wired correctly.
+
+### 1. Confirm the backend port
+
+The backend default port is **8081**. This value is set in:
+- `backend/src/main/resources/application.properties` → `server.port=${SERVER_PORT:8081}`
+- `backend/src/main/resources/application-local.properties` → `server.port=8081`
+- `frontend/.env.development` → `VITE_API_BASE_URL=http://localhost:8081`
+- `docker-compose.yml` → ports `"8081:8081"`
+
+**To override** (e.g. if 8081 is busy), pass `SERVER_PORT=8082` — but also update `VITE_API_BASE_URL` in `frontend/.env.development` to match.
+
+### 2. Verify `GET /health` returns OK
+
+```bash
+curl -s http://localhost:8081/health
+# Expected output:  OK
+```
+
+A 200 with body `OK` means the backend is up. Any non-200 or network error means it's down.
+
+### 3. Verify `/actuator/health` is NOT available
+
+Spring Boot Actuator is **not** a project dependency (not in `backend/build.gradle`). Calling this path returns 404 from Spring's dispatcher — that is expected behaviour.
+
+```bash
+curl -o /dev/null -w "%{http_code}" http://localhost:8081/actuator/health
+# Expected:  404
+```
+
+The `ApiKeyAuthFilterTest` references `/actuator/health` purely to test that the API-key filter would bypass that path if actuator were ever added. It does **not** imply the endpoint exists today.
+
+### 4. Confirm the frontend API base URL matches the backend
+
+```bash
+# From the frontend directory, print the resolved value:
+grep VITE_API_BASE_URL frontend/.env.development
+# Expected:  VITE_API_BASE_URL=http://localhost:8081
+```
+
+The frontend also falls back to `http://localhost:8081` in `src/api/axiosClient.ts` if the env var is unset.
+
+### 5. Verify the footer status indicator is live
+
+With both the backend and frontend running:
+1. Open `http://localhost:5173`.
+2. The footer should show a **green dot + "Operational"** within a few seconds.
+3. Stop the backend (`./scripts/dev-down.sh` or Ctrl-C).
+4. Wait ~60 s (or hard-refresh the page). The footer should switch to a **yellow dot + "Degraded"**.
+5. Restart the backend. Within one polling interval (60 s) the footer returns to **Operational**.
+
+---
+
 ## License
 
 MIT
