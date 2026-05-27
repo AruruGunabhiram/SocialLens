@@ -2,8 +2,8 @@ package com.LogicGraph.sociallens.controller;
 
 import com.LogicGraph.sociallens.dto.youtube.YouTubeSyncRequestDto;
 import com.LogicGraph.sociallens.dto.youtube.YouTubeSyncResponseDto;
-import com.LogicGraph.sociallens.service.YouTubeService;
 import com.LogicGraph.sociallens.service.YouTubeSyncService;
+import com.LogicGraph.sociallens.service.youtube.YouTubeService;
 import com.LogicGraph.sociallens.service.resolver.ChannelResolver;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
