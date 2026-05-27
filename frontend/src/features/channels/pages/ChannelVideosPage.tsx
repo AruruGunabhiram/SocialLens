@@ -1,7 +1,9 @@
 import { formatCount, formatDate } from '@/utils/formatters'
 import { useRelativeTime } from '@/hooks/useRelativeTime'
 import {
+  AlertTriangle,
   ArrowUpDown,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   ChevronUp,
@@ -30,7 +32,12 @@ import { cn } from '@/lib/utils'
 import { toastError } from '@/lib/toast'
 import { useRefreshAction } from '@/hooks/useRefreshAction'
 import { type VideoQueryParams } from '../api'
-import { useChannelQuery, useChannelRefreshByIdMutation, useVideosQuery } from '../queries'
+import {
+  useChannelQuery,
+  useChannelRefreshByIdMutation,
+  useEnrichmentHealthQuery,
+  useVideosQuery,
+} from '../queries'
 import { FreshnessBadge, mapChannelItemToFreshnessProps } from '../components/FreshnessBadge'
 
 // ---------------------------------------------------------------------------
@@ -216,10 +223,189 @@ function NaBadge() {
   )
 }
 
+// ---------------------------------------------------------------------------
+// Enrichment health banner
+// ---------------------------------------------------------------------------
+
+type EnrichmentHealthBannerProps = {
+  total: number
+  enriched: number
+  missing: number
+  pct: number | null
+  allEnriched: boolean
+  hasMissing: boolean
+  lastRefreshStatus: string | null
+  lastRefreshError: string | null
+  refreshState: ReturnType<typeof useRefreshAction>['state']
+  onRetry: () => void
+}
+
+function EnrichmentHealthBanner({
+  total,
+  enriched,
+  missing,
+  pct,
+  allEnriched,
+  hasMissing,
+  lastRefreshStatus,
+  lastRefreshError,
+  refreshState,
+  onRetry,
+}: EnrichmentHealthBannerProps) {
+  const isPartialFailure = lastRefreshStatus === 'PARTIAL' || lastRefreshStatus === 'FAILED'
+
+  if (allEnriched) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--space-2)',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid color-mix(in srgb, var(--color-up) 30%, transparent)',
+          background: 'color-mix(in srgb, var(--color-up) 8%, transparent)',
+          padding: 'var(--space-2) var(--space-3)',
+          fontFamily: 'var(--font-body)',
+          fontSize: 'var(--text-sm)',
+          color: 'var(--color-up)',
+        }}
+        data-testid="enrichment-health-banner"
+        aria-label="Enrichment status"
+      >
+        <CheckCircle2 size={14} aria-hidden style={{ flexShrink: 0 }} />
+        <span>
+          All{' '}
+          <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+            {total.toLocaleString()}
+          </span>{' '}
+          videos enriched with metadata
+        </span>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      style={{
+        borderRadius: 'var(--radius-md)',
+        border: `1px solid color-mix(in srgb, ${isPartialFailure ? 'var(--color-down)' : 'var(--color-warn)'} 35%, transparent)`,
+        background: isPartialFailure
+          ? 'color-mix(in srgb, var(--color-down) 6%, transparent)'
+          : 'var(--color-warn-muted)',
+        padding: 'var(--space-3) var(--space-4)',
+        fontFamily: 'var(--font-body)',
+        fontSize: 'var(--text-sm)',
+        lineHeight: 'var(--leading-relaxed)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--space-2)',
+      }}
+      data-testid="enrichment-health-banner"
+      aria-label="Enrichment status"
+    >
+      {/* Top row: icon + counts + retry button */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-4)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', color: isPartialFailure ? 'var(--color-down)' : 'var(--color-warn)' }}>
+          <AlertTriangle size={14} aria-hidden style={{ flexShrink: 0 }} />
+          <span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+              {enriched.toLocaleString()}
+            </span>
+            {' of '}
+            <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+              {total.toLocaleString()}
+            </span>
+            {' videos enriched'}
+            {pct != null && (
+              <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', color: 'var(--color-text-muted)', marginLeft: 4 }}>
+                ({pct}%)
+              </span>
+            )}
+            {hasMissing && (
+              <span style={{ color: 'var(--color-text-muted)' }}>
+                {' — '}
+                <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                  {missing.toLocaleString()}
+                </span>
+                {' missing metadata'}
+              </span>
+            )}
+          </span>
+        </div>
+
+        {hasMissing && (
+          <button
+            type="button"
+            disabled={refreshState.disabled}
+            aria-disabled={refreshState.disabled}
+            onClick={onRetry}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 'var(--space-1)',
+              flexShrink: 0,
+              fontFamily: 'var(--font-body)',
+              fontSize: 'var(--text-sm)',
+              fontWeight: 600,
+              color: refreshState.phase === 'success'
+                ? 'var(--color-up)'
+                : isPartialFailure
+                  ? 'var(--color-down)'
+                  : 'var(--color-warn)',
+              background: 'transparent',
+              border: `1px solid color-mix(in srgb, ${isPartialFailure ? 'var(--color-down)' : 'var(--color-warn)'} 50%, transparent)`,
+              borderRadius: 'var(--radius-md)',
+              padding: 'var(--space-1) var(--space-3)',
+              cursor: refreshState.disabled ? 'not-allowed' : 'pointer',
+              opacity: refreshState.disabled ? 0.6 : 1,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {refreshState.isPending ? (
+              <Loader2 size={12} className="animate-spin" aria-hidden style={{ flexShrink: 0 }} />
+            ) : (
+              <RefreshCw size={12} aria-hidden style={{ flexShrink: 0 }} />
+            )}
+            {refreshState.phase === 'success'
+              ? 'Refreshed'
+              : refreshState.phase === 'error'
+                ? 'Failed'
+                : 'Re-sync channel'}
+          </button>
+        )}
+      </div>
+
+      {/* Progress bar */}
+      {pct != null && (
+        <div style={{ height: 3, borderRadius: 9999, background: 'var(--color-surface-2)', overflow: 'hidden' }}>
+          <div
+            style={{
+              height: '100%',
+              width: `${pct}%`,
+              background: isPartialFailure ? 'var(--color-down)' : 'var(--color-warn)',
+              borderRadius: 9999,
+              transition: 'width 0.3s ease',
+            }}
+          />
+        </div>
+      )}
+
+      {/* Error detail from last PARTIAL / FAILED run */}
+      {isPartialFailure && lastRefreshError && (
+        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', margin: 0 }}>
+          Last sync: {lastRefreshError}
+        </p>
+      )}
+    </div>
+  )
+}
+
 function VideoTableRow({ video, channelDbId }: { video: VideoRow; channelDbId: number }) {
   const [thumbError, setThumbError] = useState(false)
   const navigate = useNavigate()
-  const hasTitle = Boolean(video.title?.trim())
+  // Use the backend-supplied enrichment flag; fall back to title presence for
+  // old cached responses that pre-date the enriched field.
+  const isEnriched = video.enriched || Boolean(video.title?.trim())
   const ytUrl = `${YT_WATCH}${video.videoId}`
   const thumbSrc = video.thumbnailUrl ?? `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg`
   const relativeDate = useRelativeTime(video.publishedAt ?? undefined)
@@ -245,7 +431,7 @@ function VideoTableRow({ video, channelDbId }: { video: VideoRow; channelDbId: n
       onKeyDown={handleRowKeyDown}
       tabIndex={0}
       aria-label={
-        hasTitle ? `View details for "${video.title}"` : `View details for ${video.videoId}`
+        isEnriched ? `View details for "${video.title}"` : `View details for ${video.videoId}`
       }
     >
       {/* Thumbnail  -  48×27 (16:9), always links to YouTube */}
@@ -255,7 +441,7 @@ function VideoTableRow({ video, channelDbId }: { video: VideoRow; channelDbId: n
           target="_blank"
           rel="noopener noreferrer"
           aria-label={
-            hasTitle ? `Watch "${video.title}" on YouTube` : `Watch ${video.videoId} on YouTube`
+            isEnriched ? `Watch "${video.title}" on YouTube` : `Watch ${video.videoId} on YouTube`
           }
           style={{
             display: 'block',
@@ -295,9 +481,9 @@ function VideoTableRow({ video, channelDbId }: { video: VideoRow; channelDbId: n
         </a>
       </td>
 
-      {/* Title  -  or video ID link + "(title pending)" when not yet enriched */}
+      {/* Title  -  or video ID link + "metadata unavailable" when not yet enriched */}
       <td className="max-w-xs py-3 pr-4">
-        {hasTitle ? (
+        {isEnriched ? (
           <Link
             to={detailPath}
             state={{ video }}
@@ -322,14 +508,27 @@ function VideoTableRow({ video, channelDbId }: { video: VideoRow; channelDbId: n
           </Link>
         ) : (
           <span className="inline-flex flex-wrap items-center gap-1.5">
+            <span
+              title="Metadata unavailable — enrichment has not run yet for this video. Run a sync to fetch title and metrics."
+              style={{
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--color-text-muted)',
+                fontStyle: 'italic',
+                cursor: 'help',
+              }}
+            >
+              Metadata unavailable
+            </span>
             <a
               href={ytUrl}
               target="_blank"
               rel="noopener noreferrer"
+              title={`View ${video.videoId} on YouTube`}
               style={{
                 fontFamily: 'var(--font-mono)',
                 fontSize: 'var(--text-xs)',
-                color: 'var(--color-text-secondary)',
+                color: 'var(--color-text-muted)',
                 textDecoration: 'none',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -341,16 +540,6 @@ function VideoTableRow({ video, channelDbId }: { video: VideoRow; channelDbId: n
               {video.videoId}
               <ExternalLink size={10} aria-hidden style={{ flexShrink: 0 }} />
             </a>
-            <span
-              style={{
-                fontFamily: 'var(--font-body)',
-                fontSize: 'var(--text-xs)',
-                color: 'var(--color-text-muted)',
-                fontStyle: 'italic',
-              }}
-            >
-              (title pending)
-            </span>
           </span>
         )}
       </td>
@@ -365,8 +554,10 @@ function VideoTableRow({ video, channelDbId }: { video: VideoRow; channelDbId: n
         </span>
       </td>
 
-      {/* Views  -  " - " when null (formatCount handles this) */}
-      <td className="py-3 pr-4 text-sm tabular-nums">{formatCount(video.viewCount)}</td>
+      {/* Views  -  N/A badge when unenriched and null; formatted count otherwise */}
+      <td className="py-3 pr-4 text-sm tabular-nums">
+        {!isEnriched && video.viewCount == null ? <NaBadge /> : formatCount(video.viewCount)}
+      </td>
 
       {/* Likes  -  N/A badge when not yet enriched */}
       <td className="py-3 pr-4 text-sm tabular-nums">
@@ -578,6 +769,10 @@ export default function ChannelVideosPage() {
     refreshMutation.mutateAsync({ channelDbId })
   )
 
+  const { data: enrichmentHealth } = useEnrichmentHealthQuery(
+    Number.isNaN(channelDbId) ? undefined : channelDbId
+  )
+
   // Invalid route param  -  redirect after all hooks have run
   if (Number.isNaN(channelDbId)) return <Navigate to="/channels" replace />
 
@@ -692,12 +887,23 @@ export default function ChannelVideosPage() {
     ? items.filter((v) => displayTitle(v).toLowerCase().includes(clientQ))
     : items
 
-  // Warning banner: >20% of this page's videos have no title → sync likely incomplete.
-  const missingTitleCount = items.filter((v) => !v.title?.trim()).length
-  const missingTitleFraction = items.length > 0 ? missingTitleCount / items.length : 0
-  const showTitleWarning = !isLoading && items.length > 0 && missingTitleFraction > 0.2
-  // Subtle search hint: >50% titles missing  -  searching won't return useful results yet.
-  const showEnrichmentHint = !isLoading && items.length > 0 && missingTitleFraction > 0.5
+  // Enrichment health from the dedicated endpoint (channel-wide, not page-scoped)
+  const hasMissingMetadata =
+    enrichmentHealth != null && enrichmentHealth.missingMetadata > 0
+  const enrichmentPct =
+    enrichmentHealth && enrichmentHealth.totalVideos > 0
+      ? Math.round((enrichmentHealth.enrichedVideos / enrichmentHealth.totalVideos) * 100)
+      : null
+  const allEnriched =
+    enrichmentHealth != null &&
+    enrichmentHealth.totalVideos > 0 &&
+    enrichmentHealth.missingMetadata === 0
+  // Subtle search hint: more than half the channel's videos are unenriched
+  const showEnrichmentHint =
+    !isLoading &&
+    enrichmentHealth != null &&
+    enrichmentHealth.totalVideos > 0 &&
+    enrichmentHealth.missingMetadata > enrichmentHealth.enrichedVideos
 
   // -----------------------------------------------------------------------
   // Render
@@ -835,62 +1041,20 @@ export default function ChannelVideosPage() {
           )
         })()}
 
-      {/* Missing-title warning banner */}
-      {showTitleWarning && (
-        <div
-          style={{
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid color-mix(in srgb, var(--color-warn) 35%, transparent)',
-            background: 'var(--color-warn-muted)',
-            padding: 'var(--space-2) var(--space-4)',
-            fontFamily: 'var(--font-body)',
-            fontSize: 'var(--text-sm)',
-            color: 'var(--color-warn)',
-            lineHeight: 'var(--leading-relaxed)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 'var(--space-4)',
-          }}
-          data-testid="title-warning-banner"
-        >
-          <span>
-            Most videos are missing titles - metadata enrichment may have failed during the last
-            sync. Run a refresh to fix this.
-          </span>
-          <button
-            type="button"
-            disabled={refreshState.disabled}
-            aria-disabled={refreshState.disabled}
-            onClick={triggerRefresh}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 'var(--space-1)',
-              flexShrink: 0,
-              fontFamily: 'var(--font-body)',
-              fontSize: 'var(--text-sm)',
-              fontWeight: 600,
-              color: refreshState.phase === 'success' ? 'var(--color-up)' : 'var(--color-warn)',
-              background: 'transparent',
-              border: '1px solid color-mix(in srgb, var(--color-warn) 50%, transparent)',
-              borderRadius: 'var(--radius-md)',
-              padding: 'var(--space-1) var(--space-3)',
-              cursor: refreshState.disabled ? 'not-allowed' : 'pointer',
-              opacity: refreshState.disabled ? 0.6 : 1,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {refreshState.isPending && (
-              <Loader2 size={12} className="animate-spin" aria-hidden style={{ flexShrink: 0 }} />
-            )}
-            {refreshState.phase === 'success'
-              ? 'Refreshed'
-              : refreshState.phase === 'error'
-                ? 'Failed'
-                : refreshState.label}
-          </button>
-        </div>
+      {/* Enrichment health banner — channel-wide, not page-scoped */}
+      {enrichmentHealth != null && enrichmentHealth.totalVideos > 0 && (
+        <EnrichmentHealthBanner
+          total={enrichmentHealth.totalVideos}
+          enriched={enrichmentHealth.enrichedVideos}
+          missing={enrichmentHealth.missingMetadata}
+          pct={enrichmentPct}
+          allEnriched={allEnriched}
+          hasMissing={hasMissingMetadata}
+          lastRefreshStatus={enrichmentHealth.lastRefreshStatus ?? null}
+          lastRefreshError={enrichmentHealth.lastRefreshError ?? null}
+          refreshState={refreshState}
+          onRetry={triggerRefresh}
+        />
       )}
 
       {/* Search bar + Refresh Metadata */}

@@ -18,7 +18,6 @@ import { isAppError } from '@/api/httpError'
 import type { ChannelItem } from '@/api/types'
 import { fetchOAuthStartUrl } from '@/features/account/api'
 import {
-  useAccountDetail,
   useAccountStatus,
   useCurrentUser,
   useDisconnectMutation,
@@ -431,7 +430,12 @@ export function Topbar() {
   const disconnectMutation = useDisconnectMutation()
 
   const connected = accountStatus?.connected ?? false
-  const { data: accountDetail } = useAccountDetail(currentUser?.id, connected)
+  // accountStatus now returns connected=true only for ACTIVE tokens.
+  // EXPIRED / REFRESH_FAILED return connected=false so the UI can show the degraded state.
+  const oauthAccountStatus = accountStatus?.accountStatus
+  const tokenExpired =
+    !connected &&
+    (oauthAccountStatus === 'EXPIRED' || oauthAccountStatus === 'REFRESH_FAILED')
 
   // Load history on mount
   useEffect(() => {
@@ -931,6 +935,7 @@ export function Topbar() {
           </button>
           <NotificationHistoryDropdown />
           {connected ? (
+            /* ── ACTIVE: green Connected button + dropdown ── */
             <div ref={dropdownRef} style={{ position: 'relative' }}>
               <button
                 type="button"
@@ -992,13 +997,47 @@ export function Topbar() {
                 <ConnectedDropdown
                   userName={currentUser?.name}
                   userEmail={currentUser?.email}
-                  connectedAt={accountDetail?.createdAt}
+                  connectedAt={accountStatus?.createdAt}
                   onClose={() => setDropdownOpen(false)}
                   onDisconnectClick={() => setShowDisconnectDialog(true)}
                 />
               )}
             </div>
+          ) : tokenExpired ? (
+            /* ── EXPIRED / REFRESH_FAILED: amber "Token expired" button ── */
+            <button
+              type="button"
+              disabled={isStartingOAuth}
+              onClick={() => void handleConnect()}
+              title="Your YouTube token has expired. Click to reconnect."
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+                height: 32,
+                padding: '0 var(--space-3)',
+                background: 'color-mix(in srgb, var(--color-warn) 12%, var(--color-surface-1))',
+                border: '1px solid color-mix(in srgb, var(--color-warn) 40%, transparent)',
+                borderRadius: 'var(--radius-full)',
+                cursor: isStartingOAuth ? 'default' : 'pointer',
+                fontFamily: 'var(--font-body)',
+                fontSize: 'var(--text-xs)',
+                fontWeight: 600,
+                color: 'var(--color-warn)',
+                transition: 'opacity var(--duration-base) var(--ease-standard)',
+                opacity: isStartingOAuth ? 0.7 : 1,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {isStartingOAuth ? (
+                <Loader2 size={12} className="animate-spin" aria-hidden style={{ flexShrink: 0 }} />
+              ) : (
+                <Youtube size={12} aria-hidden style={{ flexShrink: 0 }} />
+              )}
+              {oauthAccountStatus === 'REFRESH_FAILED' ? 'Reconnect required' : 'Token expired'}
+            </button>
           ) : (
+            /* ── NOT CONNECTED: amber "Connect YouTube" button ── */
             <button
               type="button"
               disabled={isStartingOAuth}

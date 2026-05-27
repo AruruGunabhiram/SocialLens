@@ -8,7 +8,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -27,25 +26,42 @@ public class ConnectedAccountController {
      * Returns the connection status for a user + platform.
      *
      * Response shape:
-     *   { userId, platform, connected: boolean, accountStatus?: string }
+     *   {
+     *     userId, platform,
+     *     connected: boolean,          // true ONLY when status == ACTIVE
+     *     accountStatus?: string,      // ACTIVE | EXPIRED | REFRESH_FAILED | REVOKED | DISCONNECTED
+     *     channelId?: string,          // safe display field — no token data
+     *     expiresAt?: string,          // ISO-8601 instant; null when not set
+     *     createdAt?: string,          // when the account was first connected
+     *     lastRefreshedAt?: string     // last successful token refresh
+     *   }
      *
-     * accountStatus is present only when an account row exists; values match
-     * ConnectedAccountStatus enum: ACTIVE | EXPIRED | REFRESH_FAILED | REVOKED | DISCONNECTED
+     * connected=true only when the token is ACTIVE so the UI can show the
+     * correct degraded state for EXPIRED / REFRESH_FAILED accounts without
+     * needing to call the API-key-protected /detail endpoint.
      */
     @GetMapping("/status")
     public Map<String, Object> status(
             @RequestParam Long userId,
             @RequestParam Platform platform) {
         Optional<ConnectedAccount> account = accountService.findAccount(userId, platform);
-        boolean connected = account.map(a -> a.getStatus() == ConnectedAccountStatus.ACTIVE
-                || a.getStatus() == ConnectedAccountStatus.EXPIRED
-                || a.getStatus() == ConnectedAccountStatus.REFRESH_FAILED).orElse(false);
 
-        Map<String, Object> resp = new HashMap<>();
+        // Only ACTIVE tokens are truly usable — EXPIRED/REFRESH_FAILED are degraded states.
+        boolean connected = account.map(a -> a.getStatus() == ConnectedAccountStatus.ACTIVE)
+                .orElse(false);
+
+        Map<String, Object> resp = new LinkedHashMap<>();
         resp.put("userId", userId);
         resp.put("platform", platform);
         resp.put("connected", connected);
-        account.ifPresent(a -> resp.put("accountStatus", a.getStatus().name()));
+        account.ifPresent(a -> {
+            resp.put("accountStatus", a.getStatus().name());
+            // Safe display fields — no token or secret data included here
+            resp.put("channelId", a.getChannelId());
+            resp.put("expiresAt", a.getExpiresAt() != null ? a.getExpiresAt().toString() : null);
+            resp.put("createdAt", a.getCreatedAt() != null ? a.getCreatedAt().toString() : null);
+            resp.put("lastRefreshedAt", a.getLastRefreshedAt() != null ? a.getLastRefreshedAt().toString() : null);
+        });
         return resp;
     }
 

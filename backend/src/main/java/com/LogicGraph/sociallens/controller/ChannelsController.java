@@ -2,8 +2,12 @@ package com.LogicGraph.sociallens.controller;
 
 import com.LogicGraph.sociallens.dto.channels.ChannelDetailDto;
 import com.LogicGraph.sociallens.dto.channels.ChannelListItemDto;
+import com.LogicGraph.sociallens.dto.channels.EnrichmentHealthDto;
 import com.LogicGraph.sociallens.dto.channels.VideoSortKey;
 import com.LogicGraph.sociallens.dto.channels.VideosPageResponseDto;
+import com.LogicGraph.sociallens.entity.YouTubeChannel;
+import com.LogicGraph.sociallens.repository.YouTubeChannelRepository;
+import com.LogicGraph.sociallens.repository.YouTubeVideoRepository;
 import com.LogicGraph.sociallens.service.channel.ChannelVideosService;
 import com.LogicGraph.sociallens.service.channel.ChannelsService;
 import jakarta.validation.constraints.Max;
@@ -24,11 +28,17 @@ public class ChannelsController {
 
     private final ChannelsService channelsService;
     private final ChannelVideosService channelVideosService;
+    private final YouTubeChannelRepository channelRepository;
+    private final YouTubeVideoRepository videoRepository;
 
     public ChannelsController(ChannelsService channelsService,
-                               ChannelVideosService channelVideosService) {
+                               ChannelVideosService channelVideosService,
+                               YouTubeChannelRepository channelRepository,
+                               YouTubeVideoRepository videoRepository) {
         this.channelsService = channelsService;
         this.channelVideosService = channelVideosService;
+        this.channelRepository = channelRepository;
+        this.videoRepository = videoRepository;
     }
 
     // -------------------------------------------------------------------------
@@ -108,5 +118,39 @@ public class ChannelsController {
         }
 
         return channelVideosService.getVideos(channelDbId, q, sortKey, direction, page, size);
+    }
+
+    // -------------------------------------------------------------------------
+    // Enrichment health   -  GET /channels/{channelDbId}/enrichment-health
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns enrichment coverage statistics for a channel's video library.
+     *
+     * <p>All counts are scoped to <em>active</em> videos only.  Enrichment is inferred from
+     * the presence of a non-blank title, which is the primary indicator that the YouTube Data
+     * API snippet was successfully fetched for a video.
+     *
+     * <p>This endpoint is intentionally lightweight — two aggregate COUNT queries — so it can
+     * safely be polled on every page load of the video table.
+     */
+    @GetMapping("/{channelDbId}/enrichment-health")
+    public EnrichmentHealthDto enrichmentHealth(@PathVariable Long channelDbId) {
+        YouTubeChannel channel = channelRepository.findById(channelDbId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Channel not found with id: " + channelDbId));
+
+        long totalVideos = videoRepository.countByChannel_IdAndActiveTrue(channelDbId);
+        long missingMetadata = videoRepository.countByChannel_IdAndActiveTrueAndTitleIsNull(channelDbId);
+
+        EnrichmentHealthDto dto = new EnrichmentHealthDto();
+        dto.totalVideos = totalVideos;
+        dto.enrichedVideos = totalVideos - missingMetadata;
+        dto.missingMetadata = missingMetadata;
+        dto.lastRefreshAt = channel.getLastSuccessfulRefreshAt();
+        dto.lastRefreshStatus = channel.getLastRefreshStatus() != null
+                ? channel.getLastRefreshStatus().name() : null;
+        dto.lastRefreshError = channel.getLastRefreshError();
+        return dto;
     }
 }

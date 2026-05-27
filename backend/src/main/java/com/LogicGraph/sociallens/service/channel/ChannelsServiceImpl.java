@@ -8,6 +8,7 @@ import com.LogicGraph.sociallens.repository.ChannelMetricsSnapshotRepository;
 import com.LogicGraph.sociallens.repository.VideoMetricsSnapshotRepository;
 import com.LogicGraph.sociallens.repository.VideoHashtagRepository;
 import com.LogicGraph.sociallens.repository.YouTubeVideoRepository;
+import com.LogicGraph.sociallens.repository.YouTubeVideoRepository.IndexedCountRow;
 import com.LogicGraph.sociallens.repository.YouTubeChannelRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -47,7 +48,8 @@ public class ChannelsServiceImpl implements ChannelsService {
                 ? youTubeChannelRepository.findAllByOrderByTitleAsc()
                 : youTubeChannelRepository.findByActiveTrueOrderByTitleAsc();
 
-        // Batch-fetch latest snapshots and snapshot counts in single queries (replaces N+1).
+        // Batch-fetch latest snapshots, snapshot counts, and indexed video counts in single
+        // queries — avoids N+1 selects for each per-channel aggregation.
         List<Long> ids = channels.stream().map(YouTubeChannel::getId).toList();
         Map<Long, Instant> latestSnapshotAt = ids.isEmpty()
                 ? Map.of()
@@ -64,13 +66,23 @@ public class ChannelsServiceImpl implements ChannelsService {
                                 ChannelMetricsSnapshotRepository.SnapshotCountRow::getChannelId,
                                 ChannelMetricsSnapshotRepository.SnapshotCountRow::getSnapshotCount));
 
+        // Indexed video counts: how many videos are actually stored in our DB per channel.
+        // This differs from YouTubeChannel.videoCount which is the YouTube Data API total.
+        Map<Long, Long> indexedVideoCounts = ids.isEmpty()
+                ? Map.of()
+                : youTubeVideoRepository.countIndexedVideosPerChannel(ids).stream()
+                        .collect(Collectors.toMap(
+                                IndexedCountRow::getChannelId,
+                                IndexedCountRow::getVideoCount));
+
         return channels.stream()
                 .sorted(Comparator.comparing(
                         YouTubeChannel::getTitle,
                         Comparator.nullsLast(Comparator.naturalOrder())))
                 .map(ch -> toListItemDto(ch,
                         latestSnapshotAt.get(ch.getId()),
-                        snapshotCounts.getOrDefault(ch.getId(), 0L)))
+                        snapshotCounts.getOrDefault(ch.getId(), 0L),
+                        indexedVideoCounts.getOrDefault(ch.getId(), 0L)))
                 .collect(Collectors.toList());
     }
 
@@ -101,7 +113,8 @@ public class ChannelsServiceImpl implements ChannelsService {
     // Private mappers
     // -------------------------------------------------------------------------
 
-    private ChannelListItemDto toListItemDto(YouTubeChannel ch, Instant lastSnapshotAt, Long snapshotDayCount) {
+    private ChannelListItemDto toListItemDto(YouTubeChannel ch, Instant lastSnapshotAt,
+                                              Long snapshotDayCount, Long indexedVideoCount) {
         ChannelListItemDto dto = new ChannelListItemDto();
         dto.id = ch.getId();
         dto.title = ch.getTitle();
@@ -113,7 +126,9 @@ public class ChannelsServiceImpl implements ChannelsService {
         dto.lastRefreshError = ch.getLastRefreshError();
         dto.subscriberCount = ch.getSubscriberCount();
         dto.viewCount = ch.getViewCount();
+        // videoCount = YouTube Data API total; indexedVideoCount = what SocialLens has stored
         dto.videoCount = ch.getVideoCount();
+        dto.indexedVideoCount = indexedVideoCount;
         dto.lastSnapshotAt = lastSnapshotAt;
         dto.snapshotDayCount = snapshotDayCount;
         return dto;

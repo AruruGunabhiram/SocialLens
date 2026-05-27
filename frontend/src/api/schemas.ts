@@ -25,7 +25,17 @@ export const ChannelItemSchema = z.object({
   snapshotDayCount: z.number().nullish(),
   subscriberCount: z.number().nullish(),
   viewCount: z.number().nullish(),
+  /**
+   * Total video count from the YouTube Data API (channel.statistics.videoCount).
+   * This is what YouTube reports for the channel — NOT how many we have stored.
+   */
   videoCount: z.number().nullish(),
+  /**
+   * Videos SocialLens has actually fetched and stored in the database.
+   * May be lower than videoCount while incremental sync is in progress.
+   * Source: SELECT COUNT(*) FROM youtube_video WHERE channel_id = ?
+   */
+  indexedVideoCount: z.number().nullish(),
 })
 
 // -----------------------------------------------------------------------
@@ -41,6 +51,11 @@ export const VideoRowSchema = z.object({
   viewCount: z.number().nullish(),
   likeCount: z.number().nullish(),
   commentCount: z.number().nullish(),
+  /**
+   * True when the video has been enriched with full metadata from the YouTube Data API.
+   * Defaults to false for backwards-compat with older cached responses.
+   */
+  enriched: z.boolean().default(false),
 })
 
 export const PageMetaSchema = z.object({
@@ -53,6 +68,16 @@ export const PageMetaSchema = z.object({
 export const VideosPageResponseSchema = z.object({
   items: z.array(VideoRowSchema),
   page: PageMetaSchema,
+})
+
+// Enrichment health summary for a channel's video library
+export const EnrichmentHealthSchema = z.object({
+  totalVideos: z.number(),
+  enrichedVideos: z.number(),
+  missingMetadata: z.number(),
+  lastRefreshAt: z.string().nullish(),
+  lastRefreshStatus: z.string().nullish(),
+  lastRefreshError: z.string().nullish(),
 })
 
 // YouTube Sync Response from POST /youtube/sync
@@ -138,9 +163,19 @@ export const LocalUserSchema = z.object({
 export const AccountStatusSchema = z.object({
   userId: z.number(),
   platform: z.string(),
+  /**
+   * True ONLY when the stored token status is ACTIVE.
+   * EXPIRED and REFRESH_FAILED accounts return connected=false so the UI can
+   * surface the correct degraded state without calling the API-key-protected /detail endpoint.
+   */
   connected: z.boolean(),
   /** Present when an account row exists; mirrors ConnectedAccountStatus enum on the backend. */
   accountStatus: z.string().optional(),
+  // Safe display fields added to the public /status endpoint — no token or secret data.
+  channelId: z.string().nullish(),
+  expiresAt: z.string().nullish(),
+  createdAt: z.string().nullish(),
+  lastRefreshedAt: z.string().nullish(),
 })
 
 export const OAuthStartResponseSchema = z.object({

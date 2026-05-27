@@ -4,6 +4,7 @@ import { normalizeHttpError } from '@/api/httpError'
 import {
   ChannelAnalyticsSchema,
   ChannelItemSchema,
+  EnrichmentHealthSchema,
   TimeSeriesResponseSchema,
   VideosPageResponseSchema,
   YouTubeSyncResponseSchema,
@@ -11,6 +12,7 @@ import {
 import type {
   ChannelAnalytics,
   ChannelItem,
+  EnrichmentHealth,
   TimeSeriesResponse,
   VideosPageResponse,
   YouTubeSyncResponse,
@@ -108,6 +110,19 @@ export async function fetchChannelVideos(
   try {
     const { data } = await axiosClient.get(`/api/v1/channels/${channelDbId}/videos`, { params })
     return VideosPageResponseSchema.parse(data)
+  } catch (error) {
+    throw normalizeHttpError(error)
+  }
+}
+
+// ==============================================
+// Enrichment health  -  GET /channels/:id/enrichment-health
+// ==============================================
+
+export async function fetchEnrichmentHealth(channelDbId: number): Promise<EnrichmentHealth> {
+  try {
+    const { data } = await axiosClient.get(`/api/v1/channels/${channelDbId}/enrichment-health`)
+    return EnrichmentHealthSchema.parse(data)
   } catch (error) {
     throw normalizeHttpError(error)
   }

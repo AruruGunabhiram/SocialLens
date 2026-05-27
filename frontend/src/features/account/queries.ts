@@ -3,7 +3,6 @@ import { useEffect } from 'react'
 import {
   clearAllData,
   disconnectAccount,
-  fetchAccountDetail,
   fetchAccountStatus,
   fetchBudgetStatus,
   fetchCurrentUser,
@@ -49,7 +48,6 @@ export function useAccountStatus(userId: number | undefined) {
     function handleStorage(event: StorageEvent) {
       if (event.key !== 'sociallens:youtube-connected') return
       void queryClient.invalidateQueries({ queryKey: ['account-status', userId, 'YOUTUBE'] })
-      void queryClient.invalidateQueries({ queryKey: ['account-detail', userId, 'YOUTUBE'] })
     }
 
     window.addEventListener('storage', handleStorage)
@@ -57,17 +55,6 @@ export function useAccountStatus(userId: number | undefined) {
   }, [queryClient, userId])
 
   return query
-}
-
-/** Full connected account details  -  channelId, scopes, expiry, created date. */
-export function useAccountDetail(userId: number | undefined, enabled = true) {
-  return useQuery({
-    queryKey: ['account-detail', userId, 'YOUTUBE'],
-    queryFn: () => fetchAccountDetail(userId!, 'YOUTUBE'),
-    enabled: enabled && userId !== undefined,
-    staleTime: 60_000,
-    retry: false,
-  })
 }
 
 /** Daily YouTube API quota usage. */
@@ -88,7 +75,6 @@ export function useDisconnectMutation() {
     onSuccess: (_data, { userId }) => {
       toastSuccess('Disconnected', 'Your YouTube account has been disconnected.')
       queryClient.invalidateQueries({ queryKey: ['account-status', userId, 'YOUTUBE'] })
-      queryClient.invalidateQueries({ queryKey: ['account-detail', userId, 'YOUTUBE'] })
     },
     onError: (error) => {
       toastError(error, 'Failed to disconnect account')

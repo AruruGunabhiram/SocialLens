@@ -2,6 +2,8 @@ package com.LogicGraph.sociallens.controller;
 
 import com.LogicGraph.sociallens.dto.channels.ChannelDetailDto;
 import com.LogicGraph.sociallens.dto.channels.ChannelListItemDto;
+import com.LogicGraph.sociallens.repository.YouTubeChannelRepository;
+import com.LogicGraph.sociallens.repository.YouTubeVideoRepository;
 import com.LogicGraph.sociallens.service.channel.ChannelVideosService;
 import com.LogicGraph.sociallens.service.channel.ChannelsService;
 import org.junit.jupiter.api.Test;
@@ -33,6 +35,14 @@ class ChannelsControllerTest {
 
     @MockBean
     private ChannelVideosService channelVideosService;
+
+    // Required because ChannelsController now injects both repositories for the
+    // enrichment-health endpoint — WebMvcTest context must be able to wire the bean.
+    @MockBean
+    private YouTubeChannelRepository channelRepository;
+
+    @MockBean
+    private YouTubeVideoRepository videoRepository;
 
     // -------------------------------------------------------------------------
 

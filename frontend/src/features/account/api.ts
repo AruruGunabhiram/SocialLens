@@ -4,11 +4,10 @@ import { normalizeHttpError } from '@/api/httpError'
 import {
   AccountStatusSchema,
   BudgetStatusSchema,
-  ConnectedAccountDetailSchema,
   LocalUserSchema,
   OAuthStartResponseSchema,
 } from '@/api/schemas'
-import type { AccountStatus, BudgetStatus, ConnectedAccountDetail, LocalUser } from '@/api/types'
+import type { AccountStatus, BudgetStatus, LocalUser } from '@/api/types'
 
 /**
  * Returns the implicit "current user" for local-dev.
@@ -50,21 +49,6 @@ export async function fetchOAuthStartUrl(userId: number): Promise<string> {
       params: { userId },
     })
     return OAuthStartResponseSchema.parse(data).authUrl
-  } catch (error) {
-    throw normalizeHttpError(error)
-  }
-}
-
-/** Returns full connected account details (channelId, scopes, expiry, created). */
-export async function fetchAccountDetail(
-  userId: number,
-  platform: 'YOUTUBE'
-): Promise<ConnectedAccountDetail> {
-  try {
-    const { data } = await axiosClient.get(endpoints.account.detail, {
-      params: { userId, platform },
-    })
-    return ConnectedAccountDetailSchema.parse(data)
   } catch (error) {
     throw normalizeHttpError(error)
   }
