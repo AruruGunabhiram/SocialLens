@@ -15,6 +15,13 @@ public class VideoRowDto {
     public Long viewCount;
     public Long likeCount;
     public Long commentCount;
+    /**
+     * {@code true} when the video has been enriched with full metadata (title, thumbnail, counts)
+     * from the YouTube Data API.  {@code false} means discovery occurred but enrichment has not
+     * run yet (or failed).  Derived from {@code title != null} since title is the primary
+     * indicator of a successful enrichment pass — no separate DB column is needed.
+     */
+    public boolean enriched;
 
     public VideoRowDto() {}
 }

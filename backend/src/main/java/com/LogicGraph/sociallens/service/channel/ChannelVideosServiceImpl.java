@@ -71,6 +71,8 @@ public class ChannelVideosServiceImpl implements ChannelVideosService {
         dto.viewCount = v.getViewCount();
         dto.likeCount = v.getLikeCount();
         dto.commentCount = v.getCommentCount();
+        // Enrichment is indicated by a non-blank title — no separate column needed.
+        dto.enriched = v.getTitle() != null && !v.getTitle().isBlank();
         return dto;
     }
 }

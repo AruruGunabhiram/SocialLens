@@ -49,6 +49,19 @@ public interface YouTubeVideoRepository extends JpaRepository<YouTubeVideo, Long
     /** Batch-load video entities by their YouTube video IDs. */
     List<YouTubeVideo> findAllByVideoIdIn(Collection<String> videoIds);
 
+    /**
+     * Returns the count of indexed (stored) videos per channel in a single query.
+     * Use this instead of N individual countByChannel_Id calls when processing a list.
+     */
+    @Query("SELECT v.channel.id AS channelId, COUNT(v) AS videoCount FROM YouTubeVideo v WHERE v.channel.id IN :channelIds GROUP BY v.channel.id")
+    List<IndexedCountRow> countIndexedVideosPerChannel(@Param("channelIds") List<Long> channelIds);
+
+    /** Projection used by {@link #countIndexedVideosPerChannel}. */
+    interface IndexedCountRow {
+        Long getChannelId();
+        Long getVideoCount();
+    }
+
     List<YouTubeVideo> findByChannel(YouTubeChannel channel);
 
     List<YouTubeVideo> findByChannelOrderByPublishedAtDesc(YouTubeChannel channel, Pageable pageable);
@@ -73,6 +86,12 @@ public interface YouTubeVideoRepository extends JpaRepository<YouTubeVideo, Long
 
     /** Paginated active-only video list for the /channels/{id}/videos endpoint. */
     Page<YouTubeVideo> findByChannel_IdAndActiveTrue(Long channelDbId, Pageable pageable);
+
+    /** Total count of active videos for a channel — used for enrichment health stats. */
+    long countByChannel_IdAndActiveTrue(Long channelDbId);
+
+    /** Count of active videos that have not yet been enriched (title is NULL). */
+    long countByChannel_IdAndActiveTrueAndTitleIsNull(Long channelDbId);
 
     /** Active-only search for the /channels/{id}/videos?q= endpoint. */
     @Query("""

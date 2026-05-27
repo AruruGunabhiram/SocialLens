@@ -1,7 +1,28 @@
 import { Link } from 'react-router-dom'
 import { CURRENT_VERSION } from '@/data/changelog'
+import { useBackendHealth } from '@/hooks/useBackendHealth'
+
+const STATUS_CONFIG = {
+  operational: {
+    label: 'Operational',
+    dotColor: 'var(--color-up)',
+    dotShadow: '0 0 4px var(--color-up)',
+  },
+  degraded: {
+    label: 'Degraded',
+    dotColor: 'var(--color-warn)',
+    dotShadow: '0 0 4px var(--color-warn)',
+  },
+  checking: {
+    label: 'Checking…',
+    dotColor: 'var(--color-text-muted)',
+    dotShadow: 'none',
+  },
+} as const
 
 export function AppFooter() {
+  const backendStatus = useBackendHealth()
+  const { label, dotColor, dotShadow } = STATUS_CONFIG[backendStatus]
   return (
     <footer
       style={{
@@ -108,12 +129,12 @@ export function AppFooter() {
                 width: 6,
                 height: 6,
                 borderRadius: '50%',
-                background: 'var(--color-up)',
+                background: dotColor,
                 flexShrink: 0,
-                boxShadow: '0 0 4px var(--color-up)',
+                boxShadow: dotShadow,
               }}
             />
-            Operational
+            {label}
           </span>
         </nav>
 

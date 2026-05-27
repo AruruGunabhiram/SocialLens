@@ -23,7 +23,6 @@ vi.mock('@/features/channels/queries', async (importOriginal) => {
 vi.mock('@/features/account/queries', () => ({
   useCurrentUser: () => ({ data: { id: 1 } }),
   useAccountStatus: () => ({ data: undefined, isLoading: false, isError: false }),
-  useAccountDetail: () => ({ data: undefined, isLoading: false, isError: false }),
   useDisconnectMutation: () => ({ mutateAsync: vi.fn(), isPending: false, isError: false }),
 }))
 

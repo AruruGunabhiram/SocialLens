@@ -13,6 +13,7 @@ vi.mock('@/features/channels/queries', async (importOriginal) => {
     ...actual,
     useChannelQuery: vi.fn(),
     useVideosQuery: vi.fn(),
+    useEnrichmentHealthQuery: vi.fn(),
     useChannelRefreshByIdMutation: vi.fn(() => ({
       mutate: vi.fn(),
       mutateAsync: vi.fn(() => Promise.resolve()),
@@ -30,6 +31,7 @@ vi.mock('@/lib/toast', () => ({
 import {
   useChannelQuery,
   useChannelRefreshByIdMutation,
+  useEnrichmentHealthQuery,
   useVideosQuery,
 } from '@/features/channels/queries'
 
@@ -155,6 +157,14 @@ describe('ChannelVideosPage', () => {
   beforeEach(() => {
     vi.mocked(useChannelQuery).mockReturnValue({ data: makeChannel(), isLoading: false } as any)
     vi.mocked(useVideosQuery).mockReturnValue(success(makeVideosResponse([])) as any)
+    vi.mocked(useEnrichmentHealthQuery).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isFetching: false,
+      isError: false,
+      error: undefined,
+      refetch: vi.fn(),
+    } as any)
     vi.mocked(useChannelRefreshByIdMutation).mockReturnValue({
       mutate: vi.fn(),
       mutateAsync: vi.fn(() => Promise.resolve()),
@@ -267,16 +277,36 @@ describe('ChannelVideosPage', () => {
       return success(makeVideosResponse(videos))
     }
 
+    function mockMissingMetadataHealth() {
+      vi.mocked(useEnrichmentHealthQuery).mockReturnValue({
+        data: {
+          totalVideos: 6,
+          enrichedVideos: 1,
+          missingMetadata: 5,
+          lastRefreshAt: null,
+          lastRefreshStatus: null,
+          lastRefreshError: null,
+        },
+        isLoading: false,
+        isFetching: false,
+        isError: false,
+        error: undefined,
+        refetch: vi.fn(),
+      } as any)
+    }
+
     it('shows the warning banner when >80% of videos have no title', () => {
       vi.mocked(useVideosQuery).mockReturnValue(makeMissingTitleState() as any)
+      mockMissingMetadataHealth()
       renderPage()
-      expect(screen.getByTestId('title-warning-banner')).toBeInTheDocument()
+      expect(screen.getByTestId('enrichment-health-banner')).toBeInTheDocument()
     })
 
     it('warning banner contains a refresh button', () => {
       vi.mocked(useVideosQuery).mockReturnValue(makeMissingTitleState() as any)
+      mockMissingMetadataHealth()
       renderPage()
-      expect(screen.getByRole('button', { name: /^refresh$/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /^re-sync channel$/i })).toBeInTheDocument()
     })
 
     it('clicking refresh calls the mutation with the current channelDbId', () => {
@@ -286,9 +316,10 @@ describe('ChannelVideosPage', () => {
         isPending: false,
       } as any)
       vi.mocked(useVideosQuery).mockReturnValue(makeMissingTitleState() as any)
+      mockMissingMetadataHealth()
       renderPage()
       act(() => {
-        fireEvent.click(screen.getByRole('button', { name: /^refresh$/i }))
+        fireEvent.click(screen.getByRole('button', { name: /^re-sync channel$/i }))
       })
       expect(mutateAsync).toHaveBeenCalledWith({ channelDbId: 1 })
     })
@@ -301,13 +332,14 @@ describe('ChannelVideosPage', () => {
         isPending: false,
       } as any)
       vi.mocked(useVideosQuery).mockReturnValue(makeMissingTitleState() as any)
+      mockMissingMetadataHealth()
       renderPage()
-      const warningBanner = screen.getByTestId('title-warning-banner')
+      const warningBanner = screen.getByTestId('enrichment-health-banner')
       act(() => {
-        fireEvent.click(within(warningBanner).getByRole('button', { name: /^refresh$/i }))
+        fireEvent.click(within(warningBanner).getByRole('button', { name: /^re-sync channel$/i }))
       })
       await waitFor(() =>
-        expect(within(warningBanner).getByRole('button', { name: /refreshing/i })).toBeDisabled()
+        expect(within(warningBanner).getByRole('button', { name: /^re-sync channel$/i })).toBeDisabled()
       )
     })
 

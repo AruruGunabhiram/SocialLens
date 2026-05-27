@@ -214,7 +214,11 @@ export default function ChannelOverviewPage() {
   const indexedVideoCount = videosPage?.page.totalItems
   const recentVideos = videosPage?.items ?? []
 
-  const ytVideoCount = data?.videoCount ?? channelDetail?.videoCount
+  // ytVideoCount: the total video count YouTube reports for this channel (YouTube Data API).
+  // This comes from ChannelDetailDto.videoCount which mirrors YouTubeChannel.videoCount.
+  // NOTE: do NOT use data?.videoCount here — ChannelAnalyticsDto.videoCount is the DB-indexed
+  // count (from SELECT COUNT(*) FROM youtube_video), not the YouTube-reported total.
+  const ytVideoCount = channelDetail?.videoCount
   const isFullyIndexed =
     indexedVideoCount != null && ytVideoCount != null && indexedVideoCount >= ytVideoCount
   const indexingPct =
@@ -260,10 +264,17 @@ export default function ChannelOverviewPage() {
             value: formatDate(channelDetail?.publishedAt),
           },
           {
-            label: 'Videos (YouTube)',
-            value: data.videoCount ?? channelDetail?.videoCount ?? ' - ',
+            // YouTube Data API total: what YouTube reports as the channel's video count.
+            // Source: ChannelDetailDto.videoCount → YouTubeChannel.videoCount (YouTube Data API).
+            label: 'Videos (YouTube total)',
+            value: channelDetail?.videoCount ?? ' - ',
           },
-          { label: 'Videos (indexed)', value: indexedVideoCount ?? ' - ' },
+          {
+            // Database-indexed count: videos SocialLens has actually fetched and stored.
+            // Source: videosPage.page.totalItems → SELECT COUNT(*) FROM youtube_video.
+            label: 'Videos (indexed in DB)',
+            value: indexedVideoCount ?? ' - ',
+          },
           {
             label: 'Sync status',
             value: channelDetail?.lastRefreshStatus ?? ' - ',

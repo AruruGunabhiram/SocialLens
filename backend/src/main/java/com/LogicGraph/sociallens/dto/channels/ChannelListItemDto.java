@@ -23,7 +23,18 @@ public class ChannelListItemDto {
     public Long snapshotDayCount;
     public Long subscriberCount;
     public Long viewCount;
+    /**
+     * Total video count as reported by the YouTube Data API (channel.statistics.videoCount).
+     * This is the channel's own count of all its public videos — NOT the number we have stored.
+     * Use {@link #indexedVideoCount} to see how many videos SocialLens has indexed in the database.
+     */
     public Long videoCount;
+    /**
+     * Number of videos SocialLens has actually fetched and stored in the database for this channel.
+     * May be less than {@link #videoCount} if incremental sync is still in progress.
+     * Source: {@code SELECT COUNT(*) FROM youtube_video WHERE channel_id = ?}
+     */
+    public Long indexedVideoCount;
 
     public ChannelListItemDto() {}
 }

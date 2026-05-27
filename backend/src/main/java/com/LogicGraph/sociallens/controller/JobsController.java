@@ -1,13 +1,19 @@
 package com.LogicGraph.sociallens.controller;
 
+import com.LogicGraph.sociallens.exception.InsufficientApiQuotaException;
 import com.LogicGraph.sociallens.exception.RefreshAlreadyRunningException;
 import com.LogicGraph.sociallens.jobs.ApiCallBudget;
 import com.LogicGraph.sociallens.jobs.DailyRefreshJob;
 import com.LogicGraph.sociallens.jobs.DailyRefreshWorker;
+import com.LogicGraph.sociallens.jobs.SyncCooldownGuard;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Duration;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -18,12 +24,14 @@ public class JobsController {
     private final DailyRefreshJob dailyRefreshJob;
     private final DailyRefreshWorker dailyRefreshWorker;
     private final ApiCallBudget apiCallBudget;
+    private final SyncCooldownGuard cooldownGuard;
 
     public JobsController(DailyRefreshJob dailyRefreshJob, DailyRefreshWorker dailyRefreshWorker,
-                          ApiCallBudget apiCallBudget) {
+                          ApiCallBudget apiCallBudget, SyncCooldownGuard cooldownGuard) {
         this.dailyRefreshJob = dailyRefreshJob;
         this.dailyRefreshWorker = dailyRefreshWorker;
         this.apiCallBudget = apiCallBudget;
+        this.cooldownGuard = cooldownGuard;
     }
 
     /** Trigger the full daily refresh for all active channels. */
@@ -38,14 +46,52 @@ public class JobsController {
      * Triggers an on-demand refresh for a single channel by its database ID.
      *
      * Responses:
-     *   202 – refresh triggered successfully
+     *   202 – refresh triggered successfully (SUCCESS or PARTIAL)
+     *   404 – channel not found
      *   409 – refresh already in progress for this channel
+     *   429 – rate limited: either the per-channel cooldown has not expired or the
+     *         daily YouTube API quota is exhausted; {@code Retry-After} header is set
      *   500 – refresh failed (root-cause message included)
+     *
+     * <p>Pre-checks (before any YouTube API call):
+     * <ol>
+     *   <li><b>Cooldown:</b> rejects within {@link SyncCooldownGuard#getCooldownSeconds()} of the
+     *       last successful refresh for this channel — prevents rapid quota burn from repeated clicks.</li>
+     *   <li><b>Budget:</b> rejects immediately when the daily {@link ApiCallBudget} is exhausted,
+     *       rather than letting the refresh start and fail partway through.</li>
+     * </ol>
      */
     @PostMapping("/refresh/channel")
     public ResponseEntity<Map<String, Object>> refreshSingleChannel(@RequestParam Long channelDbId) {
+
+        // ── Pre-check 1: per-channel cooldown ────────────────────────────────
+        if (cooldownGuard.isOnCooldown(channelDbId)) {
+            long retryAfter = cooldownGuard.secondsRemaining(channelDbId);
+            Map<String, Object> body = refreshPayload("rate_limited", channelDbId,
+                    "Refresh too frequent. Wait " + retryAfter + "s before retrying.");
+            body.put("retryAfterSeconds", retryAfter);
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .header(HttpHeaders.RETRY_AFTER, String.valueOf(retryAfter))
+                    .body(body);
+        }
+
+        // ── Pre-check 2: API quota budget ─────────────────────────────────────
+        if (apiCallBudget.getRemaining() < 1) {
+            long retryAfter = secondsUntilYouTubeQuotaReset();
+            Map<String, Object> body = refreshPayload("quota_exhausted", channelDbId,
+                    "YouTube API quota exhausted for today. Resets at midnight Pacific Time.");
+            body.put("retryAfterSeconds", retryAfter);
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .header(HttpHeaders.RETRY_AFTER, String.valueOf(retryAfter))
+                    .body(body);
+        }
+
         try {
             DailyRefreshWorker.RefreshResult result = dailyRefreshWorker.refreshOneChannel(channelDbId);
+
+            // Record completion so the cooldown guard can enforce the quiet period.
+            cooldownGuard.recordCompleted(channelDbId);
+
             String statusStr = switch (result.outcomeStatus()) {
                 case PARTIAL -> "partial_success";
                 default -> "success";
@@ -65,6 +111,17 @@ public class JobsController {
             body.put("message", "Refresh already in progress for this channel.");
             return ResponseEntity
                     .status(HttpStatus.CONFLICT)
+                    .body(body);
+
+        } catch (InsufficientApiQuotaException ex) {
+            // Budget ran out mid-refresh (decremented inside YouTubeServiceImpl).
+            // Must be caught before the generic Exception to return 429 instead of 500.
+            long retryAfter = secondsUntilYouTubeQuotaReset();
+            Map<String, Object> body = refreshPayload("quota_exhausted", channelDbId,
+                    "YouTube API quota exhausted. Resets at midnight Pacific Time.");
+            body.put("retryAfterSeconds", retryAfter);
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .header(HttpHeaders.RETRY_AFTER, String.valueOf(retryAfter))
                     .body(body);
 
         } catch (IllegalArgumentException ex) {
@@ -107,5 +164,15 @@ public class JobsController {
             body.put("message", message);
         }
         return body;
+    }
+
+    /**
+     * YouTube Data API quota resets at midnight Pacific Time.
+     * Returns the number of seconds from now until that reset.
+     */
+    private long secondsUntilYouTubeQuotaReset() {
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.of("America/Los_Angeles"));
+        ZonedDateTime midnight = now.toLocalDate().plusDays(1).atStartOfDay(now.getZone());
+        return Duration.between(now, midnight).getSeconds();
     }
 }

@@ -9,6 +9,7 @@ import {
   ChannelSnapshotSchema,
   ConnectedAccountDetailSchema,
   DiagnosisItemSchema,
+  EnrichmentHealthSchema,
   LocalUserSchema,
   OAuthStartResponseSchema,
   PageMetaSchema,
@@ -41,3 +42,4 @@ export type DiagnosisItem = z.infer<typeof DiagnosisItemSchema>
 export type RetentionDiagnosisResponse = z.infer<typeof RetentionDiagnosisResponseSchema>
 export type ConnectedAccountDetail = z.infer<typeof ConnectedAccountDetailSchema>
 export type BudgetStatus = z.infer<typeof BudgetStatusSchema>
+export type EnrichmentHealth = z.infer<typeof EnrichmentHealthSchema>

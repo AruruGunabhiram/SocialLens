@@ -1,4 +1,9 @@
 export const endpoints = {
+  health: {
+    // GET /health  → plain-text "OK" when the backend is up
+    // Note: /actuator/health is NOT available (Spring Actuator is not a project dependency)
+    check: '/health',
+  },
   youtube: {
     sync: '/api/v1/youtube/sync',
   },

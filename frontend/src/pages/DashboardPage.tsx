@@ -26,14 +26,19 @@ function getGreeting(): string {
 
 function deriveStats(channels: ChannelItem[]) {
   const totalSubscribers = channels.reduce((s, ch) => s + (ch.subscriberCount ?? 0), 0)
-  const totalVideos = channels.reduce((s, ch) => s + (ch.videoCount ?? 0), 0)
+  // ytVideoTotal: sum of YouTube Data API videoCount — what YouTube reports for each channel.
+  // This is NOT the number of videos we have stored; use indexedVideoTotal for that.
+  const ytVideoTotal = channels.reduce((s, ch) => s + (ch.videoCount ?? 0), 0)
+  // indexedVideoTotal: sum of videos SocialLens has actually fetched and stored in the database.
+  // Populated by the backend via SELECT COUNT(*) FROM youtube_video per channel.
+  const indexedVideoTotal = channels.reduce((s, ch) => s + (ch.indexedVideoCount ?? 0), 0)
   const latestSync =
     channels
       .map((ch) => ch.lastSuccessfulRefreshAt)
       .filter(Boolean)
       .sort()
       .at(-1) ?? null
-  return { totalSubscribers, totalVideos, latestSync }
+  return { totalSubscribers, ytVideoTotal, indexedVideoTotal, latestSync }
 }
 
 // ─── Section 1: Welcome header ────────────────────────────────────────────────
@@ -97,7 +102,19 @@ function WelcomeHeader({ onTrackClick }: { onTrackClick: () => void }) {
 
 // ─── Section 2: Overview stat card ───────────────────────────────────────────
 
-function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function StatCard({
+  label,
+  value,
+  sub,
+  source,
+}: {
+  label: string
+  value: string
+  sub?: string
+  /** Data-source annotation shown below the value. One of: "YouTube Data API",
+   *  "Database indexed", "Snapshot-derived", "YouTube Analytics private". */
+  source?: string
+}) {
   return (
     <Card style={{ padding: 'var(--space-5)' }}>
       <p
@@ -137,22 +154,63 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
           {sub}
         </p>
       )}
+      {source && (
+        <p
+          style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: 'var(--text-xs)',
+            color: 'var(--color-text-muted)',
+            opacity: 0.6,
+            marginTop: sub ? 'var(--space-1)' : 'var(--space-2)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-1)',
+          }}
+        >
+          <span aria-hidden style={{ fontSize: '0.6em', opacity: 0.7 }}>◆</span>
+          {source}
+        </p>
+      )}
     </Card>
   )
 }
 
 function OverviewStats({ channels }: { channels: ChannelItem[] }) {
-  const { totalSubscribers, totalVideos, latestSync } = deriveStats(channels)
+  const { totalSubscribers, ytVideoTotal, indexedVideoTotal, latestSync } = deriveStats(channels)
   const latestSyncDisplay = useRelativeTime(latestSync ?? undefined)
+
+  // Show an indexed-video sub-note only when the backend has returned indexedVideoCount
+  // for at least one channel (old backend versions won't include this field).
+  const hasIndexedData = channels.some((ch) => ch.indexedVideoCount != null)
+  const videoIndexedSub = hasIndexedData
+    ? `${formatCount(indexedVideoTotal)} indexed in DB`
+    : undefined
+
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <StatCard label="Channels Tracked" value={String(channels.length)} />
-      <StatCard label="Total Subscribers" value={formatCount(totalSubscribers)} />
-      <StatCard label="Videos Indexed" value={formatCount(totalVideos)} />
+      <StatCard
+        label="Channels Tracked"
+        value={String(channels.length)}
+        source="Database"
+      />
+      <StatCard
+        label="Total Subscribers"
+        value={formatCount(totalSubscribers)}
+        source="YouTube Data API"
+      />
+      {/* Renamed from "Videos Indexed": this value comes from YouTube's own video count,
+          NOT from how many videos SocialLens has stored. The sub-label shows DB-indexed count. */}
+      <StatCard
+        label="YouTube Videos Total"
+        value={formatCount(ytVideoTotal)}
+        sub={videoIndexedSub}
+        source="YouTube Data API"
+      />
       <StatCard
         label="Latest Sync"
         value={latestSync ? latestSyncDisplay : ' - '}
         sub={latestSync ? 'most recent across all channels' : 'no syncs yet'}
+        source="Snapshot-derived"
       />
     </div>
   )

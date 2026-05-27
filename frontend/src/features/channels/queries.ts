@@ -15,6 +15,7 @@ import {
   fetchChannels,
   fetchChannelTimeSeries,
   fetchChannelVideos,
+  fetchEnrichmentHealth,
   refreshChannelById,
   syncChannel,
   type RefreshChannelResult,
@@ -22,6 +23,7 @@ import {
   type VideoQueryParams,
 } from './api'
 import type { ChannelAnalytics } from './schemas'
+import type { EnrichmentHealth } from '@/api/types'
 import { useDemoMode } from '@/lib/DemoModeContext'
 import {
   demoChannels,
@@ -130,6 +132,24 @@ export function useChannelTimeSeries(channelDbId?: number, metric: TrendMetric =
     queryFn: () => fetchChannelTimeSeries(channelDbId!, metric),
     enabled: Boolean(channelDbId),
     staleTime: 2 * 60 * 1000,
+  })
+}
+
+// ==============================================
+// Enrichment health query  -  GET /channels/:id/enrichment-health
+// ==============================================
+
+export const enrichmentHealthQueryKeys = {
+  detail: (channelDbId: number) => ['channels', 'enrichment-health', channelDbId] as const,
+}
+
+export function useEnrichmentHealthQuery(channelDbId?: number) {
+  return useQuery<EnrichmentHealth, AppError>({
+    queryKey: enrichmentHealthQueryKeys.detail(channelDbId ?? -1),
+    queryFn: () => fetchEnrichmentHealth(channelDbId!),
+    enabled: Boolean(channelDbId),
+    // Refresh after every successful channel refresh so counts stay in sync.
+    staleTime: 30 * 1000,
   })
 }
 
@@ -278,12 +298,31 @@ export function useChannelRefreshByIdMutation() {
       queryClient.invalidateQueries({ queryKey: ['timeseries', channelDbId] })
       // ['trends', 'timeseries', ...] covers channels/queries.ts trendQueryKeys namespace
       queryClient.invalidateQueries({ queryKey: ['trends', 'timeseries', channelDbId] })
+      // Enrichment health counts change after every refresh
+      queryClient.invalidateQueries({ queryKey: enrichmentHealthQueryKeys.detail(channelDbId) })
     },
     onError: (error, _vars, context) => {
       toastDismiss(context?.toastId)
       // 409 = refresh already running; not an error worth alarming the user.
       if (isAppError(error) && error.status === 409) {
         toastInfo('Refresh already in progress', 'This channel is currently being refreshed.')
+        return
+      }
+      // 429 = rate limited. Two distinct sub-cases from the backend:
+      //   • quota_exhausted — daily YouTube API quota gone; resets at midnight PT
+      //   • rate_limited    — too many refreshes in quick succession (30 s cooldown)
+      if (isAppError(error) && error.status === 429) {
+        if (error.code === 'quota_exhausted') {
+          toastWarning(
+            'YouTube quota exhausted',
+            'Daily API quota has been used up. Syncing will resume automatically after midnight Pacific Time.',
+          )
+        } else {
+          toastWarning(
+            'Too many requests',
+            'Please wait a moment before refreshing again.',
+          )
+        }
         return
       }
       toastError(error, 'Failed to trigger refresh')

@@ -67,28 +67,51 @@ class ApiKeyAuthFilterTest {
     }
 
     // -------------------------------------------------------------------------
-    // POST /api/v1/youtube/sync — newly protected; quota-burning endpoint
+    // /api/v1/youtube/** — all YouTube endpoints require the API key
+    // Previously only POST /sync was protected; GET /channel/* was accidentally public.
     // -------------------------------------------------------------------------
 
-    @Test
-    void youtubeSync_noKey_returns401() throws Exception {
-        MockHttpServletResponse response = doFilter("POST", "/api/v1/youtube/sync", null);
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "/api/v1/youtube/sync",
+            "/api/v1/youtube/channel/@mkbhd",
+            "/api/v1/youtube/channel",
+            "/api/v1/youtube/channel/UCxxxxxxx"
+    })
+    void youtubeEndpoints_noKey_returns401(String path) throws Exception {
+        MockHttpServletResponse response = doFilter("POST", path, null);
 
-        assertThat(response.getStatus()).isEqualTo(401);
+        assertThat(response.getStatus())
+                .as("Expected 401 for unauthenticated request to %s", path)
+                .isEqualTo(401);
         assertThat(response.getContentAsString()).contains("MISSING_API_KEY");
     }
 
-    @Test
-    void youtubeSync_wrongKey_returns403() throws Exception {
-        MockHttpServletResponse response = doFilter("POST", "/api/v1/youtube/sync", WRONG_KEY);
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "/api/v1/youtube/sync",
+            "/api/v1/youtube/channel/@mkbhd",
+            "/api/v1/youtube/channel"
+    })
+    void youtubeEndpoints_wrongKey_returns403(String path) throws Exception {
+        MockHttpServletResponse response = doFilter("GET", path, WRONG_KEY);
 
-        assertThat(response.getStatus()).isEqualTo(403);
+        assertThat(response.getStatus())
+                .as("Expected 403 for wrong-key request to %s", path)
+                .isEqualTo(403);
         assertThat(response.getContentAsString()).contains("INVALID_API_KEY");
     }
 
     @Test
     void youtubeSync_validKey_passesThrough() throws Exception {
         MockHttpServletResponse response = doFilter("POST", "/api/v1/youtube/sync", VALID_KEY);
+
+        assertThat(response.getStatus()).isEqualTo(200);
+    }
+
+    @Test
+    void youtubeChannelLookup_validKey_passesThrough() throws Exception {
+        MockHttpServletResponse response = doFilter("GET", "/api/v1/youtube/channel/@mkbhd", VALID_KEY);
 
         assertThat(response.getStatus()).isEqualTo(200);
     }
@@ -136,8 +159,6 @@ class ApiKeyAuthFilterTest {
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "/api/v1/youtube/channel/@mkbhd",
-            "/api/v1/youtube/channel",
             "/api/v1/analytics/overview",
             "/api/v1/channels",
             "/actuator/health"
