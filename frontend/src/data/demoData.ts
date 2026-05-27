@@ -277,6 +277,7 @@ function toVideoRows(raw: typeof TECHWITHTTIM_VIDEOS) {
     viewCount: views,
     likeCount: likes,
     commentCount: Math.round(likes * 0.12),
+    enriched: true,
   }))
 }
 
