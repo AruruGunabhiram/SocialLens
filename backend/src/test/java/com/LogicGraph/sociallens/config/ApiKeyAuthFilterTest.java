@@ -159,8 +159,6 @@ class ApiKeyAuthFilterTest {
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "/api/v1/youtube/channel/@mkbhd",
-            "/api/v1/youtube/channel",
             "/api/v1/analytics/overview",
             "/api/v1/channels",
             "/actuator/health"
