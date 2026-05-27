@@ -1,7 +1,6 @@
-// Changelog: Populate snapshots with metrics, rely on insert-once semantics, sync channel metrics, and enrich video metadata.
+// Changelog: Switched from old concrete YouTubeService to new service.youtube.YouTubeService interface.
 package com.LogicGraph.sociallens.service;
 
-import com.LogicGraph.sociallens.dto.youtube.ChannelSummaryDto;
 import com.LogicGraph.sociallens.dto.youtube.YouTubePlaylistItemsResponse;
 import com.LogicGraph.sociallens.dto.youtube.YouTubeSyncResponseDto;
 import com.LogicGraph.sociallens.dto.youtube.YouTubeVideosResponse;
@@ -18,6 +17,8 @@ import com.LogicGraph.sociallens.repository.YouTubeChannelRepository;
 import com.LogicGraph.sociallens.repository.YouTubeVideoRepository;
 import com.LogicGraph.sociallens.service.resolver.ChannelResolver;
 import com.LogicGraph.sociallens.service.resolver.ResolvedChannelIdentifier;
+import com.LogicGraph.sociallens.service.youtube.ChannelDto;
+import com.LogicGraph.sociallens.service.youtube.YouTubeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -51,6 +52,10 @@ public class YouTubeSyncService {
 
     private static final Logger log = LoggerFactory.getLogger(YouTubeSyncService.class);
 
+    /**
+     * Canonical YouTube Data API wrapper — uses {@link com.LogicGraph.sociallens.service.youtube.YouTubeServiceImpl}
+     * (qualifier {@code "youtubeServiceV2"}) which enforces the {@link com.LogicGraph.sociallens.jobs.ApiCallBudget}.
+     */
     private final YouTubeService youTubeService;
     private final YouTubeChannelRepository channelRepository;
     private final YouTubeVideoRepository videoRepository;
@@ -91,7 +96,7 @@ public class YouTubeSyncService {
         }
 
         // 2) Fetch channel details (one API call)
-        ChannelSummaryDto dto = youTubeService.getChannelSummary(resolved);
+        ChannelDto dto = fetchChannelByResolved(resolved);
 
         // 3) Upsert channel
         YouTubeChannel savedChannel = upsertChannel(dto);
@@ -108,11 +113,11 @@ public class YouTubeSyncService {
         List<String> warnings = new ArrayList<>();
 
         try {
-            String uploadsPlaylistId = youTubeService.getUploadsPlaylistId(dto.channelId());
+            String uploadsPlaylistId = youTubeService.resolveUploadsPlaylistId(dto.channelId());
             String pageToken = null;
 
             while (pagesFetched < maxPages) {
-                YouTubePlaylistItemsResponse page = youTubeService.getUploadsVideoIdsPage(uploadsPlaylistId, pageToken,
+                YouTubePlaylistItemsResponse page = youTubeService.fetchPlaylistPage(uploadsPlaylistId, pageToken,
                         pageSize);
 
                 pagesFetched++;
@@ -206,9 +211,9 @@ public class YouTubeSyncService {
 
     @Transactional
     public void syncChannelByChannelId(String channelId) {
-        ChannelSummaryDto dto = youTubeService.getChannelSummaryByChannelId(channelId);
-        YouTubeChannel savedChannel = upsertChannel(dto);
-
+        ChannelDto dto = youTubeService.fetchChannelByChannelId(channelId)
+                .orElseThrow(() -> new NotFoundException("Channel not found for channelId: " + channelId));
+        upsertChannel(dto);
     }
 
     /**
@@ -245,7 +250,7 @@ public class YouTubeSyncService {
 
         String uploadsPlaylistId;
         try {
-            uploadsPlaylistId = youTubeService.getUploadsPlaylistId(channelId);
+            uploadsPlaylistId = youTubeService.resolveUploadsPlaylistId(channelId);
         } catch (Exception e) {
             log.warn("syncIncrementalVideos: could not get uploads playlist channelId={}: {}", channelId, e.getMessage());
             return 0;
@@ -258,7 +263,7 @@ public class YouTubeSyncService {
         for (int page = 0; page < MAX_PAGES; page++) {
             YouTubePlaylistItemsResponse playlistPage;
             try {
-                playlistPage = youTubeService.getUploadsVideoIdsPage(uploadsPlaylistId, pageToken, 50);
+                playlistPage = youTubeService.fetchPlaylistPage(uploadsPlaylistId, pageToken, 50);
             } catch (Exception e) {
                 log.warn("syncIncrementalVideos: playlist page fetch failed page={} channelId={}: {}",
                         page, channelId, e.getMessage());
@@ -408,7 +413,8 @@ public class YouTubeSyncService {
     @Transactional
     public void refreshChannelMetadata(String channelId) {
         try {
-            ChannelSummaryDto dto = youTubeService.getChannelSummaryByChannelId(channelId);
+            ChannelDto dto = youTubeService.fetchChannelByChannelId(channelId)
+                    .orElseThrow(() -> new NotFoundException("Channel not found for refresh: " + channelId));
             upsertChannel(dto);
             log.info("refreshChannelMetadata: updated channelId={}", channelId);
         } catch (Exception e) {
@@ -442,9 +448,9 @@ public class YouTubeSyncService {
 
         List<YouTubeVideosResponse.Item> items;
         try {
-            items = youTubeService.fetchVideoDetails(videoIds);
+            items = youTubeService.fetchVideoDetailItems(videoIds);
         } catch (Exception e) {
-            log.warn("enrichVideoMetadata: fetchVideoDetails failed entirely for channelDbId={}: {}",
+            log.warn("enrichVideoMetadata: fetchVideoDetailItems failed entirely for channelDbId={}: {}",
                     channelDbId, e.getMessage(), e);
             return new EnrichmentResult(0, 0, 1);
         }
@@ -533,7 +539,27 @@ public class YouTubeSyncService {
     // Helpers
     // =========================
 
-    private YouTubeChannel upsertChannel(ChannelSummaryDto dto) {
+    /**
+     * Dispatches a channel fetch to the canonical {@link YouTubeService} based on the resolved identifier type.
+     */
+    private ChannelDto fetchChannelByResolved(ResolvedChannelIdentifier resolved) {
+        return switch (resolved.type()) {
+            case CHANNEL_ID -> youTubeService.fetchChannelByChannelId(resolved.resolvedChannelId())
+                    .orElseThrow(() -> new NotFoundException(
+                            "Channel not found for channelId: " + resolved.resolvedChannelId()));
+            case HANDLE     -> youTubeService.fetchChannelByHandle(resolved.resolvedChannelId())
+                    .orElseThrow(() -> new NotFoundException(
+                            "Channel not found for handle: " + resolved.resolvedChannelId()));
+            case CUSTOM_URL -> youTubeService.fetchChannelByCustomUrl(resolved.resolvedChannelId())
+                    .orElseThrow(() -> new NotFoundException(
+                            "Channel not found for customUrl: " + resolved.resolvedChannelId()));
+            case VIDEO_URL  -> youTubeService.fetchChannelByVideoId(resolved.resolvedChannelId())
+                    .orElseThrow(() -> new NotFoundException(
+                            "Channel not found for videoId: " + resolved.resolvedChannelId()));
+        };
+    }
+
+    private YouTubeChannel upsertChannel(ChannelDto dto) {
         YouTubeChannel channel = channelRepository
                 .findByChannelId(dto.channelId())
                 .orElseGet(YouTubeChannel::new);

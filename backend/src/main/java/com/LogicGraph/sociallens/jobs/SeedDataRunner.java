@@ -1,7 +1,8 @@
 package com.LogicGraph.sociallens.jobs;
 
+import com.LogicGraph.sociallens.dto.youtube.YouTubeSyncResponseDto;
 import com.LogicGraph.sociallens.repository.YouTubeChannelRepository;
-import com.LogicGraph.sociallens.service.youtube.YouTubeSyncService;
+import com.LogicGraph.sociallens.service.YouTubeSyncService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -44,9 +45,11 @@ public class SeedDataRunner implements ApplicationRunner {
 
         log.info("SeedDataRunner: table is empty, seeding demo channel '{}'", SEED_CHANNEL);
         try {
-            var result = syncService.syncChannel(SEED_CHANNEL);
-            log.info("SeedDataRunner: seed complete  -  {} videos processed, {} API calls used (channelId={}, status={})",
-                    result.videosProcessed(), result.apiCallsUsed(), result.channelId(), result.status());
+            YouTubeSyncResponseDto result = syncService.syncChannelOnly(SEED_CHANNEL);
+            log.info("SeedDataRunner: seed complete  -  channelId={} videosSaved={} videosEnriched={}",
+                    result.channelId,
+                    result.result != null ? result.result.videosSaved : 0,
+                    result.result != null ? result.result.videosEnriched : 0);
         } catch (Exception e) {
             // A seed failure must never prevent the application from starting.
             log.error("SeedDataRunner: seed failed for '{}'  -  continuing startup: {}",
