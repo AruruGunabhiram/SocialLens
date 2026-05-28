@@ -1,7 +1,9 @@
 package com.LogicGraph.sociallens.service.oauth;
 
 import com.LogicGraph.sociallens.entity.ConnectedAccount;
+import com.LogicGraph.sociallens.enums.ConnectedAccountStatus;
 import com.LogicGraph.sociallens.exception.NotFoundException;
+import com.LogicGraph.sociallens.exception.TokenRefreshFailedException;
 import com.LogicGraph.sociallens.repository.ConnectedAccountRepository;
 import org.springframework.stereotype.Service;
 
@@ -32,7 +34,14 @@ public class GoogleTokenService {
                 .findByUser_IdAndPlatform(userId, com.LogicGraph.sociallens.enums.Platform.YOUTUBE)
                 .orElseThrow(() -> new NotFoundException("No YouTube connected account for userId=" + userId));
 
-        youTubeOAuthService.refreshIfNeeded(acc);
+        try {
+            youTubeOAuthService.refreshIfNeeded(acc);
+        } catch (TokenRefreshFailedException ex) {
+            acc.setStatus(ConnectedAccountStatus.REFRESH_FAILED);
+            acc.setDisconnectReason("Token refresh failed");
+            connectedAccountRepository.save(acc);
+            throw ex;
+        }
         return acc.getAccessToken();
     }
 }

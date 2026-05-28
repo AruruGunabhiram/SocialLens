@@ -41,6 +41,7 @@ public class SecurityConfig {
                         // These must be declared before the broader authenticated() rule.
                         .requestMatchers(
                                 "/api/v1/connected-accounts/status",
+                                "/api/v1/connected-accounts/disconnect",
                                 "/api/v1/jobs/refresh/channel")
                             .permitAll()
                         // Admin routes protected by ApiKeyAuthFilter

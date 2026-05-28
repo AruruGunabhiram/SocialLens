@@ -1,6 +1,7 @@
 package com.LogicGraph.sociallens.jobs;
 
 import com.LogicGraph.sociallens.enums.ConnectedAccountStatus;
+import com.LogicGraph.sociallens.exception.TokenRefreshFailedException;
 import com.LogicGraph.sociallens.repository.ConnectedAccountRepository;
 import com.LogicGraph.sociallens.service.oauth.YouTubeOAuthService;
 import org.slf4j.Logger;
@@ -56,6 +57,13 @@ public class OAuthAnalyticsRefreshJob {
             try {
                 boolean didRefresh = oauthService.refreshIfNeeded(acc);
                 if (didRefresh) refreshed++;
+            } catch (TokenRefreshFailedException ex) {
+                failed++;
+                log.warn("OAuthAnalyticsRefreshJob token refresh permanently failed for accountId={}: {}",
+                        acc.getId(), ex.getMessage());
+                acc.setStatus(ConnectedAccountStatus.REFRESH_FAILED);
+                acc.setDisconnectReason("Token refresh failed");
+                connectedAccountRepository.save(acc);
             } catch (Exception ex) {
                 failed++;
                 log.warn("OAuthAnalyticsRefreshJob failed for accountId={}: {}", acc.getId(), ex.getMessage(), ex);

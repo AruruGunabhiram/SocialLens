@@ -6,6 +6,7 @@ import type { ChannelItem } from '@/api/types'
 import { ChannelAvatar } from '@/components/common/ChannelAvatar'
 import { SkeletonBlock } from '@/components/common/SkeletonBlock'
 import { Card } from '@/components/ui/card'
+import { ErrorState } from '@/components/common/ErrorState'
 import { TrackChannelDialog } from '@/features/channels/components/TrackChannelDialog'
 import { useChannelRefreshByIdMutation, useChannelsQuery } from '@/features/channels/queries'
 import { useRefreshAction } from '@/hooks/useRefreshAction'
@@ -818,7 +819,7 @@ function EmptyDashboard({ onTrackClick }: { onTrackClick: () => void }) {
 
 export default function DashboardPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
-  const { data: channels, isLoading } = useChannelsQuery(false)
+  const { data: channels, isLoading, isError, error, refetch } = useChannelsQuery(false)
 
   return (
     <div className="space-y-8">
@@ -826,6 +827,13 @@ export default function DashboardPage() {
 
       {isLoading ? (
         <OverviewStatsSkeleton />
+      ) : isError ? (
+        <ErrorState
+          title="Failed to load channels"
+          description={error instanceof Error ? error.message : undefined}
+          actionLabel="Retry"
+          onAction={() => refetch()}
+        />
       ) : channels?.length ? (
         <>
           <OverviewStats channels={channels} />
