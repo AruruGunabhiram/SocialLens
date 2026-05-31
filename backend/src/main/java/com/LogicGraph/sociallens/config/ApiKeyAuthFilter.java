@@ -71,6 +71,7 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
      */
     static final List<String> BYPASS_PATTERNS = List.of(
             "/api/v1/connected-accounts/status",
+            "/api/v1/connected-accounts/disconnect",
             "/api/v1/jobs/refresh/channel"
     );
 

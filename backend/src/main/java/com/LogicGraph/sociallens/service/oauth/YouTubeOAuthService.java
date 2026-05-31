@@ -157,6 +157,7 @@ public class YouTubeOAuthService {
 
         Instant newExpiresAt = Instant.now().plusSeconds(refreshed.expiresInSeconds());
         account.updateTokens(refreshed.accessToken(), null, newExpiresAt, account.getScopes());
+        account.setLastRefreshedAt(Instant.now());
 
         connectedAccountService.save(account);
 
@@ -190,6 +191,7 @@ public class YouTubeOAuthService {
 
         Instant newExpiresAt = Instant.now().plusSeconds(result.expiresInSeconds());
         acc.updateTokens(result.accessToken(), null, newExpiresAt, acc.getScopes());
+        acc.setLastRefreshedAt(Instant.now());
 
         connectedAccountService.save(acc);
         return true;
