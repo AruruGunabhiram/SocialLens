@@ -427,7 +427,6 @@ export default function CopilotPage() {
   const [input, setInput] = useState('')
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const abortRef = useRef<AbortController | null>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   const { data: channels } = useChannelsQuery()
@@ -453,8 +452,7 @@ export default function CopilotPage() {
   }, [selectedId])
 
   // Copilot AI is disabled until a backend proxy endpoint is implemented.
-  // See the comment at the top of this file for details.
-  const apiKey = ''
+  const copilotEnabled = false
   const hasContext = Boolean(selectedId && analytics && topPage)
 
   async function send(text: string) {
@@ -469,10 +467,6 @@ export default function CopilotPage() {
     setMessages(nextMessages)
     setIsStreaming(true)
     setStreaming('')
-
-    abortRef.current?.abort()
-    const ctrl = new AbortController()
-    abortRef.current = ctrl
 
     try {
       // Copilot AI requires a backend proxy endpoint — not yet implemented.
@@ -611,7 +605,7 @@ export default function CopilotPage() {
             flexShrink: 0,
           }}
         >
-          {!apiKey && (
+          {!copilotEnabled && (
             <p
               style={{
                 ...muted,
@@ -630,7 +624,7 @@ export default function CopilotPage() {
               gap: 'var(--space-2)',
               padding: 'var(--space-2)',
               background: 'var(--color-surface-1)',
-              border: `1px solid ${hasContext && apiKey ? 'var(--color-border-base)' : 'var(--color-border-subtle)'}`,
+              border: `1px solid ${hasContext && copilotEnabled ? 'var(--color-border-base)' : 'var(--color-border-subtle)'}`,
               borderRadius: 'var(--radius-lg)',
             }}
           >
@@ -642,11 +636,11 @@ export default function CopilotPage() {
               placeholder={
                 !selectedId
                   ? 'Select a channel to start…'
-                  : !apiKey
-                    ? 'API key required…'
+                  : !copilotEnabled
+                    ? 'Backend proxy required…'
                     : 'Ask anything about this channel…'
               }
-              disabled={!hasContext || !apiKey || isStreaming}
+              disabled={!hasContext || !copilotEnabled || isStreaming}
               rows={1}
               style={{
                 flex: 1,
@@ -664,14 +658,14 @@ export default function CopilotPage() {
             />
             <button
               type="button"
-              disabled={!input.trim() || !hasContext || !apiKey || isStreaming}
+              disabled={!input.trim() || !hasContext || !copilotEnabled || isStreaming}
               onClick={() => void send(input)}
               style={{
                 width: 32,
                 height: 32,
                 borderRadius: 'var(--radius-md)',
                 background:
-                  input.trim() && hasContext && apiKey && !isStreaming
+                  input.trim() && hasContext && copilotEnabled && !isStreaming
                     ? 'var(--accent)'
                     : 'var(--color-surface-2)',
                 border: 'none',
@@ -679,7 +673,9 @@ export default function CopilotPage() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor:
-                  input.trim() && hasContext && apiKey && !isStreaming ? 'pointer' : 'default',
+                  input.trim() && hasContext && copilotEnabled && !isStreaming
+                    ? 'pointer'
+                    : 'default',
                 flexShrink: 0,
                 transition: 'background var(--duration-base)',
               }}
@@ -689,7 +685,7 @@ export default function CopilotPage() {
                 size={15}
                 style={{
                   color:
-                    input.trim() && hasContext && apiKey && !isStreaming
+                    input.trim() && hasContext && copilotEnabled && !isStreaming
                       ? 'var(--color-text-inverse)'
                       : 'var(--color-text-muted)',
                 }}
