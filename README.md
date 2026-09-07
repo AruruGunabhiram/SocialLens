@@ -1,36 +1,25 @@
 # SocialLens
 
-A YouTube analytics platform that ingests channel and video metrics via the YouTube Data API v3, stores daily snapshots, and presents an interactive dashboard for trend analysis and channel insights.
+Ingest public YouTube channel and video metrics, snapshot them once per day, and read the resulting time series in a React dashboard.
 
-> Built with Spring Boot 3.3.0 (Java 17) + React 18 + TypeScript.
+The interesting problem here is not the charts — it is making a daily metrics pipeline **idempotent and quota-aware** on top of an API that only ever tells you the current value. SocialLens solves that with day-keyed upserts, a cursor-based incremental video sync, and a per-channel concurrency guard.
 
----
-
-## Screenshots
-
-> _Add screenshots here before portfolio submission._
-
-| Dashboard | Channel Detail | Trends |
-|-----------|---------------|--------|
-| `docs/screenshots/dashboard.png` | `docs/screenshots/channel-detail.png` | `docs/screenshots/trends.png` |
-
-| Videos Table | OAuth Connect | Demo Mode |
-|-------------|--------------|-----------|
-| `docs/screenshots/videos.png` | `docs/screenshots/oauth-connect.png` | `docs/screenshots/demo-mode.png` |
+> **Scope:** local-first prototype, run with Docker + a YouTube Data API key. Single user, no authentication, not deployed.
+> Spring Boot 3.3.0 (Java 17) · React 18 + TypeScript · PostgreSQL + Flyway.
 
 ---
 
 ## Quick Demo (no backend required)
 
-SocialLens ships with a **Demo Mode** — a full in-memory dataset that runs entirely in the browser without a backend, database, or API keys.
+SocialLens ships with a **Demo Mode**: a **synthetic, browser-local dataset**. No backend, database, or API key is involved, and none of the numbers are real.
 
-1. Open `http://localhost:5173` (frontend only, backend not needed).
-2. Click the **Demo** button in the top-right toolbar.
-3. All pages (dashboard, channel detail, videos, trends) switch to pre-seeded mock data.
-4. An amber **"Demo"** badge and a persistent banner remind you that no real data is being shown.
-5. Click **Demo** again to exit back to live mode.
+1. Open `http://localhost:5173` (frontend only).
+2. Click **Demo** in the top-right toolbar.
+3. All pages (dashboard, channel detail, videos, trends) switch to the synthetic dataset.
+4. An amber **"Demo"** badge and a persistent banner mark the data as not real.
+5. Click **Demo** again to return to live mode.
 
-This is the recommended way to walk through the UI during a portfolio review.
+This is the fastest way to walk through the UI without provisioning credentials.
 
 ---
 
@@ -39,7 +28,7 @@ This is the recommended way to walk through the UI during a portfolio review.
 SocialLens lets you:
 
 - **Track channels** — look up any public YouTube channel by ID, handle, or custom URL
-- **Snapshot metrics daily** — subscriber count, view count, and video count stored once per day per channel via a scheduled job
+- **Snapshot metrics daily** — subscriber count, view count, and video count stored at most once per day per channel, via a manual refresh or the (opt-in) scheduled job
 - **Explore trends** — visualise timeseries data (7 / 30 / 90-day range) with daily-change or cumulative modes
 - **Browse videos** — paginated, sortable table of synced videos with per-video stats (views, likes, comments)
 - **Connect via OAuth** — link a Google/YouTube account via the authorization code flow; access token is auto-refreshed before expiry
@@ -81,29 +70,32 @@ SocialLens lets you:
 
 ## Architecture Overview
 
+```mermaid
+flowchart TD
+    subgraph FE["React frontend (Vite)"]
+        A["TanStack Query → Axios → Zod validation at the API boundary"]
+        A2["Demo Mode: localStorage flag → synthetic in-browser dataset"]
+    end
+
+    A -->|"HTTP :8081"| B
+
+    subgraph BE["Spring Boot API"]
+        B["ApiKeyAuthFilter<br/>guards jobs · oauth · youtube · admin routes"]
+        B --> C["Controllers → Services → Repositories → JPA entities"]
+        C --> D["Scheduled jobs — disabled by default<br/>daily refresh 02:30 · OAuth refresh /6h · state cleanup hourly"]
+    end
+
+    C --> E[("PostgreSQL<br/>Flyway-managed schema<br/>AES-256-GCM encrypted tokens at rest")]
+    D --> E
+    D -->|"channels.list · videos.list"| F["YouTube Data API v3"]
+    C -->|"authorization code flow"| G["Google OAuth 2.0<br/>token exchange + refresh"]
+    F --> E
+    G --> E
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         React Frontend                          │
-│   TanStack Query → Axios → Zod validation → Component render   │
-│   Demo Mode: localStorage flag → in-memory mock data           │
-└──────────────────────────┬──────────────────────────────────────┘
-                           │ HTTP (localhost:8081)
-┌──────────────────────────▼──────────────────────────────────────┐
-│                      Spring Boot API                            │
-│  Controllers → Services → Repositories → JPA entities          │
-│  AnalyticsController  ChannelsController  YouTubeOAuthController│
-│  JobsController  ConnectedAccountController                     │
-│  ApiKeyAuthFilter (guards admin/jobs/oauth/youtube routes)      │
-└────────────┬──────────────────────────────┬─────────────────────┘
-             │ YouTube Data API v3           │ Google OAuth 2.0
-             │                              │
-┌────────────▼────────────┐    ┌────────────▼─────────────────────┐
-│  PostgreSQL             │    │  Google APIs (token exchange,     │
-│  Flyway-managed schema  │    │  channels.list, videos.list)      │
-│  AES-256-GCM encrypted  │    │                                   │
-│  tokens at rest         │    └──────────────────────────────────┘
-└─────────────────────────┘
-```
+
+**Ingestion path:** a refresh run resolves each tracked channel against the YouTube Data API, writes one snapshot row per channel per day via an idempotent upsert (`UNIQUE(channel_id, captured_day_utc)`, so a duplicate is a no-op), and advances a `lastVideoSyncAt` cursor so only new videos are fetched. A `ConcurrentHashMap` lock plus `SyncCooldownGuard` prevents the same channel from syncing twice concurrently.
+
+**Scheduling is off by default.** `sociallens.jobs.enabled`, `daily-refresh.enabled`, and `oauth-refresh.enabled` all ship as `false`; out of the box, snapshots are produced only by a manual `POST /api/v1/jobs/refresh/channel`. Enable them in `application-local.properties` to run the cron schedules (daily refresh `0 30 2 * * *`, OAuth refresh every 6 h, OAuth state cleanup hourly), which also apply per-run caps of 25 channels / 500 API calls / 400 videos per channel.
 
 See [docs/architecture.md](docs/architecture.md) for the full design.
 
@@ -359,14 +351,14 @@ SocialLens/
 ### What is fully implemented
 
 - Public channel tracking by handle, ID, or custom URL
-- Daily snapshot pipeline with idempotent upsert
+- Daily snapshot pipeline with idempotent upsert (scheduler disabled by default; runs on manual refresh)
 - Incremental video sync with `lastVideoSyncAt` cursor
 - Per-channel concurrent sync guard (`ConcurrentHashMap` lock + `SyncCooldownGuard`)
 - AES-256-GCM token encryption at rest (all OAuth tokens)
 - Google OAuth 2.0 authorization code flow — start, callback, state validation (single-use UUID, 10-min TTL), token exchange
 - Automatic access token refresh (60-second pre-expiry buffer)
-- Background OAuth token refresh job (every 6 hours)
-- Expired OAuth state cleanup job (every hour)
+- Background OAuth token refresh job (every 6 hours; disabled by default)
+- Expired OAuth state cleanup job (every hour, top of the hour UTC)
 - Timeseries analytics (7 / 30 / 90 days, three metrics)
 - Paginated, sortable, searchable video table
 - Admin API key guard on management endpoints
@@ -422,56 +414,30 @@ SocialLens/
 
 ---
 
-## Verification Checklist
+## Testing & Verification
 
-### 1. Confirm the backend is running
+| | |
+|---|---|
+| Backend | 21 JUnit 5 test classes (Mockito, `@AutoConfigureMockMvc`, H2 in-memory with Flyway disabled) |
+| Frontend | 16 Vitest / Testing Library test files |
+| CI | GitHub Actions — frontend: typecheck, lint, unit tests, production build; backend: Gradle build and test |
 
-```bash
-curl -s http://localhost:8081/health
-# Expected: OK
-```
+Test counts are file counts from this repository. CI status is not asserted here; run the workflow to confirm.
 
-### 2. Confirm the frontend API base URL
-
-```bash
-grep VITE_API_BASE_URL frontend/.env.development
-# Expected: VITE_API_BASE_URL=http://localhost:8081
-```
-
-The frontend falls back to `http://localhost:8081` in `axiosClient.ts` if the env var is unset.
-
-### 3. Verify Demo Mode
-
-1. Open `http://localhost:5173`.
-2. Click **Demo** in the toolbar — amber badge appears, all pages show mock data.
-3. Click **Demo** again — reverts to live mode.
-
-### 4. Verify footer status indicator (live mode)
-
-1. Open `http://localhost:5173` with the backend running — footer shows green **Operational**.
-2. Stop the backend — within ~60 s the footer switches to **Degraded**.
-3. Restart the backend — returns to **Operational** within one polling interval.
-
-### 5. Trigger a manual channel refresh
+**Smoke check a running stack:**
 
 ```bash
-curl -X POST "http://localhost:8081/api/v1/jobs/refresh/channel?channelDbId=1"
-# Expected: 200 with refresh result JSON
-```
+curl -s http://localhost:8081/health                       # expect: OK
+curl -X POST "http://localhost:8081/api/v1/jobs/refresh/channel?channelDbId=1"   # expect: 200 + refresh JSON
 
-### 6. Verify API key guard
-
-```bash
-# Should return 401 (no key)
-curl -s -o /dev/null -w "%{http_code}" \
-  http://localhost:8081/api/v1/youtube/sync
-
-# Should succeed (with valid key and body)
+# Admin guard: no key -> 401, valid key -> 200
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8081/api/v1/youtube/sync
 curl -X POST "http://localhost:8081/api/v1/youtube/sync" \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: your-secret-admin-key" \
+  -H "Content-Type: application/json" -H "X-API-Key: $SOCIALLENS_ADMIN_KEY" \
   -d '{"identifier": "@mkbhd"}'
 ```
+
+In the UI, toggling **Demo** switches every page to the synthetic dataset and shows an amber badge; stopping the backend flips the footer indicator from **Operational** to **Degraded** within roughly one 60 s polling interval.
 
 ---
 
